@@ -1,88 +1,137 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronUp, ChevronDown, X } from "lucide-react";
+import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Block } from "@blocknote/core";
 
-// Define Module interface
+// Dynamically import the LearningMaterialEditor component
+const DynamicLearningMaterialEditor = dynamic(
+    () => import("../../../components/LearningMaterialEditor"),
+    { ssr: false }
+);
+
+// Define interfaces
+interface LearningMaterial {
+    id: string;
+    title: string;
+    position: number;
+    type: 'material';
+    content?: any[]; // Using any[] instead of Block[] to avoid type issues
+}
+
+interface Quiz {
+    id: string;
+    title: string;
+    position: number;
+    type: 'quiz';
+    questions?: any[];
+}
+
+type ModuleItem = LearningMaterial | Quiz;
+
 interface Module {
     id: string;
     title: string;
     position: number;
+    items: ModuleItem[];
+    isExpanded: boolean;
 }
 
 export default function CreateCourse() {
-    const [courseTitle, setCourseTitle] = useState("New Course");
+    const [courseTitle, setCourseTitle] = useState("");
     const [modules, setModules] = useState<Module[]>([]);
+    const [activeItem, setActiveItem] = useState<ModuleItem | null>(null);
+    const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(false);
     const titleRef = useRef<HTMLHeadingElement>(null);
-    const newModuleRef = useRef<HTMLHeadingElement | null>(null);
+    const newModuleRef = useRef<string | null>(null);
+    const newItemRef = useRef<string | null>(null);
+    const dialogTitleRef = useRef<HTMLHeadingElement>(null);
+    const dialogContentRef = useRef<HTMLDivElement>(null);
 
-    // Focus the title and position cursor at the end when the page loads
+    // Check for dark mode
+    useEffect(() => {
+        setIsDarkMode(document.documentElement.classList.contains('dark'));
+
+        // Optional: Listen for changes to the dark mode
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    setIsDarkMode(document.documentElement.classList.contains('dark'));
+                }
+            });
+        });
+
+        observer.observe(document.documentElement, { attributes: true });
+
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
+
+    // Focus the title when the page loads
     useEffect(() => {
         if (titleRef.current) {
-            // Set initial content
-            titleRef.current.textContent = courseTitle;
-
             titleRef.current.focus();
-
-            // Create a range and set cursor position at the end of the text
-            const range = document.createRange();
-            const selection = window.getSelection();
-
-            // Get the text node (first child of the h1 element)
-            const textNode = titleRef.current.firstChild;
-
-            if (textNode && selection) {
-                // Set range to end of text content
-                range.setStart(textNode, textNode.textContent?.length || 0);
-                range.setEnd(textNode, textNode.textContent?.length || 0);
-
-                // Apply the range to the selection
-                selection.removeAllRanges();
-                selection.addRange(range);
-            }
         }
     }, []);
 
-    // Set initial content and focus on newly added modules
+    // Set initial content and focus on newly added modules and items
     useEffect(() => {
-        // Initialize all module elements with their titles
-        modules.forEach(module => {
-            const moduleElement = document.querySelector(`[data-module-id="${module.id}"]`) as HTMLHeadingElement;
-            if (moduleElement && !moduleElement.textContent) {
-                moduleElement.textContent = module.title;
-            }
-        });
-
         // Focus the newly added module
         if (newModuleRef.current) {
-            // Set the initial content
-            const lastModule = modules[modules.length - 1];
-            if (lastModule) {
-                newModuleRef.current.textContent = lastModule.title;
-            }
+            const moduleId = newModuleRef.current;
+            const moduleElement = document.querySelector(`[data-module-id="${moduleId}"]`) as HTMLHeadingElement;
 
-            newModuleRef.current.focus();
-
-            // Position cursor at the end of the text
-            const range = document.createRange();
-            const selection = window.getSelection();
-            const textNode = newModuleRef.current.firstChild;
-
-            if (textNode && selection) {
-                range.setStart(textNode, textNode.textContent?.length || 0);
-                range.setEnd(textNode, textNode.textContent?.length || 0);
-
-                selection.removeAllRanges();
-                selection.addRange(range);
+            if (moduleElement) {
+                moduleElement.focus();
             }
 
             // Clear the ref after focusing
             newModuleRef.current = null;
         }
+
+        // Focus the newly added item
+        if (newItemRef.current) {
+            const itemId = newItemRef.current;
+            const itemElement = document.querySelector(`[data-item-id="${itemId}"]`) as HTMLHeadingElement;
+
+            if (itemElement) {
+                itemElement.focus();
+            }
+
+            // Clear the ref after focusing
+            newItemRef.current = null;
+        }
     }, [modules]);
 
+    // Focus the dialog title when dialog opens and set initial content
+    useEffect(() => {
+        if (isDialogOpen && dialogTitleRef.current && activeItem) {
+            // Set the initial content
+            dialogTitleRef.current.textContent = activeItem.title;
+            dialogTitleRef.current.focus();
+        }
+    }, [isDialogOpen, activeItem]);
+
+    // Handle Escape key to close dialog
+    useEffect(() => {
+        const handleEscKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isDialogOpen) {
+                closeDialog();
+            }
+        };
+
+        window.addEventListener('keydown', handleEscKey);
+        return () => {
+            window.removeEventListener('keydown', handleEscKey);
+        };
+    }, [isDialogOpen]);
+
     const handleTitleChange = (e: React.FormEvent<HTMLHeadingElement>) => {
-        setCourseTitle(e.currentTarget.textContent || "New Course");
+        setCourseTitle(e.currentTarget.textContent || "");
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLHeadingElement>) => {
@@ -96,16 +145,19 @@ export default function CreateCourse() {
     const addModule = () => {
         const newModule: Module = {
             id: `module-${Date.now()}`,
-            title: "New Module",
-            position: modules.length
+            title: "",
+            position: modules.length,
+            items: [],
+            isExpanded: true
         };
 
         setModules([...modules, newModule]);
+        newModuleRef.current = newModule.id;
     };
 
     const updateModuleTitle = (id: string, title: string) => {
         setModules(modules.map(module =>
-            module.id === id ? { ...module, title: title || "New Module" } : module
+            module.id === id ? { ...module, title } : module
         ));
     };
 
@@ -154,6 +206,220 @@ export default function CreateCourse() {
         });
     };
 
+    const toggleModule = (id: string) => {
+        setModules(modules.map(module =>
+            module.id === id ? { ...module, isExpanded: !module.isExpanded } : module
+        ));
+    };
+
+    const addLearningMaterial = (moduleId: string) => {
+        setModules(modules.map(module => {
+            if (module.id === moduleId) {
+                const newItem: LearningMaterial = {
+                    id: `material-${Date.now()}`,
+                    title: "",
+                    position: module.items.length,
+                    type: 'material',
+                    content: [] // Empty content, the editor will initialize with default content
+                };
+
+                newItemRef.current = newItem.id;
+
+                return {
+                    ...module,
+                    items: [...module.items, newItem]
+                };
+            }
+            return module;
+        }));
+    };
+
+    const addQuiz = (moduleId: string) => {
+        setModules(modules.map(module => {
+            if (module.id === moduleId) {
+                const newItem: Quiz = {
+                    id: `quiz-${Date.now()}`,
+                    title: "",
+                    position: module.items.length,
+                    type: 'quiz',
+                    questions: []
+                };
+
+                newItemRef.current = newItem.id;
+
+                return {
+                    ...module,
+                    items: [...module.items, newItem]
+                };
+            }
+            return module;
+        }));
+    };
+
+    const updateItemTitle = (moduleId: string, itemId: string, title: string) => {
+        setModules(modules.map(module => {
+            if (module.id === moduleId) {
+                return {
+                    ...module,
+                    items: module.items.map(item =>
+                        item.id === itemId ? { ...item, title } : item
+                    )
+                };
+            }
+            return module;
+        }));
+
+        // Also update active item title if it's currently being edited
+        if (activeItem && activeItem.id === itemId) {
+            setActiveItem({
+                ...activeItem,
+                title
+            });
+        }
+    };
+
+    const updateItemContent = (moduleId: string, itemId: string, content: any[]) => {
+        setModules(modules.map(module => {
+            if (module.id === moduleId) {
+                return {
+                    ...module,
+                    items: module.items.map(item =>
+                        item.id === itemId ? {
+                            ...item,
+                            content: item.type === 'material' ? content : undefined,
+                            questions: item.type === 'quiz' ? (item as Quiz).questions : undefined
+                        } : item
+                    )
+                };
+            }
+            return module;
+        }));
+
+        // Also update active item content if it's currently being edited
+        if (activeItem && activeItem.id === itemId && activeItem.type === 'material') {
+            setActiveItem({
+                ...activeItem,
+                content
+            } as LearningMaterial);
+        }
+    };
+
+    const deleteItem = (moduleId: string, itemId: string) => {
+        setModules(modules.map(module => {
+            if (module.id === moduleId) {
+                const filteredItems = module.items.filter(item => item.id !== itemId);
+                return {
+                    ...module,
+                    items: filteredItems.map((item, index) => ({
+                        ...item,
+                        position: index
+                    }))
+                };
+            }
+            return module;
+        }));
+    };
+
+    const moveItemUp = (moduleId: string, itemId: string) => {
+        setModules(modules.map(module => {
+            if (module.id === moduleId) {
+                const index = module.items.findIndex(item => item.id === itemId);
+                if (index <= 0) return module;
+
+                const newItems = [...module.items];
+                [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
+
+                return {
+                    ...module,
+                    items: newItems.map((item, idx) => ({
+                        ...item,
+                        position: idx
+                    }))
+                };
+            }
+            return module;
+        }));
+    };
+
+    const moveItemDown = (moduleId: string, itemId: string) => {
+        setModules(modules.map(module => {
+            if (module.id === moduleId) {
+                const index = module.items.findIndex(item => item.id === itemId);
+                if (index === -1 || index === module.items.length - 1) return module;
+
+                const newItems = [...module.items];
+                [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+
+                return {
+                    ...module,
+                    items: newItems.map((item, idx) => ({
+                        ...item,
+                        position: idx
+                    }))
+                };
+            }
+            return module;
+        }));
+    };
+
+    // Handle click on module header area to toggle expansion
+    const handleModuleClick = (e: React.MouseEvent, moduleId: string) => {
+        // Prevent toggling if clicking on buttons or editable title
+        if (
+            (e.target as HTMLElement).tagName === 'BUTTON' ||
+            (e.target as HTMLElement).closest('button') ||
+            (e.target as HTMLElement).getAttribute('contenteditable') === 'true'
+        ) {
+            return;
+        }
+
+        toggleModule(moduleId);
+    };
+
+    // Open the dialog for editing a learning material or quiz
+    const openItemDialog = (moduleId: string, itemId: string) => {
+        // Find the module and item
+        const module = modules.find(m => m.id === moduleId);
+        if (!module) return;
+
+        const item = module.items.find(i => i.id === itemId);
+        if (!item) return;
+
+        setActiveItem(item);
+        setActiveModuleId(moduleId);
+        setIsDialogOpen(true);
+    };
+
+    // Close the dialog
+    const closeDialog = () => {
+        setIsDialogOpen(false);
+        setActiveItem(null);
+        setActiveModuleId(null);
+    };
+
+    // Update the title of the active item in the dialog
+    const handleDialogTitleChange = (e: React.FormEvent<HTMLHeadingElement>) => {
+        if (!activeItem || !activeModuleId) return;
+
+        const newTitle = e.currentTarget.textContent || "";
+        updateItemTitle(activeModuleId, activeItem.id, newTitle);
+    };
+
+    // Handle click outside dialog to close it
+    const handleDialogBackdropClick = (e: React.MouseEvent) => {
+        // Only close if clicking directly on the backdrop, not on the dialog content
+        if (dialogContentRef.current && !dialogContentRef.current.contains(e.target as Node)) {
+            closeDialog();
+        }
+    };
+
+    // Handle content change from the editor
+    const handleEditorContentChange = (content: any[]) => {
+        if (activeItem && activeModuleId && activeItem.type === 'material') {
+            updateItemContent(activeModuleId, activeItem.id, content);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-white dark:bg-black px-8 py-12">
             <div className="max-w-2xl mx-auto">
@@ -163,7 +429,7 @@ export default function CreateCourse() {
                     suppressContentEditableWarning
                     onInput={handleTitleChange}
                     onKeyDown={handleKeyDown}
-                    className="text-4xl font-light text-black dark:text-white outline-none mb-12"
+                    className="text-4xl font-light text-black dark:text-white outline-none mb-12 empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
                     data-placeholder="New Course"
                 />
 
@@ -171,44 +437,152 @@ export default function CreateCourse() {
                     {modules.map((module, index) => (
                         <div
                             key={module.id}
-                            className="flex items-center group border border-gray-200 dark:border-gray-800 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
+                            className="border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
                         >
-                            <div className="flex-1">
-                                <h2
-                                    contentEditable
-                                    suppressContentEditableWarning
-                                    onInput={(e) => updateModuleTitle(module.id, e.currentTarget.textContent || "")}
-                                    onKeyDown={handleKeyDown}
-                                    className="text-xl font-light text-black dark:text-white outline-none"
-                                    ref={index === modules.length - 1 && newModuleRef.current === null ? (el) => { newModuleRef.current = el; } : undefined}
-                                    data-module-id={module.id}
-                                />
+                            <div
+                                className="flex items-center group p-4 cursor-pointer"
+                                onClick={(e) => handleModuleClick(e, module.id)}
+                            >
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleModule(module.id);
+                                    }}
+                                    className="mr-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                                    aria-label={module.isExpanded ? "Collapse module" : "Expand module"}
+                                >
+                                    {module.isExpanded ? <ChevronDownExpand size={18} /> : <ChevronRight size={18} />}
+                                </button>
+                                <div className="flex-1">
+                                    <h2
+                                        contentEditable
+                                        suppressContentEditableWarning
+                                        onInput={(e) => updateModuleTitle(module.id, e.currentTarget.textContent || "")}
+                                        onKeyDown={handleKeyDown}
+                                        className="text-xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
+                                        data-module-id={module.id}
+                                        data-placeholder="New Module"
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            moveModuleUp(module.id);
+                                        }}
+                                        disabled={index === 0}
+                                        className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                        aria-label="Move module up"
+                                    >
+                                        <ChevronUp size={18} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            moveModuleDown(module.id);
+                                        }}
+                                        disabled={index === modules.length - 1}
+                                        className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                        aria-label="Move module down"
+                                    >
+                                        <ChevronDown size={18} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            deleteModule(module.id);
+                                        }}
+                                        className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                                        aria-label="Delete module"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
                             </div>
-                            <div className="flex items-center space-x-2">
-                                <button
-                                    onClick={() => moveModuleUp(module.id)}
-                                    disabled={index === 0}
-                                    className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                    aria-label="Move module up"
-                                >
-                                    <ChevronUp size={18} />
-                                </button>
-                                <button
-                                    onClick={() => moveModuleDown(module.id)}
-                                    disabled={index === modules.length - 1}
-                                    className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                    aria-label="Move module down"
-                                >
-                                    <ChevronDown size={18} />
-                                </button>
-                                <button
-                                    onClick={() => deleteModule(module.id)}
-                                    className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-                                    aria-label="Delete module"
-                                >
-                                    <X size={18} />
-                                </button>
-                            </div>
+
+                            {module.isExpanded && (
+                                <div className="px-4 pb-4 pt-0">
+                                    <div className="pl-6 border-l border-gray-200 dark:border-gray-800 ml-2 space-y-3">
+                                        {module.items.map((item, itemIndex) => (
+                                            <div
+                                                key={item.id}
+                                                className="flex items-center group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors"
+                                                onClick={() => openItemDialog(module.id, item.id)}
+                                                style={{
+                                                    "--hover-bg-color": "#2A2A2A"
+                                                } as React.CSSProperties}
+                                                onMouseOver={(e) => {
+                                                    (e.currentTarget as HTMLElement).style.backgroundColor = "#2A2A2A";
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    (e.currentTarget as HTMLElement).style.backgroundColor = "";
+                                                }}
+                                            >
+                                                <div className="mr-2 text-gray-400">
+                                                    {item.type === 'material' ? <BookOpen size={16} /> : <HelpCircle size={16} />}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="text-base font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none">
+                                                        {item.title || (item.type === 'material' ? "New Learning Material" : "New Quiz")}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            moveItemUp(module.id, item.id);
+                                                        }}
+                                                        disabled={itemIndex === 0}
+                                                        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                                        aria-label="Move item up"
+                                                    >
+                                                        <ChevronUp size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            moveItemDown(module.id, item.id);
+                                                        }}
+                                                        disabled={itemIndex === module.items.length - 1}
+                                                        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                                        aria-label="Move item down"
+                                                    >
+                                                        <ChevronDown size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            deleteItem(module.id, item.id);
+                                                        }}
+                                                        className="p-1 text-gray-400 hover:text-white transition-colors"
+                                                        aria-label="Delete item"
+                                                    >
+                                                        <Trash size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        <div className="flex space-x-2 mt-4">
+                                            <button
+                                                onClick={() => addLearningMaterial(module.id)}
+                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors"
+                                            >
+                                                <Plus size={14} className="mr-1" />
+                                                Learning Material
+                                            </button>
+                                            <button
+                                                onClick={() => addQuiz(module.id)}
+                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors"
+                                            >
+                                                <Plus size={14} className="mr-1" />
+                                                Quiz
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -220,6 +594,85 @@ export default function CreateCourse() {
                     Add Module
                 </button>
             </div>
+
+            {/* Learning Material/Quiz Dialog */}
+            {isDialogOpen && activeItem && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    onClick={handleDialogBackdropClick}
+                >
+                    <div
+                        ref={dialogContentRef}
+                        style={{
+                            backgroundColor: '#1A1A1A',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            borderColor: '#1A1A1A',
+                            border: '1px solid #1A1A1A'
+                        }}
+                        className="w-full max-w-6xl h-[90vh] rounded-lg shadow-2xl flex flex-col transform transition-all duration-300 ease-in-out scale-100 translate-y-0"
+                    >
+                        {/* Dialog Header */}
+                        <div className="flex items-center justify-between p-6" style={{ backgroundColor: '#1A1A1A' }}>
+                            <h2
+                                ref={dialogTitleRef}
+                                contentEditable={false}
+                                suppressContentEditableWarning
+                                className="text-2xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
+                                data-placeholder={activeItem.type === 'material' ? "New Learning Material" : "New Quiz"}
+                                onClick={(e) => {
+                                    e.currentTarget.contentEditable = "true";
+                                    e.currentTarget.focus();
+                                    e.stopPropagation();
+                                }}
+                                onBlur={(e) => {
+                                    e.currentTarget.contentEditable = "false";
+                                    handleDialogTitleChange(e);
+                                }}
+                            >
+                                {activeItem.title || (activeItem.type === 'material' ? "New Learning Material" : "New Quiz")}
+                            </h2>
+                            <button
+                                onClick={closeDialog}
+                                className="p-1 text-gray-400 hover:text-white transition-colors"
+                                aria-label="Close dialog"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        {/* Dialog Content */}
+                        <div className="flex flex-1 overflow-hidden p-6 pt-0" style={{ backgroundColor: '#1A1A1A' }}>
+                            {activeItem.type === 'material' ? (
+                                /* Full width editor for learning material */
+                                <div className="w-full overflow-auto" style={{ backgroundColor: '#1A1A1A' }}>
+                                    <DynamicLearningMaterialEditor
+                                        initialContent={activeItem.content}
+                                        onChange={handleEditorContentChange}
+                                        isDarkMode={true}
+                                    />
+                                </div>
+                            ) : (
+                                /* Split view for quiz with editor and preview */
+                                <>
+                                    {/* Left Side - Editor */}
+                                    <div className="w-1/2 pr-3 overflow-auto" style={{ backgroundColor: '#1A1A1A' }}>
+                                        <div className="h-full flex items-center justify-center text-gray-400" style={{ backgroundColor: '#1A1A1A' }}>
+                                            Quiz editor will go here
+                                        </div>
+                                    </div>
+
+                                    {/* Right Side - Preview */}
+                                    <div className="w-1/2 pl-3 overflow-auto" style={{ backgroundColor: '#1A1A1A' }}>
+                                        <div className="h-full flex items-center justify-center text-gray-400" style={{ backgroundColor: '#1A1A1A' }}>
+                                            Preview will go here
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 } 
