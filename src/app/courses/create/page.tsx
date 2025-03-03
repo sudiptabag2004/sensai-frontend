@@ -5,11 +5,20 @@ import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpa
 import dynamic from "next/dynamic";
 import { Block } from "@blocknote/core";
 
-// Dynamically import the LearningMaterialEditor component
+// Dynamically import the editor components
 const DynamicLearningMaterialEditor = dynamic(
     () => import("../../../components/LearningMaterialEditor"),
     { ssr: false }
 );
+
+// Dynamically import the QuizEditor component
+const DynamicQuizEditor = dynamic(
+    () => import("../../../components/QuizEditor"),
+    { ssr: false }
+);
+
+// Import the QuizQuestion type
+import { QuizQuestion } from "../../../components/QuizEditor";
 
 // Define interfaces
 interface LearningMaterial {
@@ -25,7 +34,7 @@ interface Quiz {
     title: string;
     position: number;
     type: 'quiz';
-    questions?: any[];
+    questions: QuizQuestion[];
 }
 
 type ModuleItem = LearningMaterial | Quiz;
@@ -242,7 +251,10 @@ export default function CreateCourse() {
                     title: "",
                     position: module.items.length,
                     type: 'quiz',
-                    questions: []
+                    questions: [{
+                        id: `question-${Date.now()}`,
+                        content: []
+                    }]
                 };
 
                 newItemRef.current = newItem.id;
@@ -378,14 +390,36 @@ export default function CreateCourse() {
 
     // Open the dialog for editing a learning material or quiz
     const openItemDialog = (moduleId: string, itemId: string) => {
-        // Find the module and item
         const module = modules.find(m => m.id === moduleId);
         if (!module) return;
 
         const item = module.items.find(i => i.id === itemId);
         if (!item) return;
 
-        setActiveItem(item);
+        // Ensure quiz items have questions property initialized
+        if (item.type === 'quiz' && !item.questions) {
+            const updatedItem = {
+                ...item,
+                questions: [{ id: `question-${Date.now()}`, content: [] }]
+            } as Quiz;
+
+            // Update the module with the fixed item
+            setModules(prevModules =>
+                prevModules.map(m =>
+                    m.id === moduleId
+                        ? {
+                            ...m,
+                            items: m.items.map(i => i.id === itemId ? updatedItem : i)
+                        }
+                        : m
+                ) as Module[]
+            );
+
+            setActiveItem(updatedItem);
+        } else {
+            setActiveItem(item);
+        }
+
         setActiveModuleId(moduleId);
         setIsDialogOpen(true);
     };
@@ -418,6 +452,36 @@ export default function CreateCourse() {
         if (activeItem && activeModuleId && activeItem.type === 'material') {
             updateItemContent(activeModuleId, activeItem.id, content);
         }
+    };
+
+    // Add a handler for quiz content changes
+    const handleQuizContentChange = (questions: QuizQuestion[]) => {
+        if (activeItem && activeModuleId && activeItem.type === 'quiz') {
+            updateQuizQuestions(activeModuleId, activeItem.id, questions);
+        }
+    };
+
+    // Add a function to update quiz questions
+    const updateQuizQuestions = (moduleId: string, itemId: string, questions: QuizQuestion[]) => {
+        setModules(prevModules =>
+            prevModules.map(module => {
+                if (module.id === moduleId) {
+                    return {
+                        ...module,
+                        items: module.items.map(item => {
+                            if (item.id === itemId && item.type === 'quiz') {
+                                return {
+                                    ...item,
+                                    questions
+                                } as Quiz;
+                            }
+                            return item;
+                        })
+                    };
+                }
+                return module;
+            })
+        );
     };
 
     return (
@@ -642,7 +706,7 @@ export default function CreateCourse() {
 
                         {/* Dialog Content */}
                         <div className="flex flex-1 overflow-hidden p-6 pt-0" style={{ backgroundColor: '#1A1A1A' }}>
-                            {activeItem.type === 'material' ? (
+                            {activeItem?.type === 'material' ? (
                                 /* Full width editor for learning material */
                                 <div className="w-full overflow-auto" style={{ backgroundColor: '#1A1A1A' }}>
                                     <DynamicLearningMaterialEditor
@@ -651,24 +715,16 @@ export default function CreateCourse() {
                                         isDarkMode={true}
                                     />
                                 </div>
-                            ) : (
-                                /* Split view for quiz with editor and preview */
-                                <>
-                                    {/* Left Side - Editor */}
-                                    <div className="w-1/2 pr-3 overflow-auto" style={{ backgroundColor: '#1A1A1A' }}>
-                                        <div className="h-full flex items-center justify-center text-gray-400" style={{ backgroundColor: '#1A1A1A' }}>
-                                            Quiz editor will go here
-                                        </div>
-                                    </div>
-
-                                    {/* Right Side - Preview */}
-                                    <div className="w-1/2 pl-3 overflow-auto" style={{ backgroundColor: '#1A1A1A' }}>
-                                        <div className="h-full flex items-center justify-center text-gray-400" style={{ backgroundColor: '#1A1A1A' }}>
-                                            Preview will go here
-                                        </div>
-                                    </div>
-                                </>
-                            )}
+                            ) : activeItem?.type === 'quiz' ? (
+                                /* Full width quiz editor */
+                                <div className="w-full overflow-auto" style={{ backgroundColor: '#1A1A1A' }}>
+                                    <DynamicQuizEditor
+                                        initialQuestions={activeItem.questions}
+                                        onChange={handleQuizContentChange}
+                                        isDarkMode={true}
+                                    />
+                                </div>
+                            ) : null}
                         </div>
                     </div>
                 </div>
