@@ -1,14 +1,16 @@
 "use client";
 
 import "@blocknote/core/fonts/inter.css";
-import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 // Add custom styles for dark mode
 import "./editor-styles.css";
+
+// Import the LearningMaterialEditor for each question
+import LearningMaterialEditor from "./LearningMaterialEditor";
 
 export interface QuizQuestion {
     id: string;
@@ -25,68 +27,43 @@ interface QuizEditorProps {
 export default function QuizEditor({
     initialQuestions = [],
     onChange,
-    isDarkMode = true, // Default to dark mode
+    isDarkMode = true,
     className = "",
 }: QuizEditorProps) {
-    const editorContainerRef = useRef<HTMLDivElement>(null);
-
-    // Initialize with at least one question if none provided
+    // Initialize questions state
     const [questions, setQuestions] = useState<QuizQuestion[]>(() => {
-        if (initialQuestions.length > 0) return initialQuestions;
+        if (initialQuestions && initialQuestions.length > 0) {
+            return initialQuestions;
+        }
         return [{ id: `question-${Date.now()}`, content: [] }];
     });
 
-    // Track the current question index
+    // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
-    // Create a BlockNote editor instance for the current question
-    const editor = useCreateBlockNote({
-        initialContent: questions[currentQuestionIndex]?.content || [],
-    });
+    // Handle content change for the current question
+    const handleQuestionContentChange = (content: any[]) => {
+        const updatedQuestions = [...questions];
+        updatedQuestions[currentQuestionIndex] = {
+            ...updatedQuestions[currentQuestionIndex],
+            content
+        };
 
-    // Update the editor content when changing questions
-    useEffect(() => {
-        if (questions[currentQuestionIndex]?.content) {
-            editor.replaceBlocks(editor.document, questions[currentQuestionIndex].content);
-        } else {
-            editor.replaceBlocks(editor.document, []);
+        setQuestions(updatedQuestions);
+
+        if (onChange) {
+            onChange(updatedQuestions);
         }
-    }, [currentQuestionIndex, questions]);
-
-    // Handle content changes
-    useEffect(() => {
-        const handleChange = () => {
-            const updatedQuestions = [...questions];
-            updatedQuestions[currentQuestionIndex] = {
-                ...updatedQuestions[currentQuestionIndex],
-                content: editor.document
-            };
-
-            setQuestions(updatedQuestions);
-
-            if (onChange) {
-                onChange(updatedQuestions);
-            }
-        };
-
-        // Add change listener
-        editor.onEditorContentChange(handleChange);
-
-        return () => {
-            // This is a cleanup function that would ideally remove the listener
-            // but BlockNote doesn't provide a way to remove listeners currently
-        };
-    }, [editor, onChange, questions, currentQuestionIndex]);
+    };
 
     // Add a new question
     const addQuestion = () => {
-        const newQuestion: QuizQuestion = {
+        const newQuestion = {
             id: `question-${Date.now()}`,
             content: []
         };
 
-        setQuestions([...questions, newQuestion]);
-        // Navigate to the new question
+        setQuestions(prev => [...prev, newQuestion]);
         setCurrentQuestionIndex(questions.length);
     };
 
@@ -104,41 +81,13 @@ export default function QuizEditor({
         }
     };
 
-    // This effect prevents the editor from losing focus
-    useEffect(() => {
-        // Get all elements with contentEditable=true outside the editor
-        const makeElementsNonStealingFocus = () => {
-            // Find all contentEditable elements in the document
-            const editableElements = document.querySelectorAll('[contenteditable="true"]');
-
-            // For each editable element outside our editor
-            editableElements.forEach(element => {
-                if (!editorContainerRef.current?.contains(element)) {
-                    // Add a data attribute to mark it
-                    element.setAttribute('data-original-contenteditable', 'true');
-                    // Make it non-editable
-                    element.setAttribute('contenteditable', 'false');
-                }
-            });
-        };
-
-        // Call immediately and then set up an interval to keep checking
-        makeElementsNonStealingFocus();
-        const intervalId = setInterval(makeElementsNonStealingFocus, 500);
-
-        return () => {
-            clearInterval(intervalId);
-            // Restore original contentEditable values
-            document.querySelectorAll('[data-original-contenteditable="true"]').forEach(element => {
-                element.setAttribute('contenteditable', 'true');
-            });
-        };
-    }, []);
+    // Get the current question's content
+    const currentQuestionContent = questions[currentQuestionIndex]?.content || [];
 
     return (
         <div className="flex flex-col h-full">
             {/* Quiz Controls */}
-            <div className="flex items-center justify-between mb-4 px-2 py-3 bg-[#2A2A2A] rounded-md">
+            <div className="flex items-center justify-between mb-4 px-2 py-3">
                 <button
                     onClick={addQuestion}
                     className="flex items-center px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-[#3A3A3A] hover:bg-[#4A4A4A] rounded-md transition-colors"
@@ -172,16 +121,22 @@ export default function QuizEditor({
                 </div>
             </div>
 
-            {/* Editor Container */}
-            <div
-                ref={editorContainerRef}
-                className={`flex-1 dark-editor-container dark-dialog ${className}`}
-            >
-                <BlockNoteView
-                    editor={editor}
-                    theme="dark" // Force dark theme
-                    className="dark-editor" // Add a class for additional styling
-                />
+            {/* Split screen layout */}
+            <div className="flex flex-1 gap-4">
+                {/* Editor Container - Left side */}
+                <div className={`w-1/2 dark-editor-container dark-dialog ${className}`}>
+                    <LearningMaterialEditor
+                        key={`question-editor-${currentQuestionIndex}`}
+                        initialContent={currentQuestionContent}
+                        onChange={handleQuestionContentChange}
+                        isDarkMode={isDarkMode}
+                    />
+                </div>
+
+                {/* Preview Container - Right side */}
+                <div className="w-1/2 bg-[#1E1E1E] rounded-md">
+                    {/* Preview content will go here */}
+                </div>
             </div>
         </div>
     );

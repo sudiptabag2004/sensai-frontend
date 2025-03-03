@@ -1,24 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash } from "lucide-react";
+import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Block } from "@blocknote/core";
 
-// Dynamically import the editor components
+// Dynamically import the LearningMaterialEditor component
 const DynamicLearningMaterialEditor = dynamic(
-    () => import("../../../components/LearningMaterialEditor"),
+    () => import("../../../../components/LearningMaterialEditor"),
     { ssr: false }
 );
-
-// Dynamically import the QuizEditor component
-const DynamicQuizEditor = dynamic(
-    () => import("../../../components/QuizEditor"),
-    { ssr: false }
-);
-
-// Import the QuizQuestion type
-import { QuizQuestion } from "../../../components/QuizEditor";
 
 // Define interfaces
 interface LearningMaterial {
@@ -26,7 +17,7 @@ interface LearningMaterial {
     title: string;
     position: number;
     type: 'material';
-    content?: any[]; // Using any[] instead of Block[] to avoid type issues
+    content?: Block[];
 }
 
 interface Quiz {
@@ -34,7 +25,7 @@ interface Quiz {
     title: string;
     position: number;
     type: 'quiz';
-    questions: QuizQuestion[];
+    questions?: any[];
 }
 
 type ModuleItem = LearningMaterial | Quiz;
@@ -229,7 +220,12 @@ export default function CreateCourse() {
                     title: "",
                     position: module.items.length,
                     type: 'material',
-                    content: [] // Empty content, the editor will initialize with default content
+                    content: [
+                        {
+                            type: "paragraph",
+                            content: "Start writing your learning material here..."
+                        }
+                    ]
                 };
 
                 newItemRef.current = newItem.id;
@@ -251,10 +247,7 @@ export default function CreateCourse() {
                     title: "",
                     position: module.items.length,
                     type: 'quiz',
-                    questions: [{
-                        id: `question-${Date.now()}`,
-                        content: []
-                    }]
+                    questions: []
                 };
 
                 newItemRef.current = newItem.id;
@@ -290,7 +283,7 @@ export default function CreateCourse() {
         }
     };
 
-    const updateItemContent = (moduleId: string, itemId: string, content: any[]) => {
+    const updateItemContent = (moduleId: string, itemId: string, content: Block[]) => {
         setModules(modules.map(module => {
             if (module.id === moduleId) {
                 return {
@@ -390,36 +383,14 @@ export default function CreateCourse() {
 
     // Open the dialog for editing a learning material or quiz
     const openItemDialog = (moduleId: string, itemId: string) => {
+        // Find the module and item
         const module = modules.find(m => m.id === moduleId);
         if (!module) return;
 
         const item = module.items.find(i => i.id === itemId);
         if (!item) return;
 
-        // Ensure quiz items have questions property initialized
-        if (item.type === 'quiz' && !item.questions) {
-            const updatedItem = {
-                ...item,
-                questions: [{ id: `question-${Date.now()}`, content: [] }]
-            } as Quiz;
-
-            // Update the module with the fixed item
-            setModules(prevModules =>
-                prevModules.map(m =>
-                    m.id === moduleId
-                        ? {
-                            ...m,
-                            items: m.items.map(i => i.id === itemId ? updatedItem : i)
-                        }
-                        : m
-                ) as Module[]
-            );
-
-            setActiveItem(updatedItem);
-        } else {
-            setActiveItem(item);
-        }
-
+        setActiveItem(item);
         setActiveModuleId(moduleId);
         setIsDialogOpen(true);
     };
@@ -448,40 +419,10 @@ export default function CreateCourse() {
     };
 
     // Handle content change from the editor
-    const handleEditorContentChange = (content: any[]) => {
+    const handleEditorContentChange = (content: Block[]) => {
         if (activeItem && activeModuleId && activeItem.type === 'material') {
             updateItemContent(activeModuleId, activeItem.id, content);
         }
-    };
-
-    // Handle quiz content changes
-    const handleQuizContentChange = (questions: QuizQuestion[]) => {
-        if (activeItem && activeModuleId && activeItem.type === 'quiz') {
-            updateQuizQuestions(activeModuleId, activeItem.id, questions);
-        }
-    };
-
-    // Add a function to update quiz questions
-    const updateQuizQuestions = (moduleId: string, itemId: string, questions: QuizQuestion[]) => {
-        setModules(prevModules =>
-            prevModules.map(module => {
-                if (module.id === moduleId) {
-                    return {
-                        ...module,
-                        items: module.items.map(item => {
-                            if (item.id === itemId && item.type === 'quiz') {
-                                return {
-                                    ...item,
-                                    questions
-                                } as Quiz;
-                            }
-                            return item;
-                        })
-                    };
-                }
-                return module;
-            })
-        );
     };
 
     return (
@@ -573,15 +514,6 @@ export default function CreateCourse() {
                                                 key={item.id}
                                                 className="flex items-center group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors"
                                                 onClick={() => openItemDialog(module.id, item.id)}
-                                                style={{
-                                                    "--hover-bg-color": "#2A2A2A"
-                                                } as React.CSSProperties}
-                                                onMouseOver={(e) => {
-                                                    (e.currentTarget as HTMLElement).style.backgroundColor = "#2A2A2A";
-                                                }}
-                                                onMouseOut={(e) => {
-                                                    (e.currentTarget as HTMLElement).style.backgroundColor = "";
-                                                }}
                                             >
                                                 <div className="mr-2 text-gray-400">
                                                     {item.type === 'material' ? <BookOpen size={16} /> : <HelpCircle size={16} />}
@@ -598,7 +530,7 @@ export default function CreateCourse() {
                                                             moveItemUp(module.id, item.id);
                                                         }}
                                                         disabled={itemIndex === 0}
-                                                        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                                        className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                                         aria-label="Move item up"
                                                     >
                                                         <ChevronUp size={16} />
@@ -609,7 +541,7 @@ export default function CreateCourse() {
                                                             moveItemDown(module.id, item.id);
                                                         }}
                                                         disabled={itemIndex === module.items.length - 1}
-                                                        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                                        className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                                         aria-label="Move item down"
                                                     >
                                                         <ChevronDown size={16} />
@@ -619,10 +551,10 @@ export default function CreateCourse() {
                                                             e.stopPropagation();
                                                             deleteItem(module.id, item.id);
                                                         }}
-                                                        className="p-1 text-gray-400 hover:text-white transition-colors"
+                                                        className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
                                                         aria-label="Delete item"
                                                     >
-                                                        <Trash size={16} />
+                                                        <X size={16} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -667,37 +599,23 @@ export default function CreateCourse() {
                 >
                     <div
                         ref={dialogContentRef}
-                        style={{
-                            backgroundColor: '#1A1A1A',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                            borderColor: '#1A1A1A',
-                            border: '1px solid #1A1A1A'
-                        }}
-                        className="w-full max-w-6xl h-[90vh] rounded-lg shadow-2xl flex flex-col transform transition-all duration-300 ease-in-out scale-100 translate-y-0"
+                        className="bg-gray-50 dark:bg-gray-900 w-full max-w-6xl h-[90vh] rounded-lg shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col transform transition-all duration-300 ease-in-out scale-100 translate-y-0"
+                        style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
                     >
                         {/* Dialog Header */}
-                        <div className="flex items-center justify-between p-6" style={{ backgroundColor: '#1A1A1A' }}>
+                        <div className="flex items-center justify-between p-6">
                             <h2
                                 ref={dialogTitleRef}
-                                contentEditable={false}
+                                contentEditable
                                 suppressContentEditableWarning
-                                className="text-2xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
+                                onInput={handleDialogTitleChange}
+                                onKeyDown={handleKeyDown}
+                                className="text-2xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
                                 data-placeholder={activeItem.type === 'material' ? "New Learning Material" : "New Quiz"}
-                                onClick={(e) => {
-                                    e.currentTarget.contentEditable = "true";
-                                    e.currentTarget.focus();
-                                    e.stopPropagation();
-                                }}
-                                onBlur={(e) => {
-                                    e.currentTarget.contentEditable = "false";
-                                    handleDialogTitleChange(e);
-                                }}
-                            >
-                                {activeItem.title || (activeItem.type === 'material' ? "New Learning Material" : "New Quiz")}
-                            </h2>
+                            />
                             <button
                                 onClick={closeDialog}
-                                className="p-1 text-gray-400 hover:text-white transition-colors"
+                                className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
                                 aria-label="Close dialog"
                             >
                                 <X size={24} />
@@ -705,26 +623,29 @@ export default function CreateCourse() {
                         </div>
 
                         {/* Dialog Content */}
-                        <div className="flex flex-1 overflow-hidden p-6 pt-0" style={{ backgroundColor: '#1A1A1A' }}>
-                            {activeItem?.type === 'material' ? (
-                                /* Full width editor for learning material */
-                                <div className="w-full overflow-auto" style={{ backgroundColor: '#1A1A1A' }}>
+                        <div className="flex flex-1 overflow-hidden p-6 pt-0">
+                            {/* Left Side - Editor */}
+                            <div className="w-1/2 pr-3 overflow-auto">
+                                {activeItem.type === 'material' && (
                                     <DynamicLearningMaterialEditor
                                         initialContent={activeItem.content}
                                         onChange={handleEditorContentChange}
-                                        isDarkMode={true}
+                                        isDarkMode={isDarkMode}
                                     />
+                                )}
+                                {activeItem.type === 'quiz' && (
+                                    <div className="h-full flex items-center justify-center text-gray-400">
+                                        Quiz editor will go here
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Right Side - Preview */}
+                            <div className="w-1/2 pl-3 overflow-auto">
+                                <div className="h-full flex items-center justify-center text-gray-400">
+                                    Preview will go here
                                 </div>
-                            ) : activeItem?.type === 'quiz' ? (
-                                /* Quiz editor with split screen layout */
-                                <div className="w-full overflow-auto" style={{ backgroundColor: '#1A1A1A' }}>
-                                    <DynamicQuizEditor
-                                        initialQuestions={activeItem.questions || []}
-                                        onChange={handleQuizContentChange}
-                                        isDarkMode={true}
-                                    />
-                                </div>
-                            ) : null}
+                            </div>
                         </div>
                     </div>
                 </div>
