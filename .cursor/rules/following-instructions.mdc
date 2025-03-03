@@ -21,10 +21,7 @@ When given instructions to build something, follow these important guidelines:
 - Only begin coding after the plan has been established
 
 ## Focus on Simplicity
-- Implement EXACTLY what is requested WITHOUT ANY ADDITIONAL ELEMENTS
-- NEVER add "nice to have" features or content that wasn't explicitly requested
-- If asked for a single button, create ONLY that button - no headers, no extra text, no additional UI elements
-- Resist the urge to "improve" the design with unrequested components
+- Implement exactly what is requested without adding unnecessary complexity
 - Start with the minimal viable implementation before suggesting enhancements
 - Don't create additional pages or components unless explicitly requested
 
@@ -37,13 +34,11 @@ When given instructions to build something, follow these important guidelines:
 - Complete one task fully before moving to the next
 - Only proceed to additional features with explicit direction
 - Keep focus on the immediate requirement
-- If uncertain about scope, ALWAYS ask before implementing
 
 ## Avoid Assumptions
 - Don't make assumptions about project structure or architecture preferences
 - Ask clarifying questions before implementing complex solutions
 - Understand the context before suggesting architectural changes
-- NEVER assume that "more is better" - follow the exact specifications
 
 ## Test Changes Thoroughly
 - Ensure changes don't break existing functionality
@@ -54,7 +49,6 @@ When given instructions to build something, follow these important guidelines:
 - Pay close attention to specific requirements and feedback
 - Be especially attentive when receiving correction or frustration
 - Prioritize the user's explicit needs over perceived "best practices"
-- When the user expresses frustration, immediately acknowledge the mistake and correct course
 
 ## Be Incremental
 - Make smaller, focused changes that can be easily reviewed
@@ -65,10 +59,11 @@ When given instructions to build something, follow these important guidelines:
 - Ask questions when requirements are ambiguous
 - Confirm understanding before implementing complex solutions
 - Propose alternatives only when requested or when there's a critical issue
-- If tempted to add extra features, ASK FIRST
 
-## When in Doubt, Do Less
-- It's better to implement less and be asked to add more than to implement too much
-- Always err on the side of minimalism
-- Remember that every additional element requires user approval
-- The user can always request more, but removing unwanted elements creates frustration 
+## Avoid Causing Frustration
+- Acknowledge when a solution isn't working and pivot quickly
+- Don't persist with an approach that has failed multiple times
+- Take responsibility for mistakes and learn from them
+- Be honest about limitations in understanding
+- Respect the user's time by implementing comprehensive solutions
+- Listen to feedback, especially expressions of frustration, as signals to change approach 
