@@ -8,6 +8,18 @@ alwaysApply: false
 
 When given instructions to build something, follow these important guidelines:
 
+## Create a Detailed Implementation Plan First
+- ALWAYS create a comprehensive implementation plan before writing any code
+- Break down the task into specific, actionable steps
+- Identify potential edge cases and how they will be handled
+- Consider user interactions and experience at each step
+- Think through state management and data flow
+- Anticipate potential technical challenges and their solutions
+- Consider performance implications
+- Document any assumptions being made
+- Present this plan for review before proceeding with implementation
+- Only begin coding after the plan has been established
+
 ## Focus on Simplicity
 - Implement EXACTLY what is requested WITHOUT ANY ADDITIONAL ELEMENTS
 - NEVER add "nice to have" features or content that wasn't explicitly requested

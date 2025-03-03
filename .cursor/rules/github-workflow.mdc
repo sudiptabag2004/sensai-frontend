@@ -90,8 +90,8 @@ gh pr create --title "[Descriptive Title]" --body "[Detailed description of chan
 - Note any configuration changes required
 
 ### After Committing
-- Confirm the commit was successful
-- Summarize what was committed to the user
-- Acknowledge the positive feedback explicitly
-- Ask if any refinements are needed
-- Only proceed to the next task after confirmation 
+- Provide minimal confirmation that the commit was successful
+- Do NOT provide lengthy summaries of what was committed
+- Do NOT ask if any refinements are needed
+- Do NOT suggest next steps
+- Simply confirm the commit was completed and wait for further instructions 
