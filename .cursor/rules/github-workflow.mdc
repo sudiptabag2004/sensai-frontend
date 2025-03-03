@@ -7,11 +7,19 @@ alwaysApply: false
 # Github Workflow
 
 ## Commit Triggers
-- Commit code immediately when the user expresses any positive feedback about implemented work
-- Positive triggers include phrases like "looks good", "that works", "perfect", "nice job", etc.
-- Even subtle approval should initiate the commit process
+- ONLY commit code when the user EXPLICITLY requests a commit with clear phrases like "commit this", "commit these changes", or "make a commit now"
+- NEVER initiate the commit process based on general positive feedback or approval of the code itself
+- Do NOT interpret phrases like "looks good", "that works", or "nice job" as commit triggers
+- Always wait for a direct, unambiguous instruction to commit
+- If unsure whether the user wants to commit, ASK EXPLICITLY before proceeding with any git commands
 
 ## GitHub CLI Commit Workflow
+
+### 0. Confirm Commit Authorization
+```bash
+# ONLY proceed if the user has explicitly requested a commit
+# NEVER assume authorization to commit based on positive feedback about the code
+```
 
 ### 1. Stage Changes
 ```bash
@@ -53,15 +61,24 @@ git commit -m "test: add tests for [feature]"
 git commit -m "style: format code in [files/components]"
 ```
 
+### 4. Push Changes
+```bash
+# Push to the current branch
+git push origin [branch-name]
+```
+
+### 5. Create Pull Request (if needed)
+```bash
+# Create a pull request using GitHub CLI
+gh pr create --title "[Descriptive Title]" --body "[Detailed description of changes]"
+```
+
 ## Best Practices
 
 ### Commit Content
 - Each commit should address a single concern
 - Include all related files in the same commit
-- Don't include unrelated changes in the same commit
 - Ensure the code builds and passes tests before committing
-- Keep commits reasonably sized and focused
-- Break large changes into multiple smaller, logical commits
 
 ### Commit Messages
 - Start with a type (feat, fix, docs, style, refactor, perf, test, etc.)
@@ -71,11 +88,6 @@ git commit -m "style: format code in [files/components]"
 - Include references to specific features that received positive feedback
 - Document any non-obvious design decisions
 - Note any configuration changes required
-
-### Testing
-- Ensure tests pass before committing
-- Include new or updated tests in the same commit as the code they test
-- Verify that the feature works as expected before committing
 
 ### After Committing
 - Confirm the commit was successful
