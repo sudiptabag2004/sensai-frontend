@@ -1,0 +1,85 @@
+---
+description: Github Workflow
+globs:
+alwaysApply: false
+---
+
+# Github Workflow
+
+## Commit Triggers
+- Commit code immediately when the user expresses any positive feedback about implemented work
+- Positive triggers include phrases like "looks good", "that works", "perfect", "nice job", etc.
+- Even subtle approval should initiate the commit process
+
+## GitHub CLI Commit Workflow
+
+### 1. Stage Changes
+```bash
+# Stage all changes
+git add .
+
+# Or stage specific files if appropriate
+git add [specific files]
+```
+
+### 2. Check Status Before Committing
+```bash
+# Verify what's being committed
+git status
+```
+
+### 3. Write Commit Message
+Follow the Conventional Commits format:
+```bash
+# For new features
+git commit -m "feat: implement [specific feature name]"
+
+# For bug fixes
+git commit -m "fix: resolve [specific issue]"
+
+# For documentation changes
+git commit -m "docs: update documentation for [feature]"
+
+# For refactoring
+git commit -m "refactor: improve [component/function] structure"
+
+# For performance improvements
+git commit -m "perf: optimize [specific operation]"
+
+# For tests
+git commit -m "test: add tests for [feature]"
+
+# For style changes (formatting, etc.)
+git commit -m "style: format code in [files/components]"
+```
+
+## Best Practices
+
+### Commit Content
+- Each commit should address a single concern
+- Include all related files in the same commit
+- Don't include unrelated changes in the same commit
+- Ensure the code builds and passes tests before committing
+- Keep commits reasonably sized and focused
+- Break large changes into multiple smaller, logical commits
+
+### Commit Messages
+- Start with a type (feat, fix, docs, style, refactor, perf, test, etc.)
+- Use imperative mood ("add" not "added" or "adds")
+- Keep the first line under 72 characters
+- Add detailed description in the commit body if needed
+- Include references to specific features that received positive feedback
+- Document any non-obvious design decisions
+- Note any configuration changes required
+
+### Testing
+- Ensure tests pass before committing
+- Include new or updated tests in the same commit as the code they test
+- Verify that the feature works as expected before committing
+
+### After Committing
+- Confirm the commit was successful
+- Summarize what was committed to the user
+- Acknowledge the positive feedback explicitly
+- Ask if any refinements are needed
+- Only proceed to the next task after confirmation 
