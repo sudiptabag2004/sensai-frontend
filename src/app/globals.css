@@ -61,7 +61,27 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-feature-settings: "ss01", "ss03", "cv01", "cv02";
+  letter-spacing: -0.01em;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+button,
+.button {
+  letter-spacing: 0.01em;
 }
 
 /* Dialog styling for dark mode */
