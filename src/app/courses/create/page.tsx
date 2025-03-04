@@ -517,7 +517,7 @@ export default function CreateCourse() {
 
                     <div className="flex items-center space-x-3 ml-auto">
                         <button
-                            className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#1C68E4] hover:bg-[#222222] rounded-md transition-all cursor-pointer shadow-md w-32"
+                            className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#1C68E4] hover:bg-[#222222] rounded-md transition-all cursor-pointer w-32 shadow-md"
                             onClick={() => {
                                 // Generate with AI action
                                 console.log('Generate with AI');
@@ -797,10 +797,10 @@ export default function CreateCourse() {
                         </div>
 
                         {/* Dialog Content */}
-                        <div className={`flex flex-1 overflow-hidden p-6 ${isPreviewMode ? 'pt-6' : 'pt-0'}`} style={{ backgroundColor: '#1A1A1A' }}>
+                        <div className={`flex flex-1 overflow-hidden p-6 ${isPreviewMode ? 'pt-6' : 'pt-4'}`} style={{ backgroundColor: '#1A1A1A' }}>
                             {activeItem?.type === 'material' ? (
                                 /* Full width editor for learning material */
-                                <div className="w-full overflow-auto" style={{ backgroundColor: '#1A1A1A' }}>
+                                <div className="w-full overflow-auto mt-4" style={{ backgroundColor: '#1A1A1A' }}>
                                     <DynamicLearningMaterialEditor
                                         initialContent={activeItem.content}
                                         onChange={handleEditorContentChange}
