@@ -1,7 +1,7 @@
 ---
 description: Project information
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
  
 # AI Teaching Assistant

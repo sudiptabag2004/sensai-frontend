@@ -1,7 +1,7 @@
 ---
 description: Github Workflow
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Github Workflow

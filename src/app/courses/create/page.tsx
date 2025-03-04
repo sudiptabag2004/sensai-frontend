@@ -4,6 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Zap, Sparkles, Eye, Check, FileEdit } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Block } from "@blocknote/core";
+import Link from "next/link";
+import Image from "next/image";
+import { Header } from "@/components/layout/header";
 
 // Dynamically import the editor components
 const DynamicLearningMaterialEditor = dynamic(
@@ -502,219 +505,225 @@ export default function CreateCourse() {
     }
 
     return (
-        <div className="min-h-screen bg-white dark:bg-black px-8 py-12">
-            <div className="max-w-5xl mx-auto">
-                <div className="flex items-center justify-between mb-8">
-                    <h1
-                        ref={titleRef}
-                        contentEditable
-                        suppressContentEditableWarning
-                        onInput={handleTitleChange}
-                        onKeyDown={handleKeyDown}
-                        className="text-4xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none w-2/3"
-                        data-placeholder="New Course"
-                    />
+        <div className="min-h-screen bg-white dark:bg-black">
+            {/* Use the reusable Header component with showCreateCourseButton set to false */}
+            <Header showCreateCourseButton={false} />
 
-                    <div className="flex items-center space-x-3 ml-auto">
-                        <button
-                            className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#1C68E4] hover:bg-[#222222] rounded-md transition-all cursor-pointer w-32 shadow-md"
-                            onClick={() => {
-                                // Generate with AI action
-                                console.log('Generate with AI');
-                            }}
-                        >
-                            <span className="mr-2 text-base">✨</span>
-                            <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">Generate</span>
-                        </button>
+            {/* Main content area - keep everything else unchanged */}
+            <div className="px-8 py-12">
+                <div className="max-w-5xl mx-auto">
+                    <div className="flex items-center justify-between mb-8">
+                        <h1
+                            ref={titleRef}
+                            contentEditable
+                            suppressContentEditableWarning
+                            onInput={handleTitleChange}
+                            onKeyDown={handleKeyDown}
+                            className="text-4xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none w-2/3"
+                            data-placeholder="New Course"
+                        />
 
-                        <button
-                            className="flex items-center px-4 py-2 text-sm font-medium text-white bg-transparent border border-[#EF4444] hover:bg-[#222222] rounded-md transition-all cursor-pointer shadow-md"
-                            onClick={() => {
-                                // Preview action
-                                console.log('Preview course');
-                            }}
-                        >
-                            <span className="mr-2 text-base">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                            </span>
-                            <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">Preview</span>
-                        </button>
-
-                        <button
-                            className="flex items-center px-4 py-2 text-sm font-medium text-white bg-transparent border border-[#016037] hover:bg-[#222222] rounded-md transition-all cursor-pointer shadow-md"
-                            onClick={() => {
-                                // Publish action
-                                console.log('Publish course');
-                            }}
-                        >
-                            <span className="mr-2 text-base">🚀</span>
-                            <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">Publish</span>
-                        </button>
-                    </div>
-                </div>
-
-                <button
-                    onClick={addModule}
-                    className="mb-6 px-6 py-2 bg-black dark:bg-white text-white dark:text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 dark:focus:ring-gray-100 cursor-pointer"
-                >
-                    Add Module
-                </button>
-
-                <div className="space-y-4">
-                    {modules.map((module, index) => (
-                        <div
-                            key={module.id}
-                            className="border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
-                        >
-                            <div
-                                className="flex items-center group p-4 cursor-pointer"
-                                onClick={(e) => handleModuleClick(e, module.id)}
+                        <div className="flex items-center space-x-3 ml-auto">
+                            <button
+                                className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#1C68E4] hover:bg-[#222222] rounded-md transition-all cursor-pointer w-32 shadow-md"
+                                onClick={() => {
+                                    // Generate with AI action
+                                    console.log('Generate with AI');
+                                }}
                             >
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleModule(module.id);
-                                    }}
-                                    className="mr-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-                                    aria-label={module.isExpanded ? "Collapse module" : "Expand module"}
+                                <span className="mr-2 text-base">✨</span>
+                                <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">Generate</span>
+                            </button>
+
+                            <button
+                                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-transparent border border-[#EF4444] hover:bg-[#222222] rounded-md transition-all cursor-pointer shadow-md"
+                                onClick={() => {
+                                    // Preview action
+                                    console.log('Preview course');
+                                }}
+                            >
+                                <span className="mr-2 text-base">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </span>
+                                <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">Preview</span>
+                            </button>
+
+                            <button
+                                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-transparent border border-[#016037] hover:bg-[#222222] rounded-md transition-all cursor-pointer shadow-md"
+                                onClick={() => {
+                                    // Publish action
+                                    console.log('Publish course');
+                                }}
+                            >
+                                <span className="mr-2 text-base">🚀</span>
+                                <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">Publish</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={addModule}
+                        className="mb-6 px-6 py-2 bg-black dark:bg-white text-white dark:text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 dark:focus:ring-gray-100 cursor-pointer"
+                    >
+                        Add Module
+                    </button>
+
+                    <div className="space-y-4">
+                        {modules.map((module, index) => (
+                            <div
+                                key={module.id}
+                                className="border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
+                            >
+                                <div
+                                    className="flex items-center group p-4 cursor-pointer"
+                                    onClick={(e) => handleModuleClick(e, module.id)}
                                 >
-                                    {module.isExpanded ? <ChevronDownExpand size={18} /> : <ChevronRight size={18} />}
-                                </button>
-                                <div className="flex-1">
-                                    <h2
-                                        contentEditable
-                                        suppressContentEditableWarning
-                                        onInput={(e) => updateModuleTitle(module.id, e.currentTarget.textContent || "")}
-                                        onKeyDown={handleKeyDown}
-                                        className="text-xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
-                                        data-module-id={module.id}
-                                        data-placeholder="New Module"
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                </div>
-                                <div className="flex items-center space-x-2">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            moveModuleUp(module.id);
+                                            toggleModule(module.id);
                                         }}
-                                        disabled={index === 0}
-                                        className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                        aria-label="Move module up"
+                                        className="mr-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                                        aria-label={module.isExpanded ? "Collapse module" : "Expand module"}
                                     >
-                                        <ChevronUp size={18} />
+                                        {module.isExpanded ? <ChevronDownExpand size={18} /> : <ChevronRight size={18} />}
                                     </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            moveModuleDown(module.id);
-                                        }}
-                                        disabled={index === modules.length - 1}
-                                        className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                        aria-label="Move module down"
-                                    >
-                                        <ChevronDown size={18} />
-                                    </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            deleteModule(module.id);
-                                        }}
-                                        className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-                                        aria-label="Delete module"
-                                    >
-                                        <X size={18} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {module.isExpanded && (
-                                <div className="px-4 pb-4 pt-0">
-                                    <div className="pl-6 border-l border-gray-200 dark:border-gray-800 ml-2 space-y-3">
-                                        {module.items.map((item, itemIndex) => (
-                                            <div
-                                                key={item.id}
-                                                className="flex items-center group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors"
-                                                onClick={() => openItemDialog(module.id, item.id)}
-                                                style={{
-                                                    "--hover-bg-color": "#2A2A2A"
-                                                } as React.CSSProperties}
-                                                onMouseOver={(e) => {
-                                                    (e.currentTarget as HTMLElement).style.backgroundColor = "#2A2A2A";
-                                                }}
-                                                onMouseOut={(e) => {
-                                                    (e.currentTarget as HTMLElement).style.backgroundColor = "";
-                                                }}
-                                            >
-                                                <div className="mr-2 text-gray-400">
-                                                    {item.type === 'material' ? <BookOpen size={16} /> : <HelpCircle size={16} />}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="text-base font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none">
-                                                        {item.title || (item.type === 'material' ? "New Learning Material" : "New Quiz")}
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            moveItemUp(module.id, item.id);
-                                                        }}
-                                                        disabled={itemIndex === 0}
-                                                        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                                                        aria-label="Move item up"
-                                                    >
-                                                        <ChevronUp size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            moveItemDown(module.id, item.id);
-                                                        }}
-                                                        disabled={itemIndex === module.items.length - 1}
-                                                        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                                                        aria-label="Move item down"
-                                                    >
-                                                        <ChevronDown size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            deleteItem(module.id, item.id);
-                                                        }}
-                                                        className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                                                        aria-label="Delete item"
-                                                    >
-                                                        <Trash size={16} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-
-                                        <div className="flex space-x-2 mt-4">
-                                            <button
-                                                onClick={() => addLearningMaterial(module.id)}
-                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors cursor-pointer"
-                                            >
-                                                <Plus size={14} className="mr-1" />
-                                                Learning Material
-                                            </button>
-                                            <button
-                                                onClick={() => addQuiz(module.id)}
-                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors cursor-pointer"
-                                            >
-                                                <Plus size={14} className="mr-1" />
-                                                Quiz
-                                            </button>
-                                        </div>
+                                    <div className="flex-1">
+                                        <h2
+                                            contentEditable
+                                            suppressContentEditableWarning
+                                            onInput={(e) => updateModuleTitle(module.id, e.currentTarget.textContent || "")}
+                                            onKeyDown={handleKeyDown}
+                                            className="text-xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
+                                            data-module-id={module.id}
+                                            data-placeholder="New Module"
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                moveModuleUp(module.id);
+                                            }}
+                                            disabled={index === 0}
+                                            className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            aria-label="Move module up"
+                                        >
+                                            <ChevronUp size={18} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                moveModuleDown(module.id);
+                                            }}
+                                            disabled={index === modules.length - 1}
+                                            className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            aria-label="Move module down"
+                                        >
+                                            <ChevronDown size={18} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                deleteModule(module.id);
+                                            }}
+                                            className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                                            aria-label="Delete module"
+                                        >
+                                            <X size={18} />
+                                        </button>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    ))}
+
+                                {module.isExpanded && (
+                                    <div className="px-4 pb-4 pt-0">
+                                        <div className="pl-6 border-l border-gray-200 dark:border-gray-800 ml-2 space-y-3">
+                                            {module.items.map((item, itemIndex) => (
+                                                <div
+                                                    key={item.id}
+                                                    className="flex items-center group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors"
+                                                    onClick={() => openItemDialog(module.id, item.id)}
+                                                    style={{
+                                                        "--hover-bg-color": "#2A2A2A"
+                                                    } as React.CSSProperties}
+                                                    onMouseOver={(e) => {
+                                                        (e.currentTarget as HTMLElement).style.backgroundColor = "#2A2A2A";
+                                                    }}
+                                                    onMouseOut={(e) => {
+                                                        (e.currentTarget as HTMLElement).style.backgroundColor = "";
+                                                    }}
+                                                >
+                                                    <div className="mr-2 text-gray-400">
+                                                        {item.type === 'material' ? <BookOpen size={16} /> : <HelpCircle size={16} />}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="text-base font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none">
+                                                            {item.title || (item.type === 'material' ? "New Learning Material" : "New Quiz")}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                moveItemUp(module.id, item.id);
+                                                            }}
+                                                            disabled={itemIndex === 0}
+                                                            className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                                            aria-label="Move item up"
+                                                        >
+                                                            <ChevronUp size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                moveItemDown(module.id, item.id);
+                                                            }}
+                                                            disabled={itemIndex === module.items.length - 1}
+                                                            className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                                            aria-label="Move item down"
+                                                        >
+                                                            <ChevronDown size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                deleteItem(module.id, item.id);
+                                                            }}
+                                                            className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                                                            aria-label="Delete item"
+                                                        >
+                                                            <Trash size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+
+                                            <div className="flex space-x-2 mt-4">
+                                                <button
+                                                    onClick={() => addLearningMaterial(module.id)}
+                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors cursor-pointer"
+                                                >
+                                                    <Plus size={14} className="mr-1" />
+                                                    Learning Material
+                                                </button>
+                                                <button
+                                                    onClick={() => addQuiz(module.id)}
+                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors cursor-pointer"
+                                                >
+                                                    <Plus size={14} className="mr-1" />
+                                                    Quiz
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
 

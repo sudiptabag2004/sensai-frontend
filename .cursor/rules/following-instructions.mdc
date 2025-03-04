@@ -1,7 +1,7 @@
 ---
 description: How to follow instructions
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 
 # How to follow instructions

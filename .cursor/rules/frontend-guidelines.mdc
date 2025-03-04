@@ -1,7 +1,7 @@
 ---
 description: Frontend Guidelines
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Frontend Guidelines

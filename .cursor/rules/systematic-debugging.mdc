@@ -1,7 +1,7 @@
 ---
 description: Debugging Process
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Debugging Process

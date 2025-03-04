@@ -1,7 +1,7 @@
 ---
 description: Design Guidelines
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Design Guidelines
