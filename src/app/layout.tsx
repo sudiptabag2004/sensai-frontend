@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sensai - Course Creator",
+  title: "SensAI",
   description: "Create and manage interactive courses",
 };
 

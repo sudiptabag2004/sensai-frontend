@@ -3,20 +3,30 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
     showCreateCourseButton?: boolean;
 }
 
 export function Header({ showCreateCourseButton = true }: HeaderProps) {
+    const router = useRouter();
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const profileMenuRef = useRef<HTMLDivElement>(null);
+    const [hasSchool, setHasSchool] = useState<boolean | null>(null);
+    const [schoolId, setSchoolId] = useState<string>("1"); // Mock school ID
 
     // Mock user data - in a real app, this would come from authentication
     const user = {
         name: "shadcn",
         email: "m@example.com"
     };
+
+    // Check if user has a school
+    useEffect(() => {
+        const userHasSchool = localStorage.getItem("hasSchool") === "true";
+        setHasSchool(userHasSchool);
+    }, []);
 
     // Close the profile menu when clicking outside
     useEffect(() => {
@@ -44,6 +54,18 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
         setProfileMenuOpen(!profileMenuOpen);
     };
 
+    // Handle button click
+    const handleButtonClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+
+        // If user has a school, go to school admin page, otherwise go to school creation page
+        if (hasSchool) {
+            router.push(`/schools/${schoolId}`);
+        } else {
+            router.push("/schools/create");
+        }
+    };
+
     return (
         <header className="w-full px-3 py-4 bg-black text-white">
             <div className="max-w-full mx-auto flex justify-between items-center">
@@ -52,7 +74,7 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
                     <div className="cursor-pointer">
                         <Image
                             src="/images/sensai-logo.svg"
-                            alt="Sensai Logo"
+                            alt="SensAI Logo"
                             width={120}
                             height={40}
                             priority
@@ -63,12 +85,12 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
                 {/* Right side actions */}
                 <div className="flex items-center space-x-4 pr-1">
                     {showCreateCourseButton && (
-                        <Link
-                            href="/courses/create"
-                            className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none focus:ring-0 focus:border-0"
+                        <button
+                            onClick={handleButtonClick}
+                            className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none focus:ring-0 focus:border-0 cursor-pointer"
                         >
-                            Create Course
-                        </Link>
+                            Go To School
+                        </button>
                     )}
 
                     {/* Profile dropdown */}

@@ -1,7 +1,7 @@
 ---
 description: Design Guidelines
-globs:
-alwaysApply: true
+globs: *.tsx
+alwaysApply: false
 ---
 
 # Design Guidelines
@@ -33,6 +33,7 @@ alwaysApply: true
 ### Buttons
 - Use rounded buttons (rounded-full for primary actions)
 - Keep button text concise and action-oriented
+- ALl buttons should have cursor-pointer.
 - Implement subtle hover states (opacity changes preferred)
 - Include proper focus states for accessibility
 - Avoid excessive shadows or 3D effects

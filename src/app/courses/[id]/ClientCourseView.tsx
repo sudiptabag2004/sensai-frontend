@@ -45,6 +45,7 @@ export default function ClientCourseView({ id }: { id: string }) {
     const [modules, setModules] = useState<Module[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [schoolId, setSchoolId] = useState<string>("1"); // Default to 1 if not found
 
     // Dialog state
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -76,8 +77,14 @@ export default function ClientCourseView({ id }: { id: string }) {
         }
     };
 
-    // Fetch course data
+    // Fetch course data and init other state
     useEffect(() => {
+        // Get school ID from localStorage if available
+        const storedSchoolId = localStorage.getItem("schoolId");
+        if (storedSchoolId) {
+            setSchoolId(storedSchoolId);
+        }
+
         // Simulate API call to fetch course data
         const fetchCourse = async () => {
             setLoading(true);
@@ -295,9 +302,9 @@ export default function ClientCourseView({ id }: { id: string }) {
             <div className="px-8 py-12">
                 <div className="max-w-5xl mx-auto">
                     {/* Back button */}
-                    <Link href="/" className="inline-flex items-center text-gray-400 hover:text-white mb-6">
+                    <Link href={`/schools/${schoolId}`} className="inline-flex items-center text-gray-400 hover:text-white mb-6">
                         <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to courses
+                        Back to Courses
                     </Link>
 
                     {/* Course content */}

@@ -1,6 +1,6 @@
 ---
 description: Debugging Process
-globs:
+globs: *.tsx, *.py
 alwaysApply: true
 ---
 

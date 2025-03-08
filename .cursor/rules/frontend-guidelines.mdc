@@ -1,7 +1,6 @@
 ---
 description: Frontend Guidelines
-globs:
-alwaysApply: true
+globs: *.tsx
 ---
 
 # Frontend Guidelines

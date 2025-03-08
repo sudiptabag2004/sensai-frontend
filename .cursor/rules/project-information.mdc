@@ -1,7 +1,7 @@
 ---
 description: Project information
-globs: 
-alwaysApply: true
+globs: *.tsx, *.py
+alwaysApply: false
 ---
  
 # AI Teaching Assistant
@@ -23,6 +23,15 @@ This project is an AI Teaching Assistant designed to help teachers scale themsel
 - Learning materials and quizzes use a block-based editor (similar to Notion)
 - Students progress at their own pace (no deadlines)
 - Courses can be added to multiple cohorts
+
+### Course Display & Navigation
+- Home page adapts based on available courses:
+  - Shows only "Your Courses" when user only has teaching courses
+  - Shows only "Enrolled Courses" when user only has learning courses
+  - Shows tab navigation when user has both teaching and learning courses
+  - Shows a welcoming placeholder with course creation/browsing options when no courses exist
+- Automatic tab selection based on available course types
+- Clear visual distinction between courses created by the user and courses they're enrolled in
 
 ### Cohort Management
 - Cohorts are created by invitation
@@ -56,3 +65,4 @@ This project is an AI Teaching Assistant designed to help teachers scale themsel
 - Focus on building a clean, simple, and intuitive UI
 - Implement core functionality page by page
 - Mock AI features initially
+- Adaptive UI that responds to user context and available content

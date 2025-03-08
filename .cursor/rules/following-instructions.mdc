@@ -1,6 +1,6 @@
 ---
 description: How to follow instructions
-globs:
+globs: *.tsx, *.py
 alwaysApply: true
 ---
 
