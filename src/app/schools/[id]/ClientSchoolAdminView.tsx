@@ -74,7 +74,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                 const transformedSchool: School = {
                     id: parseInt(data.id),
                     name: data.name,
-                    url: data.url || `sensai.hyperverge.org/${data.name.toLowerCase().replace(/\s+/g, '-')}`,
+                    url: `sensai.hyperverge.org/${data.slug}`,
                     courses: data.courses || [],
                     cohorts: data.cohorts || [],
                     members: data.members || []
