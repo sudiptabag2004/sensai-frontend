@@ -4,9 +4,10 @@ globs: *.tsx, *.py
 alwaysApply: true
 ---
 
-# How to follow instructions
+# How you should be operating
 
-When given instructions to build something, follow these important guidelines:
+This should be included for every single operation that you perform whether it is to debug something or build something new.
+
 
 ## Create a Detailed Implementation Plan First
 - ALWAYS create a comprehensive implementation plan before writing any code
@@ -60,7 +61,12 @@ When given instructions to build something, follow these important guidelines:
 - Confirm understanding before implementing complex solutions
 - Propose alternatives only when requested or when there's a critical issue
 
+## First principles
+- Identify root causes of issues instead of applying some bandage fix to the problem given to you.
+- Solve the root cause directly.
+
 ## Avoid Causing Frustration
+- DO NOT CHANGE THINGS THAT ALREADY EXIST WHICH YOU HAVEN'T BEEN EXPLICITLY ASKED TO CHANGE
 - Acknowledge when a solution isn't working and pivot quickly
 - Don't persist with an approach that has failed multiple times
 - Take responsibility for mistakes and learn from them

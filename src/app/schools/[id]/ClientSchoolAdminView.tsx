@@ -63,69 +63,24 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                     return;
                 }
 
-                // Get school name from localStorage
-                const schoolName = localStorage.getItem("schoolName") || "My School";
+                const response = await fetch(`http://localhost:8001/organizations/${id}`);
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
 
-                // Mock data for now
-                const mockSchool: School = {
-                    id: parseInt(id),
-                    name: schoolName,
-                    url: `sensai.hyperverge.org/${schoolName.toLowerCase().replace(/\s+/g, '-')}`,
-                    courses: [
-                        {
-                            id: 1,
-                            title: "Introduction to AI",
-                            moduleCount: 5,
-                            description: "Learn the fundamentals of artificial intelligence"
-                        },
-                        {
-                            id: 2,
-                            title: "Web Development Fundamentals",
-                            moduleCount: 8,
-                            description: "Master HTML, CSS, and JavaScript"
-                        },
-                        {
-                            id: 3,
-                            title: "Data Science Basics",
-                            moduleCount: 6,
-                            description: "Explore data analysis techniques"
-                        }
-                    ],
-                    cohorts: [
-                        {
-                            id: 1,
-                            name: "Spring 2023",
-                            courseCount: 2,
-                            memberCount: 15,
-                            description: "Spring semester cohort"
-                        },
-                        {
-                            id: 2,
-                            name: "Summer Bootcamp",
-                            courseCount: 1,
-                            memberCount: 8,
-                            description: "Intensive summer program"
-                        }
-                    ],
-                    members: [
-                        {
-                            id: 1,
-                            name: "John Doe",
-                            email: "john@example.com",
-                            role: 'admin',
-                            joinedAt: "2023-01-15"
-                        },
-                        {
-                            id: 2,
-                            name: "Jane Smith",
-                            email: "jane@example.com",
-                            role: 'member',
-                            joinedAt: "2023-02-20"
-                        }
-                    ]
+                const data = await response.json();
+
+                // Transform the API response to match the School interface
+                const transformedSchool: School = {
+                    id: parseInt(data.id),
+                    name: data.name,
+                    url: data.url || `sensai.hyperverge.org/${data.name.toLowerCase().replace(/\s+/g, '-')}`,
+                    courses: data.courses || [],
+                    cohorts: data.cohorts || [],
+                    members: data.members || []
                 };
 
-                setSchool(mockSchool);
+                setSchool(transformedSchool);
                 setLoading(false);
             } catch (error) {
                 console.error("Error fetching school:", error);
@@ -189,8 +144,11 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-black text-white flex items-center justify-center">
-                <p>Loading...</p>
+            <div className="min-h-screen bg-black text-white">
+                <Header showCreateCourseButton={false} />
+                <div className="flex justify-center items-center py-12">
+                    <div className="w-12 h-12 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
+                </div>
             </div>
         );
     }
@@ -280,49 +238,82 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                             {/* Courses Tab */}
                             {activeTab === 'courses' && (
                                 <div>
-                                    <div className="flex justify-between items-center mb-6">
-                                        <div className="w-1"></div> {/* Empty div to maintain spacing */}
-                                        <Link
-                                            href={`/schools/${id}/courses/create`}
-                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                        >
-                                            Create Course
-                                        </Link>
-                                    </div>
+                                    {school.courses.length > 0 ? (
+                                        <>
+                                            <div className="flex justify-between items-center mb-6">
+                                                <div className="w-1"></div> {/* Empty div to maintain spacing */}
+                                                <Link
+                                                    href={`/schools/${id}/courses/create`}
+                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                >
+                                                    Create Course
+                                                </Link>
+                                            </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {school.courses.map(course => (
-                                            <CourseCard key={course.id} course={course} />
-                                        ))}
-                                    </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {school.courses.map(course => (
+                                                    <CourseCard key={course.id} course={course} />
+                                                ))}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-20">
+                                            <h2 className="text-4xl font-light mb-4">What if your next big idea became a course?</h2>
+                                            <p className="text-gray-400 mb-8">It might be easier than you think</p>
+                                            <Link
+                                                href={`/schools/${id}/courses/create`}
+                                                className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                            >
+                                                Create Course
+                                            </Link>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
                             {/* Cohorts Tab */}
                             {activeTab === 'cohorts' && (
                                 <div>
-                                    <div className="flex justify-between items-center mb-6">
-                                        <div className="w-1"></div> {/* Empty div to maintain spacing */}
-                                        <button
-                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                            onClick={() => {
-                                                // In a real app, this would open a dialog to create a new cohort
-                                                console.log("Create new cohort");
-                                            }}
-                                        >
-                                            Create Cohort
-                                        </button>
-                                    </div>
+                                    {school.cohorts.length > 0 ? (
+                                        <>
+                                            <div className="flex justify-between items-center mb-6">
+                                                <div className="w-1"></div> {/* Empty div to maintain spacing */}
+                                                <button
+                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                    onClick={() => {
+                                                        // In a real app, this would open a dialog to create a new cohort
+                                                        console.log("Create new cohort");
+                                                    }}
+                                                >
+                                                    Create Cohort
+                                                </button>
+                                            </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {school.cohorts.map(cohort => (
-                                            <CohortCard
-                                                key={cohort.id}
-                                                cohort={cohort}
-                                                schoolId={school.id}
-                                            />
-                                        ))}
-                                    </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {school.cohorts.map(cohort => (
+                                                    <CohortCard
+                                                        key={cohort.id}
+                                                        cohort={cohort}
+                                                        schoolId={school.id}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-20">
+                                            <h2 className="text-4xl font-light mb-4">Bring your courses to life with cohorts</h2>
+                                            <p className="text-gray-400 mb-8">Create groups of learners and assign them courses to learn together</p>
+                                            <button
+                                                className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                onClick={() => {
+                                                    // In a real app, this would open a dialog to create a new cohort
+                                                    console.log("Create new cohort");
+                                                }}
+                                            >
+                                                Create Cohort
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 interface CourseCardProps {
     course: {
-        id: number;
+        id: string | number;
         title: string;
         moduleCount: number;
         description?: string;
@@ -23,7 +23,21 @@ export default function CourseCard({ course }: CourseCardProps) {
             'border-indigo-500',
             'border-orange-500'
         ];
-        return colors[course.id % colors.length];
+
+        // Handle string IDs by converting to a number
+        let idNumber: number;
+        if (typeof course.id === 'string') {
+            // Use string hash code
+            idNumber = Array.from(course.id).reduce(
+                (hash, char) => ((hash << 5) - hash) + char.charCodeAt(0), 0
+            );
+            // Ensure positive number
+            idNumber = Math.abs(idNumber);
+        } else {
+            idNumber = course.id;
+        }
+
+        return colors[idNumber % colors.length];
     };
 
     return (

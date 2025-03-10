@@ -44,7 +44,7 @@ export default function ClientCourseView({ id }: { id: string }) {
     const [course, setCourse] = useState<Course | null>(null);
     const [modules, setModules] = useState<Module[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isEditMode, setIsEditMode] = useState(false);
+    const [isEditMode] = useState(true); // Always in edit mode, not toggleable
     const [schoolId, setSchoolId] = useState<string>("1"); // Default to 1 if not found
 
     // Dialog state
@@ -54,15 +54,6 @@ export default function ClientCourseView({ id }: { id: string }) {
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const dialogTitleRef = useRef<HTMLHeadingElement>(null);
     const dialogContentRef = useRef<HTMLDivElement>(null);
-
-    // Toggle edit mode
-    const toggleEditMode = () => {
-        if (isEditMode) {
-            // If we're exiting edit mode, save changes
-            saveCourse();
-        }
-        setIsEditMode(!isEditMode);
-    };
 
     // Save course changes
     const saveCourse = () => {
@@ -96,9 +87,7 @@ export default function ClientCourseView({ id }: { id: string }) {
                     title: id === "1" ? "Introduction to AI" :
                         id === "2" ? "Web Development Fundamentals" :
                             `Course ${id}`,
-                    description: id === "1" ? "Learn the fundamentals of artificial intelligence and machine learning" :
-                        id === "2" ? "Master HTML, CSS, and JavaScript to build modern websites" :
-                            `Description for Course ${id}`,
+
                     modules: [
                         {
                             id: `module-1-${id}`,
@@ -280,8 +269,6 @@ export default function ClientCourseView({ id }: { id: string }) {
 
     // Add a new module
     const addModule = () => {
-        if (!isEditMode) return;
-
         const newModule: Module = {
             id: `module-${Date.now()}`,
             title: "New Module",
@@ -299,7 +286,7 @@ export default function ClientCourseView({ id }: { id: string }) {
             <Header />
 
             {/* Main content */}
-            <div className="px-8 py-12">
+            <div className="px-8 pt-6 pb-12">
                 <div className="max-w-5xl mx-auto">
                     {/* Back button */}
                     <Link href={`/schools/${schoolId}`} className="inline-flex items-center text-gray-400 hover:text-white mb-6">
@@ -320,23 +307,6 @@ export default function ClientCourseView({ id }: { id: string }) {
 
                                 <div className="flex items-center space-x-3">
                                     <button
-                                        className="flex items-center px-4 py-2 text-sm font-medium text-white bg-transparent border border-gray-600 hover:bg-gray-800 rounded-md transition-all cursor-pointer"
-                                        onClick={toggleEditMode}
-                                    >
-                                        {isEditMode ? (
-                                            <>
-                                                <Save className="w-4 h-4 mr-2" />
-                                                Save
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Edit className="w-4 h-4 mr-2" />
-                                                Edit
-                                            </>
-                                        )}
-                                    </button>
-
-                                    <button
                                         className="flex items-center px-4 py-2 text-sm font-medium text-white bg-transparent border border-[#EF4444] hover:bg-gray-800 rounded-md transition-all cursor-pointer"
                                         onClick={() => {
                                             // Preview action
@@ -348,11 +318,6 @@ export default function ClientCourseView({ id }: { id: string }) {
                                     </button>
                                 </div>
                             </div>
-
-                            {/* Course description */}
-                            {course.description && (
-                                <p className="text-gray-400 mb-8">{course.description}</p>
-                            )}
 
                             {/* Modules section */}
                             <div className="mt-8">
@@ -505,16 +470,14 @@ export default function ClientCourseView({ id }: { id: string }) {
                                 ))}
                             </div>
 
-                            {/* Add module button - only shown in edit mode */}
-                            {isEditMode && (
-                                <button
-                                    onClick={addModule}
-                                    className="mt-6 px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer flex items-center"
-                                >
-                                    <Plus size={16} className="mr-2" />
-                                    Add Module
-                                </button>
-                            )}
+                            {/* Add module button - always shown */}
+                            <button
+                                onClick={addModule}
+                                className="mt-6 px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer flex items-center"
+                            >
+                                <Plus size={16} className="mr-2" />
+                                Add Module
+                            </button>
                         </>
                     ) : (
                         <div className="text-center py-12">

@@ -1,11 +1,12 @@
+"use client";
+
 import ClientSchoolAdminView from './ClientSchoolAdminView';
+import { useParams } from 'next/navigation';
 
-interface SchoolPageProps {
-    params: {
-        id: string;
-    };
-}
+export default function SchoolPage() {
+    // Use the proper Next.js hook to get route parameters
+    const params = useParams();
+    const id = params.id as string;
 
-export default function SchoolPage({ params }: SchoolPageProps) {
-    return <ClientSchoolAdminView id={params.id} />;
+    return <ClientSchoolAdminView id={id} />;
 } 
