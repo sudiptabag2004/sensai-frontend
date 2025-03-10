@@ -291,7 +291,7 @@ export default function ClientCourseView({ id }: { id: string }) {
                     {/* Back button */}
                     <Link href={`/schools/${schoolId}`} className="inline-flex items-center text-gray-400 hover:text-white mb-6">
                         <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Courses
+                        Back To Courses
                     </Link>
 
                     {/* Course content */}

@@ -195,7 +195,7 @@ export default function CohortPage({ params }: { params: { id: string; cohortId:
                         className="inline-flex items-center text-gray-400 hover:text-white mb-6"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Organization
+                        Back to Cohort
                     </Link>
 
                     {loading ? (
@@ -386,7 +386,7 @@ export default function CohortPage({ params }: { params: { id: string; cohortId:
                                 href={`/organizations/${params.id}`}
                                 className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity inline-block"
                             >
-                                Back to Organization
+                                Back to School
                             </Link>
                         </div>
                     )}

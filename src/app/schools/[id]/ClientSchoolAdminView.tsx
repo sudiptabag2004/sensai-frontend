@@ -2,11 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Header } from "@/components/layout/header";
-import { Edit, Save, Users, BookOpen, Layers, Building, ChevronDown } from "lucide-react";
+import { Edit, Save, Users, BookOpen, Layers, Building, ChevronDown, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CourseCard from "@/components/CourseCard";
 import CohortCard from "@/components/CohortCard";
+import InviteMembersDialog from "@/components/InviteMembersDialog";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
+import CreateCohortDialog from "@/components/CreateCohortDialog";
 
 // Define interfaces
 interface Course {
@@ -26,10 +29,8 @@ interface Cohort {
 
 interface Member {
     id: number;
-    name: string;
     email: string;
-    role: 'admin' | 'member';
-    joinedAt: string;
+    role: 'owner' | 'admin';  // Updated roles as per requirement
 }
 
 interface School {
@@ -49,7 +50,20 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<TabType>('courses');
     const [isEditingName, setIsEditingName] = useState(false);
+    const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [isCreateCohortDialogOpen, setIsCreateCohortDialogOpen] = useState(false);
+    const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
     const schoolNameRef = useRef<HTMLHeadingElement>(null);
+
+    // Initialize tab from URL hash
+    useEffect(() => {
+        // Check if there's a hash in the URL
+        const hash = window.location.hash.replace('#', '');
+        if (hash === 'cohorts' || hash === 'members') {
+            setActiveTab(hash as TabType);
+        }
+    }, []);
 
     // Fetch school data
     useEffect(() => {
@@ -63,21 +77,41 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                     return;
                 }
 
-                const response = await fetch(`http://localhost:8001/organizations/${id}`);
-                if (!response.ok) {
-                    throw new Error(`API error: ${response.status}`);
+                // Fetch basic school info
+                const schoolResponse = await fetch(`http://localhost:8001/organizations/${id}`);
+                if (!schoolResponse.ok) {
+                    throw new Error(`API error: ${schoolResponse.status}`);
                 }
+                const schoolData = await schoolResponse.json();
 
-                const data = await response.json();
+                // Fetch members separately
+                const membersResponse = await fetch(`http://localhost:8001/organizations/${id}/members`);
+                if (!membersResponse.ok) {
+                    throw new Error(`API error: ${membersResponse.status}`);
+                }
+                const membersData = await membersResponse.json();
+
+                // Fetch cohorts separately
+                const cohortsResponse = await fetch(`http://localhost:8001/cohorts/?org_id=${id}`);
+                if (!cohortsResponse.ok) {
+                    throw new Error(`API error: ${cohortsResponse.status}`);
+                }
+                const cohortsData = await cohortsResponse.json();
 
                 // Transform the API response to match the School interface
                 const transformedSchool: School = {
-                    id: parseInt(data.id),
-                    name: data.name,
-                    url: `sensai.hyperverge.org/${data.slug}`,
-                    courses: data.courses || [],
-                    cohorts: data.cohorts || [],
-                    members: data.members || []
+                    id: parseInt(schoolData.id),
+                    name: schoolData.name,
+                    url: `sensai.hyperverge.org/${schoolData.slug}`,
+                    courses: schoolData.courses || [],
+                    cohorts: cohortsData.map((cohort: any) => ({
+                        id: cohort.id,
+                        name: cohort.name,
+                        courseCount: cohort.courseCount || 0,
+                        memberCount: cohort.memberCount || 0,
+                        description: cohort.description || ''
+                    })),
+                    members: membersData || []  // Use the members from the separate endpoint
                 };
 
                 setSchool(transformedSchool);
@@ -142,6 +176,147 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
         }
     };
 
+    const handleInviteMembers = async (emails: string[]) => {
+        try {
+            // Make API call to invite members
+            const response = await fetch(`http://localhost:8001/organizations/${id}/members`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ emails }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to invite members');
+            }
+
+            // Refresh school data to get updated members list
+            const membersResponse = await fetch(`http://localhost:8001/organizations/${id}/members`);
+            if (!membersResponse.ok) {
+                throw new Error('Failed to fetch updated members');
+            }
+            const membersData = await membersResponse.json();
+
+            // Update school state with new members
+            setSchool(prev => prev ? {
+                ...prev,
+                members: membersData
+            } : null);
+
+        } catch (error) {
+            console.error('Error inviting members:', error);
+            // Here you would typically show an error message to the user
+        }
+    };
+
+    const handleDeleteMember = (member: Member) => {
+        setMemberToDelete(member);
+        setIsDeleteConfirmOpen(true);
+    };
+
+    const confirmDeleteMember = async () => {
+        if (!memberToDelete) return;
+
+        try {
+            // Make API call to delete member
+            const response = await fetch(`http://localhost:8001/organizations/${id}/members`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_ids: [memberToDelete.id]
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete member');
+            }
+
+            // Refresh school data to get updated members list
+            const membersResponse = await fetch(`http://localhost:8001/organizations/${id}/members`);
+            if (!membersResponse.ok) {
+                throw new Error('Failed to fetch updated members');
+            }
+            const membersData = await membersResponse.json();
+
+            // Update school state with new members
+            setSchool(prev => prev ? {
+                ...prev,
+                members: membersData
+            } : null);
+
+        } catch (error) {
+            console.error('Error deleting member:', error);
+            // Here you would typically show an error message to the user
+        } finally {
+            setIsDeleteConfirmOpen(false);
+            setMemberToDelete(null);
+        }
+    };
+
+    const handleCreateCohort = async (name: string) => {
+        try {
+            console.log("Creating cohort with name:", name, "for organization:", id);
+
+            // Make API call to create cohort
+            const response = await fetch(`http://localhost:8001/cohorts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    org_id: parseInt(id)
+                }),
+            });
+
+            // Log the raw response for debugging
+            console.log("API response status:", response.status);
+
+            if (!response.ok) {
+                throw new Error(`Failed to create cohort: ${response.status} ${response.statusText}`);
+            }
+
+            // Get the new cohort data with ID
+            const newCohortData = await response.json();
+
+            // Add console log to debug the response
+            console.log("Created cohort:", newCohortData);
+
+            // Check if the ID exists before navigating
+            if (newCohortData && newCohortData.id) {
+                console.log("Navigating to:", `/schools/${id}/cohorts/${newCohortData.id}`);
+                // Navigate to the new cohort page
+                router.push(`/schools/${id}/cohorts/${newCohortData.id}`);
+            } else {
+                console.error("Cohort ID is missing in the API response:", newCohortData);
+                // Fallback to schools page if ID is missing
+                router.push(`/schools/${id}#cohorts`);
+            }
+
+        } catch (error) {
+            console.error('Error creating cohort:', error);
+            // Here you would typically show an error message to the user
+        }
+    };
+
+    // Handle tab change
+    const handleTabChange = (tab: TabType) => {
+        setActiveTab(tab);
+
+        // Only add hash for non-default tabs
+        if (tab !== 'courses') {
+            window.location.hash = tab;
+        } else {
+            // Remove hash if it's the courses tab
+            if (window.location.hash) {
+                history.pushState("", document.title, window.location.pathname);
+            }
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-black text-white">
@@ -186,13 +361,13 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                             >
                                                 {school.name}
                                             </h1>
-                                            <button
+                                            {/* <button
                                                 onClick={toggleNameEdit}
                                                 className="ml-2 p-2 text-gray-400 hover:text-white"
                                                 aria-label={isEditingName ? "Save school name" : "Edit school name"}
                                             >
                                                 {isEditingName ? <Save size={16} /> : <Edit size={16} />}
-                                            </button>
+                                            </button> */}
                                         </div>
                                         <p className="text-gray-400">{school.url}</p>
                                     </div>
@@ -205,7 +380,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                             <div className="flex border-b border-gray-800">
                                 <button
                                     className={`px-4 py-2 font-light cursor-pointer ${activeTab === 'courses' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
-                                    onClick={() => setActiveTab('courses')}
+                                    onClick={() => handleTabChange('courses')}
                                 >
                                     <div className="flex items-center">
                                         <BookOpen size={16} className="mr-2" />
@@ -214,7 +389,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                 </button>
                                 <button
                                     className={`px-4 py-2 font-light cursor-pointer ${activeTab === 'cohorts' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
-                                    onClick={() => setActiveTab('cohorts')}
+                                    onClick={() => handleTabChange('cohorts')}
                                 >
                                     <div className="flex items-center">
                                         <Layers size={16} className="mr-2" />
@@ -223,7 +398,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                 </button>
                                 <button
                                     className={`px-4 py-2 font-light cursor-pointer ${activeTab === 'members' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
-                                    onClick={() => setActiveTab('members')}
+                                    onClick={() => handleTabChange('members')}
                                 >
                                     <div className="flex items-center">
                                         <Users size={16} className="mr-2" />
@@ -281,8 +456,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                                 <button
                                                     className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                                                     onClick={() => {
-                                                        // In a real app, this would open a dialog to create a new cohort
-                                                        console.log("Create new cohort");
+                                                        setIsCreateCohortDialogOpen(true);
                                                     }}
                                                 >
                                                     Create Cohort
@@ -306,8 +480,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                             <button
                                                 className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                                                 onClick={() => {
-                                                    // In a real app, this would open a dialog to create a new cohort
-                                                    console.log("Create new cohort");
+                                                    setIsCreateCohortDialogOpen(true);
                                                 }}
                                             >
                                                 Create Cohort
@@ -324,10 +497,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                         <div className="w-1"></div> {/* Empty div to maintain spacing */}
                                         <button
                                             className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                            onClick={() => {
-                                                // In a real app, this would open a dialog to invite members
-                                                console.log("Invite members");
-                                            }}
+                                            onClick={() => setIsInviteDialogOpen(true)}
                                         >
                                             Invite Members
                                         </button>
@@ -337,23 +507,28 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                         <table className="min-w-full divide-y divide-gray-800">
                                             <thead className="bg-gray-900">
                                                 <tr>
-                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
                                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
                                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Role</th>
-                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Joined</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="bg-[#111] divide-y divide-gray-800">
                                                 {school.members.map(member => (
                                                     <tr key={member.id}>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">{member.name}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{member.email}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                            <span className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium ${member.role === 'admin' ? 'bg-purple-900 text-purple-200' : 'bg-gray-800 text-gray-300'}`}>
-                                                                {member.role === 'admin' ? 'Owner' : 'Admin'}
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm flex justify-between items-center">
+                                                            <span className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium ${member.role === 'owner' ? 'bg-purple-900 text-purple-200' : 'bg-gray-800 text-gray-300'}`}>
+                                                                {member.role === 'owner' ? 'Owner' : 'Admin'}
                                                             </span>
+                                                            {member.role !== 'owner' && (
+                                                                <button
+                                                                    onClick={() => handleDeleteMember(member)}
+                                                                    className="flex items-center gap-1 text-gray-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer"
+                                                                    aria-label="Remove Member"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            )}
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{member.joinedAt}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -365,6 +540,30 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                     </main>
                 </div>
             </div>
+
+            {/* Invite Members Dialog */}
+            <InviteMembersDialog
+                open={isInviteDialogOpen}
+                onClose={() => setIsInviteDialogOpen(false)}
+                onInvite={handleInviteMembers}
+            />
+
+            {/* Delete Member Confirmation Dialog */}
+            <ConfirmationDialog
+                open={isDeleteConfirmOpen}
+                title="Remove Member"
+                message={`Are you sure you want to remove ${memberToDelete?.email} from this organization?`}
+                confirmButtonText="Remove"
+                onConfirm={confirmDeleteMember}
+                onCancel={() => setIsDeleteConfirmOpen(false)}
+            />
+
+            {/* Create Cohort Dialog */}
+            <CreateCohortDialog
+                open={isCreateCohortDialogOpen}
+                onClose={() => setIsCreateCohortDialogOpen(false)}
+                onCreateCohort={handleCreateCohort}
+            />
         </>
     );
 } 
