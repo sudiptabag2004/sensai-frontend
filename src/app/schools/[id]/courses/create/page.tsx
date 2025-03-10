@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Zap, Sparkles, Eye, Check, FileEdit } from "lucide-react";
+import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Zap, Sparkles, Eye, Check, FileEdit, Clipboard } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Block } from "@blocknote/core";
 import Link from "next/link";
@@ -41,7 +41,15 @@ interface Quiz {
     questions: QuizQuestion[];
 }
 
-type ModuleItem = LearningMaterial | Quiz;
+interface Exam {
+    id: string;
+    title: string;
+    position: number;
+    type: 'exam';
+    questions: QuizQuestion[];
+}
+
+type ModuleItem = LearningMaterial | Quiz | Exam;
 
 interface Module {
     id: string;
@@ -289,6 +297,28 @@ export default function CreateCourse() {
         }));
     };
 
+    const addExam = (moduleId: string) => {
+        setModules(modules.map(module => {
+            if (module.id === moduleId) {
+                const newExamId = Math.random().toString();
+                return {
+                    ...module,
+                    items: [
+                        ...module.items,
+                        {
+                            id: newExamId,
+                            title: 'New Exam',
+                            position: module.items.length + 1,
+                            type: 'exam',
+                            questions: []
+                        } as Exam
+                    ]
+                };
+            }
+            return module;
+        }));
+    };
+
     const updateItemTitle = (moduleId: string, itemId: string, title: string) => {
         setModules(modules.map(module => {
             if (module.id === moduleId) {
@@ -521,24 +551,13 @@ export default function CreateCourse() {
                             suppressContentEditableWarning
                             onInput={handleTitleChange}
                             onKeyDown={handleKeyDown}
-                            className="text-4xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none w-2/3"
+                            className="text-4xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none w-3/4 mr-8"
                             data-placeholder="New Course"
                         />
 
                         <div className="flex items-center space-x-3 ml-auto">
                             <button
-                                className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#1C68E4] hover:bg-[#222222] rounded-md transition-all cursor-pointer w-32 shadow-md"
-                                onClick={() => {
-                                    // Generate with AI action
-                                    console.log('Generate with AI');
-                                }}
-                            >
-                                <span className="mr-2 text-base">✨</span>
-                                <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">Generate</span>
-                            </button>
-
-                            <button
-                                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-transparent border border-[#EF4444] hover:bg-[#222222] rounded-md transition-all cursor-pointer shadow-md"
+                                className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#EF4444] hover:bg-[#222222] rounded-full transition-all cursor-pointer shadow-md"
                                 onClick={() => {
                                     // Preview action
                                     console.log('Preview course');
@@ -554,7 +573,7 @@ export default function CreateCourse() {
                             </button>
 
                             <button
-                                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-transparent border border-[#016037] hover:bg-[#222222] rounded-md transition-all cursor-pointer shadow-md"
+                                className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#016037] hover:bg-[#222222] rounded-full transition-all cursor-pointer shadow-md"
                                 onClick={() => {
                                     // Publish action
                                     console.log('Publish course');
@@ -588,12 +607,12 @@ export default function CreateCourse() {
                                             e.stopPropagation();
                                             toggleModule(module.id);
                                         }}
-                                        className="mr-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                                        className="mr-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
                                         aria-label={module.isExpanded ? "Collapse module" : "Expand module"}
                                     >
                                         {module.isExpanded ? <ChevronDownExpand size={18} /> : <ChevronRight size={18} />}
                                     </button>
-                                    <div className="flex-1">
+                                    <div className="flex-1 mr-4">
                                         <h2
                                             contentEditable
                                             suppressContentEditableWarning
@@ -612,7 +631,7 @@ export default function CreateCourse() {
                                                 moveModuleUp(module.id);
                                             }}
                                             disabled={index === 0}
-                                            className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                             aria-label="Move module up"
                                         >
                                             <ChevronUp size={18} />
@@ -623,7 +642,7 @@ export default function CreateCourse() {
                                                 moveModuleDown(module.id);
                                             }}
                                             disabled={index === modules.length - 1}
-                                            className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                             aria-label="Move module down"
                                         >
                                             <ChevronDown size={18} />
@@ -633,7 +652,7 @@ export default function CreateCourse() {
                                                 e.stopPropagation();
                                                 deleteModule(module.id);
                                             }}
-                                            className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                                            className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
                                             aria-label="Delete module"
                                         >
                                             <X size={18} />
@@ -660,11 +679,13 @@ export default function CreateCourse() {
                                                     }}
                                                 >
                                                     <div className="mr-2 text-gray-400">
-                                                        {item.type === 'material' ? <BookOpen size={16} /> : <HelpCircle size={16} />}
+                                                        {item.type === 'material' ? <BookOpen size={16} /> :
+                                                            item.type === 'quiz' ? <HelpCircle size={16} /> :
+                                                                <Clipboard size={16} />}
                                                     </div>
                                                     <div className="flex-1">
                                                         <div className="text-base font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none">
-                                                            {item.title || (item.type === 'material' ? "New Learning Material" : "New Quiz")}
+                                                            {item.title || (item.type === 'material' ? "New Learning Material" : item.type === 'quiz' ? "New Quiz" : "New Exam")}
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
@@ -719,6 +740,13 @@ export default function CreateCourse() {
                                                     <Plus size={14} className="mr-1" />
                                                     Quiz
                                                 </button>
+                                                <button
+                                                    onClick={() => addExam(module.id)}
+                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors cursor-pointer"
+                                                >
+                                                    <Plus size={14} className="mr-1" />
+                                                    Exam
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -744,44 +772,30 @@ export default function CreateCourse() {
                             border: '1px solid #1A1A1A'
                         }}
                         className="w-full max-w-6xl h-[90vh] rounded-lg shadow-2xl flex flex-col transform transition-all duration-300 ease-in-out scale-100 translate-y-0"
+                        onClick={(e) => e.stopPropagation()}
                     >
                         {/* Dialog Header */}
                         <div
-                            className="flex items-center justify-end p-4 cursor-pointer"
+                            className="flex items-center justify-between p-4 border-b border-gray-800"
                             style={{ backgroundColor: '#111111' }}
-                            onClick={(e) => {
-                                // Focus the title element when header is clicked
-                                if (dialogTitleRef.current && !isPreviewMode) {
-                                    dialogTitleRef.current.contentEditable = "true";
-                                    dialogTitleRef.current.focus();
-                                }
-                            }}
                         >
-                            <h2
-                                ref={dialogTitleRef}
-                                contentEditable={false}
-                                suppressContentEditableWarning
-                                className={`text-2xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none ${!isPreviewMode ? 'cursor-text' : ''} flex-1`}
-                                data-placeholder={activeItem.type === 'material' ? "New Learning Material" : "New Quiz"}
-                                onBlur={(e) => {
-                                    if (!isPreviewMode) {
-                                        e.currentTarget.contentEditable = "false";
-                                        handleDialogTitleChange(e);
-                                    }
-                                }}
-                            >
-                                {activeItem.title || (activeItem.type === 'material' ? "New Learning Material" : "New Quiz")}
-                            </h2>
-                            <div
-                                className="flex items-center space-x-2"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                {activeItem.type === 'quiz' && (
+                            <div className="flex-1 flex items-center">
+                                <h2
+                                    ref={dialogTitleRef}
+                                    contentEditable
+                                    suppressContentEditableWarning
+                                    onInput={handleDialogTitleChange}
+                                    className="text-2xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none cursor-text"
+                                    data-placeholder={activeItem?.type === 'material' ? 'New Learning Material' : activeItem?.type === 'quiz' ? 'New Quiz' : 'New Exam'}
+                                >
+                                    {activeItem?.title}
+                                </h2>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                {activeItem?.type === 'quiz' && (
                                     <button
-                                        onClick={() => {
-                                            setIsPreviewMode(!isPreviewMode);
-                                        }}
-                                        className={`flex items-center px-4 py-2 text-sm text-white bg-transparent border border-blue-500 hover:bg-[#222222] rounded-full transition-colors cursor-pointer`}
+                                        onClick={() => setIsPreviewMode(!isPreviewMode)}
+                                        className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-blue-500 hover:bg-[#222222] focus:border-blue-500 active:border-blue-500 rounded-full transition-colors cursor-pointer"
                                         aria-label={isPreviewMode ? "Edit quiz" : "Preview quiz"}
                                     >
                                         {isPreviewMode ? (
@@ -799,35 +813,26 @@ export default function CreateCourse() {
                                 )}
                                 <button
                                     onClick={closeDialog}
-                                    className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
-                                    aria-label="Close dialog"
+                                    className="text-gray-400 hover:text-white transition-colors"
                                 >
-                                    <X size={24} />
+                                    <X size={20} />
                                 </button>
                             </div>
                         </div>
 
                         {/* Dialog Content */}
-                        <div className={`flex flex-1 overflow-hidden p-6 ${isPreviewMode ? 'pt-6' : 'pt-4'}`} style={{ backgroundColor: '#1A1A1A' }}>
+                        <div className="flex-1 overflow-y-auto p-6">
                             {activeItem?.type === 'material' ? (
-                                /* Full width editor for learning material */
-                                <div className="w-full overflow-auto mt-4" style={{ backgroundColor: '#1A1A1A' }}>
-                                    <DynamicLearningMaterialEditor
-                                        initialContent={activeItem.content}
-                                        onChange={handleEditorContentChange}
-                                        isDarkMode={true}
-                                    />
-                                </div>
-                            ) : activeItem?.type === 'quiz' ? (
-                                /* Quiz editor with split screen layout */
-                                <div className="w-full overflow-auto" style={{ backgroundColor: '#1A1A1A' }}>
-                                    <DynamicQuizEditor
-                                        initialQuestions={activeItem.questions || []}
-                                        onChange={handleQuizContentChange}
-                                        isDarkMode={true}
-                                        isPreviewMode={isPreviewMode}
-                                    />
-                                </div>
+                                <DynamicLearningMaterialEditor
+                                    initialContent={activeItem.content}
+                                    onChange={handleEditorContentChange}
+                                />
+                            ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (
+                                <DynamicQuizEditor
+                                    initialQuestions={(activeItem as Quiz | Exam)?.questions || []}
+                                    onChange={handleQuizContentChange}
+                                    isPreviewMode={isPreviewMode}
+                                />
                             ) : null}
                         </div>
                     </div>
@@ -835,4 +840,4 @@ export default function CreateCourse() {
             )}
         </div>
     );
-} 
+}
