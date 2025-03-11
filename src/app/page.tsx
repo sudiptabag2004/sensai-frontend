@@ -8,13 +8,15 @@ import { useCourses, useSchools, Course as ApiCourse } from "@/lib/api";
 import CourseCard from "@/components/CourseCard";
 import Link from "next/link";
 import { PlusCircle, BookOpen } from "lucide-react";
+import CreateCourseDialog from "@/components/CreateCourseDialog";
 
 interface Course {
   id: string;
   title: string;
   moduleCount: number;
   description?: string;
-  role?: 'teacher' | 'learner';
+  role?: string;
+  org_id?: number;
 }
 
 export default function Home() {
@@ -22,6 +24,7 @@ export default function Home() {
   const { data: session } = useSession();
   const { courses, isLoading, error } = useCourses();
   const { schools } = useSchools();
+  const [isCreateCourseDialogOpen, setIsCreateCourseDialogOpen] = useState(false);
 
   // Memoize derived data to avoid recalculations
   const {
@@ -32,8 +35,8 @@ export default function Home() {
     hasAnyCourses,
     showSegmentedTabs
   } = useMemo(() => {
-    const teachingCourses = courses.filter(course => course.role === 'teacher');
-    const learningCourses = courses.filter(course => course.role === 'learner');
+    const teachingCourses = courses.filter(course => course.role === 'admin');
+    const learningCourses = courses.filter(course => course.role !== 'admin');
     const hasTeachingCourses = teachingCourses.length > 0;
     const hasLearningCourses = learningCourses.length > 0;
 
@@ -86,14 +89,42 @@ export default function Home() {
   }, [hasLearningCourses, hasTeachingCourses]);
 
   // Memoize event handlers
-  const handleCreateCourseButtonClick = useMemo(() => {
-    return (e: React.MouseEvent) => {
-      if (hasSchool) {
-        router.push(`/schools/${schoolId}/courses/create`);
-      } else {
-        router.push("/schools/create");
+  const handleCreateCourseButtonClick = useCallback(() => {
+    setIsCreateCourseDialogOpen(true);
+  }, []);
+
+  // Handle creating a new course with the provided name
+  const handleCreateCourse = useCallback(async (courseName: string) => {
+    if (hasSchool && schoolId) {
+      try {
+        // Make API request to create course
+        const response = await fetch('http://localhost:8001/courses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: courseName,
+            org_id: Number(schoolId)
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create course');
+        }
+
+        const data = await response.json();
+        // Redirect to the new course page - no need to close dialog since navigation will unmount components
+        router.push(`/schools/${schoolId}/courses/${data.id}`);
+      } catch (error) {
+        console.error('Error creating course:', error);
+        // Only close dialog on error
+        setIsCreateCourseDialogOpen(false);
+        throw error; // Re-throw to let the dialog handle the error
       }
-    };
+    } else {
+      router.push("/schools/create");
+    }
   }, [hasSchool, schoolId, router]);
 
   return (
@@ -181,7 +212,7 @@ export default function Home() {
 
               {/* Course grid */}
               {hasAnyCourses && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {(activeTab === 'teaching' ? teachingCourses : learningCourses).map((course) => (
                     <CourseCard
                       key={course.id}
@@ -196,7 +227,14 @@ export default function Home() {
             </>
           )}
         </main>
-      </div >
+      </div>
+
+      {/* Create Course Dialog */}
+      <CreateCourseDialog
+        open={isCreateCourseDialogOpen}
+        onClose={() => setIsCreateCourseDialogOpen(false)}
+        onCreateCourse={handleCreateCourse}
+      />
     </>
   );
 }

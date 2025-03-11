@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useSchools } from "@/lib/api";
+import CreateCourseDialog from "@/components/CreateCourseDialog";
 
 interface HeaderProps {
     showCreateCourseButton?: boolean;
@@ -15,20 +16,11 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
     const router = useRouter();
     const { data: session } = useSession();
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+    const [isCreateCourseDialogOpen, setIsCreateCourseDialogOpen] = useState(false);
     const profileMenuRef = useRef<HTMLDivElement>(null);
-    const [hasSchool, setHasSchool] = useState<boolean | null>(null);
-    const [schoolId, setSchoolId] = useState<string | null>(null);
     const { schools, isLoading } = useSchools();
-
-    // Set school state when schools are loaded
-    useEffect(() => {
-        if (schools && schools.length > 0) {
-            setHasSchool(true);
-            setSchoolId(schools[0].id);
-        } else if (!isLoading) {
-            setHasSchool(false);
-        }
-    }, [schools, isLoading]);
+    const schoolId = schools && schools.length > 0 ? schools[0].id : null;
+    const hasSchool = Boolean(schools && schools.length > 0);
 
     // Close the profile menu when clicking outside
     useEffect(() => {
@@ -55,11 +47,45 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
         setProfileMenuOpen(!profileMenuOpen);
     };
 
-    // Handle button click
+    // Handle button click to open school admin page or create page
     const handleButtonClick = (e: React.MouseEvent) => {
         // If user has a school, go to school admin page, otherwise go to school creation page
-        if (hasSchool) {
+        if (hasSchool && schoolId) {
             router.push(`/schools/${schoolId}`);
+        } else {
+            router.push("/schools/create");
+        }
+    };
+
+    // Handle creating a new course with the provided name
+    const handleCreateCourse = async (courseName: string) => {
+        if (hasSchool && schoolId) {
+            try {
+                // Make API request to create course
+                const response = await fetch('http://localhost:8001/courses', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: courseName,
+                        org_id: Number(schoolId)
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create course');
+                }
+
+                const data = await response.json();
+                // Redirect to the new course page - no need to close dialog since navigation will unmount components
+                router.push(`/schools/${schoolId}/courses/${data.id}`);
+            } catch (error) {
+                console.error("Error creating course:", error);
+                // Only close dialog on error
+                setIsCreateCourseDialogOpen(false);
+                throw error; // Re-throw to let the dialog handle the error
+            }
         } else {
             router.push("/schools/create");
         }
@@ -140,6 +166,13 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Create Course Dialog */}
+            <CreateCourseDialog
+                open={isCreateCourseDialogOpen}
+                onClose={() => setIsCreateCourseDialogOpen(false)}
+                onCreateCourse={handleCreateCourse}
+            />
         </header>
     );
 } 

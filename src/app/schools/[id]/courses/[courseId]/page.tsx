@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Zap, Sparkles, Eye, Check, FileEdit, Clipboard } from "lucide-react";
+import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Zap, Sparkles, Eye, Check, FileEdit, Clipboard, ArrowLeft } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Block } from "@blocknote/core";
 import Link from "next/link";
@@ -25,6 +25,11 @@ const DynamicQuizEditor = dynamic(
 import { QuizQuestion, QuizQuestionConfig } from "../../../../../components/QuizEditor";
 
 // Define interfaces
+interface CourseDetails {
+    id: number;
+    name: string;
+}
+
 interface LearningMaterial {
     id: string;
     title: string;
@@ -70,36 +75,52 @@ export default function CreateCourse() {
     const router = useRouter();
     const params = useParams();
     const schoolId = params.id as string;
+    const courseId = params.courseId as string;
 
-    const [courseTitle, setCourseTitle] = useState("Untitled Course");
+    const [courseTitle, setCourseTitle] = useState("Loading course...");
+    const [courseDetails, setCourseDetails] = useState<CourseDetails | null>(null);
     const [modules, setModules] = useState<Module[]>([]);
     const [activeItem, setActiveItem] = useState<ModuleItem | null>(null);
     const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [isPreviewMode, setIsPreviewMode] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const titleRef = useRef<HTMLHeadingElement>(null);
     const dialogTitleRef = useRef<HTMLHeadingElement>(null);
     const dialogContentRef = useRef<HTMLDivElement>(null);
 
+    // Fetch course details from the backend
+    useEffect(() => {
+        const fetchCourseDetails = async () => {
+            try {
+                setIsLoading(true);
+                const response = await fetch(`http://localhost:8001/courses/${courseId}`);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch course details: ${response.status}`);
+                }
+
+                const data = await response.json();
+                setCourseDetails(data);
+                setCourseTitle(data.name);
+                setIsLoading(false);
+            } catch (err) {
+                console.error("Error fetching course details:", err);
+                setError("Failed to load course details. Please try again later.");
+                setIsLoading(false);
+            }
+        };
+
+        fetchCourseDetails();
+    }, [courseId]);
+
     // Check if user has a school
     useEffect(() => {
-        const hasSchool = localStorage.getItem("hasSchool") === "true";
-        if (!hasSchool) {
-            router.push("/schools/create");
-        }
+        // No need to check localStorage - we're already on a school page
+        // If they don't have a school, they couldn't have navigated here
     }, [router]);
-
-    // Focus the course title on initial load
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            if (titleRef.current) {
-                titleRef.current.focus();
-            }
-        }, 100);
-
-        return () => clearTimeout(timeout);
-    }, []);
 
     // Check for dark mode
     useEffect(() => {
@@ -165,18 +186,6 @@ export default function CreateCourse() {
         };
     }, [isDialogOpen]);
 
-    const handleTitleChange = (e: React.FormEvent<HTMLHeadingElement>) => {
-        setCourseTitle(e.currentTarget.textContent || "");
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLHeadingElement>) => {
-        // Prevent creating a new line when pressing Enter
-        if (e.key === "Enter") {
-            e.preventDefault();
-            (e.currentTarget as HTMLHeadingElement).blur();
-        }
-    };
-
     const addModule = () => {
         const newModule: Module = {
             id: `module-${Date.now()}`,
@@ -188,6 +197,15 @@ export default function CreateCourse() {
 
         setModules([...modules, newModule]);
         setActiveModuleId(newModule.id);
+    };
+
+    // Add back the handleKeyDown function for module titles
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLHeadingElement>) => {
+        // Prevent creating a new line when pressing Enter
+        if (e.key === "Enter") {
+            e.preventDefault();
+            (e.currentTarget as HTMLHeadingElement).blur();
+        }
     };
 
     const updateModuleTitle = (id: string, title: string) => {
@@ -346,13 +364,18 @@ export default function CreateCourse() {
             if (module.id === moduleId) {
                 return {
                     ...module,
-                    items: module.items.map(item =>
-                        item.id === itemId ? {
-                            ...item,
-                            content: item.type === 'material' ? content : undefined,
-                            questions: item.type === 'quiz' ? (item as Quiz).questions : undefined
-                        } : item
-                    )
+                    items: module.items.map(item => {
+                        if (item.id === itemId) {
+                            if (item.type === 'material') {
+                                return { ...item, content } as LearningMaterial;
+                            } else if (item.type === 'quiz') {
+                                return { ...item } as Quiz;
+                            } else if (item.type === 'exam') {
+                                return { ...item } as Exam;
+                            }
+                        }
+                        return item;
+                    })
                 };
             }
             return module;
@@ -363,7 +386,7 @@ export default function CreateCourse() {
             setActiveItem({
                 ...activeItem,
                 content
-            } as LearningMaterial);
+            });
         }
     };
 
@@ -544,16 +567,32 @@ export default function CreateCourse() {
             {/* Main content area - keep everything else unchanged */}
             <div className="px-8 py-12">
                 <div className="max-w-5xl mx-auto">
+                    {/* Back to Courses button */}
+                    <Link
+                        href={`/schools/${schoolId}#courses`}
+                        className="flex items-center text-gray-400 hover:text-white transition-colors mb-4"
+                    >
+                        <ArrowLeft size={16} className="mr-2" />
+                        Back To Courses
+                    </Link>
+
                     <div className="flex items-center justify-between mb-8">
-                        <h1
-                            ref={titleRef}
-                            contentEditable
-                            suppressContentEditableWarning
-                            onInput={handleTitleChange}
-                            onKeyDown={handleKeyDown}
-                            className="text-4xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none w-3/4 mr-8"
-                            data-placeholder="New Course"
-                        />
+                        {isLoading ? (
+                            <h1 className="text-4xl font-light text-black dark:text-white w-3/4 mr-8">
+                                Loading course...
+                            </h1>
+                        ) : error ? (
+                            <h1 className="text-4xl font-light text-red-500 dark:text-red-400 w-3/4 mr-8">
+                                {error}
+                            </h1>
+                        ) : (
+                            <h1
+                                ref={titleRef}
+                                className="text-4xl font-light text-black dark:text-white outline-none w-3/4 mr-8"
+                            >
+                                {courseTitle}
+                            </h1>
+                        )}
 
                         <div className="flex items-center space-x-3 ml-auto">
                             <button
@@ -785,6 +824,7 @@ export default function CreateCourse() {
                                     contentEditable
                                     suppressContentEditableWarning
                                     onInput={handleDialogTitleChange}
+                                    onKeyDown={handleKeyDown}
                                     className="text-2xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none cursor-text"
                                     data-placeholder={activeItem?.type === 'material' ? 'New Learning Material' : activeItem?.type === 'quiz' ? 'New Quiz' : 'New Exam'}
                                 >

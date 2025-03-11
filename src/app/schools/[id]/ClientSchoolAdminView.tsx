@@ -10,12 +10,13 @@ import CohortCard from "@/components/CohortCard";
 import InviteMembersDialog from "@/components/InviteMembersDialog";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import CreateCohortDialog from "@/components/CreateCohortDialog";
+import CreateCourseDialog from '@/components/CreateCourseDialog';
 
 // Define interfaces
 interface Course {
     id: number;
-    title: string;
-    moduleCount: number;
+    name: string;
+    moduleCount?: number;
     description?: string;
 }
 
@@ -53,6 +54,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
     const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [isCreateCohortDialogOpen, setIsCreateCohortDialogOpen] = useState(false);
+    const [isCreateCourseDialogOpen, setIsCreateCourseDialogOpen] = useState(false);
     const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
     const schoolNameRef = useRef<HTMLHeadingElement>(null);
 
@@ -98,12 +100,24 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                 }
                 const cohortsData = await cohortsResponse.json();
 
+                // Fetch courses separately
+                const coursesResponse = await fetch(`http://localhost:8001/courses?org_id=${id}`);
+                if (!coursesResponse.ok) {
+                    throw new Error(`API error: ${coursesResponse.status}`);
+                }
+                const coursesData = await coursesResponse.json();
+
                 // Transform the API response to match the School interface
                 const transformedSchool: School = {
                     id: parseInt(schoolData.id),
                     name: schoolData.name,
                     url: `sensai.hyperverge.org/${schoolData.slug}`,
-                    courses: schoolData.courses || [],
+                    courses: coursesData.map((course: any) => ({
+                        id: course.id,
+                        name: course.name,
+                        moduleCount: 0, // Default value since API doesn't provide this
+                        description: '' // Default value since API doesn't provide this
+                    })),
                     cohorts: cohortsData.map((cohort: any) => ({
                         id: cohort.id,
                         name: cohort.name,
@@ -302,6 +316,36 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
         }
     };
 
+    // Handle creating a new course with the provided name
+    const handleCreateCourse = async (name: string) => {
+        try {
+            // Make API request to create course
+            const response = await fetch('http://localhost:8001/courses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    org_id: Number(id)
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create course');
+            }
+
+            const data = await response.json();
+            // Redirect to the new course page - no need to close dialog since navigation will unmount components
+            router.push(`/schools/${id}/courses/${data.id}`);
+        } catch (error) {
+            console.error("Error creating course:", error);
+            // Only close dialog on error
+            setIsCreateCourseDialogOpen(false);
+            throw error; // Re-throw to let the dialog handle the error
+        }
+    };
+
     // Handle tab change
     const handleTabChange = (tab: TabType) => {
         setActiveTab(tab);
@@ -417,17 +461,22 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                         <>
                                             <div className="flex justify-between items-center mb-6">
                                                 <div className="w-1"></div> {/* Empty div to maintain spacing */}
-                                                <Link
-                                                    href={`/schools/${id}/courses/create`}
-                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                <button
+                                                    onClick={() => setIsCreateCourseDialogOpen(true)}
+                                                    className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity inline-block cursor-pointer"
                                                 >
                                                     Create Course
-                                                </Link>
+                                                </button>
                                             </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                                 {school.courses.map(course => (
-                                                    <CourseCard key={course.id} course={course} />
+                                                    <CourseCard key={course.id} course={{
+                                                        id: course.id,
+                                                        title: course.name,
+                                                        moduleCount: course.moduleCount || 0,
+                                                        description: course.description
+                                                    }} />
                                                 ))}
                                             </div>
                                         </>
@@ -435,12 +484,12 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                         <div className="flex flex-col items-center justify-center py-20">
                                             <h2 className="text-4xl font-light mb-4">What if your next big idea became a course?</h2>
                                             <p className="text-gray-400 mb-8">It might be easier than you think</p>
-                                            <Link
-                                                href={`/schools/${id}/courses/create`}
-                                                className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                            <button
+                                                onClick={() => setIsCreateCourseDialogOpen(true)}
+                                                className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity inline-block cursor-pointer"
                                             >
                                                 Create Course
-                                            </Link>
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -563,6 +612,13 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                 open={isCreateCohortDialogOpen}
                 onClose={() => setIsCreateCohortDialogOpen(false)}
                 onCreateCohort={handleCreateCohort}
+            />
+
+            {/* Create Course Dialog */}
+            <CreateCourseDialog
+                open={isCreateCourseDialogOpen}
+                onClose={() => setIsCreateCourseDialogOpen(false)}
+                onCreateCourse={handleCreateCourse}
             />
         </>
     );

@@ -58,7 +58,7 @@ export default function CreateSchool() {
             const data = await response.json();
 
             // Redirect to the new school page
-            router.push(`/schools/${data.id}/courses/create`);
+            router.push(`/schools/${data.id}`);
         } catch (error) {
             console.error("Error creating school:", error);
             // Handle error state here

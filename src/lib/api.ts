@@ -12,7 +12,8 @@ export interface Course {
   createdAt?: string;
   updatedAt?: string;
   moduleCount?: number;
-  role?: 'teacher' | 'learner';
+  role?: string;
+  org_id?: number;
   // Add other fields as needed
 }
 
@@ -57,10 +58,11 @@ export function useCourses() {
         // Transform the API response to match the expected format
         const formattedCourses: Course[] = data.map((course: any) => ({
           id: course.id,
-          title: course.title,
+          title: course.name,
           description: course.description,
           moduleCount: course.moduleCount || 0,
-          role: course.role || 'teacher', // Default role
+          role: course.role,
+          org_id: course.org_id,
           coverImage: course.coverImage,
           createdAt: course.createdAt,
           updatedAt: course.updatedAt

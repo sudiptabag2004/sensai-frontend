@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useParams } from "next/navigation";
 
 interface CourseCardProps {
     course: {
@@ -6,11 +7,15 @@ interface CourseCardProps {
         title: string;
         moduleCount: number;
         description?: string;
-        role?: 'teacher' | 'learner';
+        role?: string;
+        org_id?: number;
     };
 }
 
 export default function CourseCard({ course }: CourseCardProps) {
+    const params = useParams();
+    const schoolId = params?.id;
+
     // Generate a unique border color based on the course id
     const getBorderColor = () => {
         const colors = [
@@ -40,8 +45,22 @@ export default function CourseCard({ course }: CourseCardProps) {
         return colors[idNumber % colors.length];
     };
 
+    // Determine the correct link path
+    const getLinkPath = () => {
+        // If we have an org_id from the API, use that for the school-specific course path
+        if (course.org_id) {
+            return `/schools/${course.org_id}/courses/${course.id}`;
+        }
+        // If we're in a school context, use the school-specific course path
+        else if (schoolId) {
+            return `/schools/${schoolId}/courses/${course.id}`;
+        }
+        // Otherwise use the general course path
+        return `/courses/${course.id}`;
+    };
+
     return (
-        <Link href={`/courses/${course.id}`} className="block h-full">
+        <Link href={getLinkPath()} className="block h-full">
             <div className={`bg-[#1A1A1A] text-gray-300 rounded-lg p-6 h-full transition-all hover:opacity-90 cursor-pointer border-b-2 ${getBorderColor()} border-opacity-70`}>
                 <h2 className="text-xl font-light mb-2">{course.title}</h2>
                 {course.description && (
