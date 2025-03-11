@@ -190,23 +190,23 @@ export default function CreateCourse() {
         };
     }, [isDialogOpen]);
 
-    const addModule = () => {
+    const addModule = async () => {
         // Generate a diverse set of theme-compatible colors for dark mode
         const getRandomPastelColor = () => {
-            // Predefined set of diverse dark mode friendly colors
+            // Predefined set of diverse dark mode friendly colors in hex format
             const themeColors = [
-                'rgba(45, 55, 72, 0.5)',    // Slate blue
-                'rgba(67, 56, 76, 0.5)',    // Deep purple
-                'rgba(74, 85, 104, 0.5)',   // Cool gray
-                'rgba(49, 46, 81, 0.5)',    // Indigo
-                'rgba(54, 65, 53, 0.5)',    // Forest green
-                'rgba(76, 57, 58, 0.5)',    // Burgundy
-                'rgba(51, 65, 85, 0.5)',    // Navy blue
-                'rgba(85, 60, 45, 0.5)',    // Rust brown
-                'rgba(55, 48, 63, 0.5)',    // Plum
-                'rgba(60, 75, 100, 0.5)',   // Steel blue
-                'rgba(70, 60, 70, 0.5)',    // Mauve
-                'rgba(60, 50, 45, 0.5)',    // Coffee
+                '#2d3748',    // Slate blue
+                '#433c4c',    // Deep purple
+                '#4a5568',    // Cool gray
+                '#312e51',    // Indigo
+                '#364135',    // Forest green
+                '#4c393a',    // Burgundy
+                '#334155',    // Navy blue
+                '#553c2d',    // Rust brown
+                '#37303f',    // Plum
+                '#3c4b64',    // Steel blue
+                '#463c46',    // Mauve
+                '#3c322d',    // Coffee
             ];
 
             // Ensure we don't pick a color similar to the last one
@@ -227,18 +227,61 @@ export default function CreateCourse() {
             return themeColors[newColorIndex];
         };
 
-        const newModule: Module = {
-            id: `module-${Date.now()}`,
-            title: "New Module",
-            position: modules.length,
-            items: [],
-            isExpanded: true,
-            backgroundColor: getRandomPastelColor(),
-            isEditing: false
-        };
+        // Select a random color for the module
+        const backgroundColor = getRandomPastelColor();
 
-        setModules([...modules, newModule]);
-        setActiveModuleId(newModule.id);
+        try {
+            // Make POST request to create a new milestone (module)
+            const response = await fetch(`http://localhost:8001/courses/${courseId}/milestones`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: "New Module",
+                    color: backgroundColor, // Now sending color as hex with # symbol
+                    org_id: parseInt(schoolId)
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to create module: ${response.status}`);
+            }
+
+            // Get the module ID from the response
+            const data = await response.json();
+            console.log("Module created successfully:", data);
+
+            // Create the new module with the ID from the API
+            const newModule: Module = {
+                id: data.id.toString(), // Convert to string to match our Module interface
+                title: "New Module",
+                position: modules.length,
+                items: [],
+                isExpanded: true,
+                backgroundColor: `${backgroundColor}80`, // Add 50% opacity for UI display
+                isEditing: false
+            };
+
+            setModules([...modules, newModule]);
+            setActiveModuleId(newModule.id);
+        } catch (error) {
+            console.error("Error creating module:", error);
+
+            // Fallback to client-side ID generation if the API call fails
+            const newModule: Module = {
+                id: `module-${Date.now()}`,
+                title: "New Module",
+                position: modules.length,
+                items: [],
+                isExpanded: true,
+                backgroundColor: `${backgroundColor}80`, // Add 50% opacity for UI display
+                isEditing: false
+            };
+
+            setModules([...modules, newModule]);
+            setActiveModuleId(newModule.id);
+        }
     };
 
     // Add back the handleKeyDown function for module titles
@@ -666,12 +709,38 @@ export default function CreateCourse() {
     const saveCourseTitle = () => {
         if (titleRef.current) {
             const newTitle = titleRef.current.textContent || "";
-            setCourseTitle(newTitle);
 
-            // Here you would typically also update the title on the server
-            // For example: updateCourseTitleOnServer(courseId, newTitle);
+            // Make a PUT request to update the course name
+            fetch(`http://localhost:8001/courses/${courseId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: newTitle
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to update course: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Update the course title in the UI
+                    setCourseTitle(newTitle);
+                    console.log("Course updated successfully:", data);
+                })
+                .catch(err => {
+                    console.error("Error updating course:", err);
+                    // Revert to the original title in case of error
+                    if (titleRef.current) {
+                        titleRef.current.textContent = courseTitle;
+                    }
+                });
+
+            setIsCourseTitleEditing(false);
         }
-        setIsCourseTitleEditing(false);
     };
 
     const cancelCourseTitleEditing = () => {
@@ -825,8 +894,8 @@ export default function CreateCourse() {
                                         <button
                                             className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border-2 !border-[#EF4444] hover:bg-[#222222] outline-none rounded-full transition-all cursor-pointer shadow-md"
                                             onClick={() => {
-                                                // Preview action
-                                                console.log('Preview course');
+                                                // Open preview in a new tab
+                                                window.open(`/schools/${schoolId}/courses/${courseId}/preview`, '_blank');
                                             }}
                                         >
                                             <span className="mr-2 text-base">

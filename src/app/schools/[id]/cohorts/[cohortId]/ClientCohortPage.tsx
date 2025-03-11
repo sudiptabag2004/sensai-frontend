@@ -28,7 +28,6 @@ interface EmailInput {
 }
 
 type TabType = 'learners' | 'mentors';
-type SidebarTab = 'people' | 'courses';
 
 interface ClientCohortPageProps {
     schoolId: string;
@@ -38,7 +37,6 @@ interface ClientCohortPageProps {
 export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPageProps) {
     const router = useRouter();
     const [tab, setTab] = useState<TabType>('learners');
-    const [sidebarTab, setSidebarTab] = useState<SidebarTab>('people');
     const [cohort, setCohort] = useState<Cohort | null>(null);
     const [isAddLearnersOpen, setIsAddLearnersOpen] = useState(false);
     const [isAddMentorsOpen, setIsAddMentorsOpen] = useState(false);
@@ -270,188 +268,140 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                             </div>
                         </div>
 
-                        {/* Main content with sidebar */}
-                        <div className="flex gap-8">
-                            {/* Sidebar */}
-                            <div className="w-64 shrink-0">
-                                <div className="space-y-2">
+                        {/* Main content without sidebar */}
+                        <div className="w-full">
+                            {/* Tabs for Learners/Mentors */}
+                            <div className="mb-8">
+                                <div className="flex border-b border-gray-800">
                                     <button
-                                        onClick={() => setSidebarTab('people')}
-                                        className={`w-full flex items-center px-5 py-4 text-base font-light rounded-lg transition-all cursor-pointer ${sidebarTab === 'people'
-                                            ? 'bg-white/10 text-white border-l-2 border-white pl-4'
-                                            : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                                            }`}
+                                        className={`px-4 py-2 font-light cursor-pointer ${tab === 'learners' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
+                                        onClick={() => setTab('learners')}
                                     >
-                                        <UsersRound size={20} className="mr-4" />
-                                        People
+                                        <div className="flex items-center">
+                                            <Users size={16} className="mr-2" />
+                                            Learners
+                                        </div>
                                     </button>
                                     <button
-                                        onClick={() => setSidebarTab('courses')}
-                                        className={`w-full flex items-center px-5 py-4 text-base font-light rounded-lg transition-all cursor-pointer ${sidebarTab === 'courses'
-                                            ? 'bg-white/10 text-white border-l-2 border-white pl-4'
-                                            : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                                            }`}
+                                        className={`px-4 py-2 font-light cursor-pointer ${tab === 'mentors' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
+                                        onClick={() => setTab('mentors')}
                                     >
-                                        <BookOpen size={20} className="mr-4" />
-                                        Courses
+                                        <div className="flex items-center">
+                                            <BookOpen size={16} className="mr-2" />
+                                            Mentors
+                                        </div>
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Main content area */}
-                            <div className="flex-1">
-                                {sidebarTab === 'people' && (
-                                    <div>
-                                        {/* Tabs for Learners/Mentors */}
-                                        <div className="mb-8">
-                                            <div className="flex border-b border-gray-800">
-                                                <button
-                                                    className={`px-4 py-2 font-light cursor-pointer ${tab === 'learners' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
-                                                    onClick={() => setTab('learners')}
-                                                >
-                                                    <div className="flex items-center">
-                                                        <Users size={16} className="mr-2" />
-                                                        Learners
-                                                    </div>
-                                                </button>
-                                                <button
-                                                    className={`px-4 py-2 font-light cursor-pointer ${tab === 'mentors' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
-                                                    onClick={() => setTab('mentors')}
-                                                >
-                                                    <div className="flex items-center">
-                                                        <BookOpen size={16} className="mr-2" />
-                                                        Mentors
-                                                    </div>
-                                                </button>
-                                            </div>
+                            {/* Learners/Mentors Content */}
+                            {tab === 'learners' && (
+                                <div>
+                                    {cohort?.members?.filter(m => m.role === 'learner').length > 0 && (
+                                        <div className="flex justify-between items-center mb-6">
+                                            <div className="w-1"></div>
+                                            <button
+                                                className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                onClick={() => setIsAddLearnersOpen(true)}
+                                            >
+                                                Add Learners
+                                            </button>
                                         </div>
+                                    )}
 
-                                        {/* Learners/Mentors Content */}
-                                        {tab === 'learners' && (
-                                            <div>
-                                                {cohort?.members?.filter(m => m.role === 'learner').length > 0 && (
-                                                    <div className="flex justify-between items-center mb-6">
-                                                        <div className="w-1"></div>
-                                                        <button
-                                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                                            onClick={() => setIsAddLearnersOpen(true)}
-                                                        >
-                                                            Add Learners
-                                                        </button>
-                                                    </div>
-                                                )}
+                                    {cohort?.members?.filter(m => m.role === 'learner').length > 0 ? (
+                                        <div className="overflow-hidden rounded-lg border border-gray-800">
+                                            <table className="min-w-full divide-y divide-gray-800">
+                                                <thead className="bg-gray-900">
+                                                    <tr>
+                                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-[#111] divide-y divide-gray-800">
+                                                    {cohort?.members?.filter(member => member.role === 'learner').map(learner => (
+                                                        <tr key={learner.id}>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 flex justify-between items-center">
+                                                                {learner.email}
+                                                                <button
+                                                                    onClick={() => handleDeleteMember(learner)}
+                                                                    className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-20">
+                                            <h2 className="text-4xl font-light mb-4">Start building your cohort</h2>
+                                            <p className="text-gray-400 mb-8">Add learners to create an engaging learning community</p>
+                                            <button
+                                                className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                onClick={() => setIsAddLearnersOpen(true)}
+                                            >
+                                                Add Learners
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
-                                                {cohort?.members?.filter(m => m.role === 'learner').length > 0 ? (
-                                                    <div className="overflow-hidden rounded-lg border border-gray-800">
-                                                        <table className="min-w-full divide-y divide-gray-800">
-                                                            <thead className="bg-gray-900">
-                                                                <tr>
-                                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody className="bg-[#111] divide-y divide-gray-800">
-                                                                {cohort?.members?.filter(member => member.role === 'learner').map(learner => (
-                                                                    <tr key={learner.id}>
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 flex justify-between items-center">
-                                                                            {learner.email}
-                                                                            <button
-                                                                                onClick={() => handleDeleteMember(learner)}
-                                                                                className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
-                                                                            >
-                                                                                <Trash2 size={16} />
-                                                                            </button>
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center justify-center py-20">
-                                                        <h2 className="text-4xl font-light mb-4">Start building your cohort</h2>
-                                                        <p className="text-gray-400 mb-8">Add learners to create an engaging learning community</p>
-                                                        <button
-                                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                                            onClick={() => setIsAddLearnersOpen(true)}
-                                                        >
-                                                            Add Learners
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+                            {tab === 'mentors' && (
+                                <div>
+                                    {cohort?.members?.filter(m => m.role === 'mentor').length > 0 && (
+                                        <div className="flex justify-between items-center mb-6">
+                                            <div className="w-1"></div>
+                                            <button
+                                                className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                onClick={() => setIsAddMentorsOpen(true)}
+                                            >
+                                                Add Mentors
+                                            </button>
+                                        </div>
+                                    )}
 
-                                        {tab === 'mentors' && (
-                                            <div>
-                                                {cohort?.members?.filter(m => m.role === 'mentor').length > 0 && (
-                                                    <div className="flex justify-between items-center mb-6">
-                                                        <div className="w-1"></div>
-                                                        <button
-                                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                                            onClick={() => setIsAddMentorsOpen(true)}
-                                                        >
-                                                            Add Mentors
-                                                        </button>
-                                                    </div>
-                                                )}
-
-                                                {cohort?.members?.filter(m => m.role === 'mentor').length > 0 ? (
-                                                    <div className="overflow-hidden rounded-lg border border-gray-800">
-                                                        <table className="min-w-full divide-y divide-gray-800">
-                                                            <thead className="bg-gray-900">
-                                                                <tr>
-                                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody className="bg-[#111] divide-y divide-gray-800">
-                                                                {cohort?.members?.filter(member => member.role === 'mentor').map(mentor => (
-                                                                    <tr key={mentor.id}>
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 flex justify-between items-center">
-                                                                            {mentor.email}
-                                                                            <button
-                                                                                onClick={() => handleDeleteMember(mentor)}
-                                                                                className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
-                                                                            >
-                                                                                <Trash2 size={16} />
-                                                                            </button>
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center justify-center py-20">
-                                                        <h2 className="text-4xl font-light mb-4">Guide your learners</h2>
-                                                        <p className="text-gray-400 mb-8">Add mentors to support and inspire your learners</p>
-                                                        <button
-                                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                                            onClick={() => setIsAddMentorsOpen(true)}
-                                                        >
-                                                            Add Mentors
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {sidebarTab === 'courses' && (
-                                    <div className="flex flex-col items-center justify-center py-20">
-                                        <h2 className="text-4xl font-light mb-4">Design your learning path</h2>
-                                        <p className="text-gray-400 mb-8">Add courses to shape the learning journey for your learners</p>
-                                        <button
-                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                            onClick={() => {
-                                                console.log("Add courses");
-                                            }}
-                                        >
-                                            Add Courses
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                                    {cohort?.members?.filter(m => m.role === 'mentor').length > 0 ? (
+                                        <div className="overflow-hidden rounded-lg border border-gray-800">
+                                            <table className="min-w-full divide-y divide-gray-800">
+                                                <thead className="bg-gray-900">
+                                                    <tr>
+                                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-[#111] divide-y divide-gray-800">
+                                                    {cohort?.members?.filter(member => member.role === 'mentor').map(mentor => (
+                                                        <tr key={mentor.id}>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 flex justify-between items-center">
+                                                                {mentor.email}
+                                                                <button
+                                                                    onClick={() => handleDeleteMember(mentor)}
+                                                                    className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-20">
+                                            <h2 className="text-4xl font-light mb-4">Guide your learners</h2>
+                                            <p className="text-gray-400 mb-8">Add mentors to support and inspire your learners</p>
+                                            <button
+                                                className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                onClick={() => setIsAddMentorsOpen(true)}
+                                            >
+                                                Add Mentors
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </main>
                 </div>
