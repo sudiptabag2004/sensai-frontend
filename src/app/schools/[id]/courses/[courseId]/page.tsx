@@ -62,6 +62,8 @@ interface Module {
     position: number;
     items: ModuleItem[];
     isExpanded: boolean;
+    backgroundColor: string;
+    isEditing: boolean;
 }
 
 // Default configuration for new questions
@@ -90,6 +92,7 @@ export default function CreateCourse() {
     const titleRef = useRef<HTMLHeadingElement>(null);
     const dialogTitleRef = useRef<HTMLHeadingElement>(null);
     const dialogContentRef = useRef<HTMLDivElement>(null);
+    const [lastUsedColorIndex, setLastUsedColorIndex] = useState<number>(-1);
 
     // Fetch course details from the backend
     useEffect(() => {
@@ -187,12 +190,50 @@ export default function CreateCourse() {
     }, [isDialogOpen]);
 
     const addModule = () => {
+        // Generate a diverse set of theme-compatible colors for dark mode
+        const getRandomPastelColor = () => {
+            // Predefined set of diverse dark mode friendly colors
+            const themeColors = [
+                'rgba(45, 55, 72, 0.5)',    // Slate blue
+                'rgba(67, 56, 76, 0.5)',    // Deep purple
+                'rgba(74, 85, 104, 0.5)',   // Cool gray
+                'rgba(49, 46, 81, 0.5)',    // Indigo
+                'rgba(54, 65, 53, 0.5)',    // Forest green
+                'rgba(76, 57, 58, 0.5)',    // Burgundy
+                'rgba(51, 65, 85, 0.5)',    // Navy blue
+                'rgba(85, 60, 45, 0.5)',    // Rust brown
+                'rgba(55, 48, 63, 0.5)',    // Plum
+                'rgba(60, 75, 100, 0.5)',   // Steel blue
+                'rgba(70, 60, 70, 0.5)',    // Mauve
+                'rgba(60, 50, 45, 0.5)',    // Coffee
+            ];
+
+            // Ensure we don't pick a color similar to the last one
+            let newColorIndex;
+            do {
+                newColorIndex = Math.floor(Math.random() * themeColors.length);
+                // If we have more than 6 colors, make sure the new color is at least 3 positions away
+                // from the last one to ensure greater visual distinction
+            } while (
+                lastUsedColorIndex !== -1 &&
+                (Math.abs(newColorIndex - lastUsedColorIndex) < 3 ||
+                    newColorIndex === lastUsedColorIndex)
+            );
+
+            // Update the last used color index
+            setLastUsedColorIndex(newColorIndex);
+
+            return themeColors[newColorIndex];
+        };
+
         const newModule: Module = {
             id: `module-${Date.now()}`,
-            title: "",
+            title: "New Module",
             position: modules.length,
             items: [],
-            isExpanded: true
+            isExpanded: true,
+            backgroundColor: getRandomPastelColor(),
+            isEditing: false
         };
 
         setModules([...modules, newModule]);
@@ -211,6 +252,12 @@ export default function CreateCourse() {
     const updateModuleTitle = (id: string, title: string) => {
         setModules(modules.map(module =>
             module.id === id ? { ...module, title } : module
+        ));
+    };
+
+    const toggleModuleEditing = (id: string, isEditing: boolean) => {
+        setModules(modules.map(module =>
+            module.id === id ? { ...module, isEditing } : module
         ));
     };
 
@@ -450,11 +497,19 @@ export default function CreateCourse() {
 
     // Handle click on module header area to toggle expansion
     const handleModuleClick = (e: React.MouseEvent, moduleId: string) => {
-        // Prevent toggling if clicking on buttons or editable title
+        // Find the module
+        const module = modules.find(m => m.id === moduleId);
+        if (!module) return;
+
+        // If module is in editing mode, don't toggle expansion
+        if (module.isEditing) {
+            return;
+        }
+
+        // Prevent toggling if clicking on buttons
         if (
             (e.target as HTMLElement).tagName === 'BUTTON' ||
-            (e.target as HTMLElement).closest('button') ||
-            (e.target as HTMLElement).getAttribute('contenteditable') === 'true'
+            (e.target as HTMLElement).closest('button')
         ) {
             return;
         }
@@ -559,6 +614,40 @@ export default function CreateCourse() {
         );
     };
 
+    const handleModuleTitleInput = (e: React.FormEvent<HTMLHeadingElement>, moduleId: string) => {
+        // Just store the current text content, but don't update the state yet
+        // This prevents React from re-rendering and resetting the cursor
+        const newTitle = e.currentTarget.textContent || "";
+
+        // We'll update the state when the user finishes editing (on blur or when save is clicked)
+    };
+
+    const saveModuleTitle = (moduleId: string) => {
+        // Find the heading element by data attribute
+        const headingElement = document.querySelector(`[data-module-id="${moduleId}"]`) as HTMLHeadingElement;
+        if (headingElement) {
+            // Get the current content and update the state
+            const newTitle = headingElement.textContent || "";
+            updateModuleTitle(moduleId, newTitle);
+        }
+        // Turn off editing mode
+        toggleModuleEditing(moduleId, false);
+    };
+
+    const cancelModuleEditing = (moduleId: string) => {
+        // Find the heading element
+        const headingElement = document.querySelector(`[data-module-id="${moduleId}"]`) as HTMLHeadingElement;
+        if (headingElement) {
+            // Reset the content to the original title from state
+            const module = modules.find(m => m.id === moduleId);
+            if (module) {
+                headingElement.textContent = module.title;
+            }
+        }
+        // Turn off editing mode
+        toggleModuleEditing(moduleId, false);
+    };
+
     return (
         <div className="min-h-screen bg-white dark:bg-black">
             {/* Use the reusable Header component with showCreateCourseButton set to false */}
@@ -636,6 +725,7 @@ export default function CreateCourse() {
                             <div
                                 key={module.id}
                                 className="border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
+                                style={{ backgroundColor: module.backgroundColor }}
                             >
                                 <div
                                     className="flex items-center group p-4 cursor-pointer"
@@ -652,18 +742,75 @@ export default function CreateCourse() {
                                         {module.isExpanded ? <ChevronDownExpand size={18} /> : <ChevronRight size={18} />}
                                     </button>
                                     <div className="flex-1 mr-4">
-                                        <h2
-                                            contentEditable
-                                            suppressContentEditableWarning
-                                            onInput={(e) => updateModuleTitle(module.id, e.currentTarget.textContent || "")}
-                                            onKeyDown={handleKeyDown}
-                                            className="text-xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
-                                            data-module-id={module.id}
-                                            data-placeholder="New Module"
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
+                                        {module.isEditing ? (
+                                            <h2
+                                                contentEditable
+                                                suppressContentEditableWarning
+                                                onInput={(e) => handleModuleTitleInput(e, module.id)}
+                                                onBlur={() => saveModuleTitle(module.id)}
+                                                onKeyDown={handleKeyDown}
+                                                className="text-xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
+                                                data-module-id={module.id}
+                                                data-placeholder="New Module"
+                                                onClick={(e) => e.stopPropagation()}
+                                                autoFocus
+                                            >
+                                                {module.title}
+                                            </h2>
+                                        ) : (
+                                            <h2
+                                                className="text-xl font-light text-black dark:text-white cursor-pointer"
+                                            >
+                                                {module.title || "New Module"}
+                                            </h2>
+                                        )}
                                     </div>
                                     <div className="flex items-center space-x-2">
+                                        {module.isEditing ? (
+                                            <>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        saveModuleTitle(module.id);
+                                                    }}
+                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
+                                                    aria-label="Save module title"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                                        <polyline points="7 3 7 8 15 8"></polyline>
+                                                    </svg>
+                                                    Save
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        cancelModuleEditing(module.id);
+                                                    }}
+                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
+                                                    aria-label="Cancel editing"
+                                                >
+                                                    <X size={16} className="mr-1" />
+                                                    Cancel
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleModuleEditing(module.id, true);
+                                                }}
+                                                className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
+                                                aria-label="Edit module title"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                </svg>
+                                                Edit
+                                            </button>
+                                        )}
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -694,7 +841,7 @@ export default function CreateCourse() {
                                             className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
                                             aria-label="Delete module"
                                         >
-                                            <X size={18} />
+                                            <Trash size={18} />
                                         </button>
                                     </div>
                                 </div>
