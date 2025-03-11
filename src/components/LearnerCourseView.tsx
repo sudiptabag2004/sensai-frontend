@@ -49,6 +49,7 @@ export default function LearnerCourseView({
                                 <div
                                     key={module.id}
                                     className="border border-gray-200 dark:border-gray-800 rounded-lg"
+                                    style={{ backgroundColor: module.backgroundColor }}
                                 >
                                     <div
                                         className="flex items-center p-4 cursor-pointer"
@@ -81,7 +82,7 @@ export default function LearnerCourseView({
                                                 </div>
                                             ) : (
                                                 <div className="text-gray-500 dark:text-gray-400 italic">
-                                                    No content in this module yet.
+                                                    Nothing added in this module yet
                                                 </div>
                                             )}
                                         </div>

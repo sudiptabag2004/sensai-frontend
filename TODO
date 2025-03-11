@@ -1,10 +1,65 @@
 TODO!
 
+milestones in preview
+updating milestone name
+
+adding learning material
+
 editor:
 being able to delete block by doing back
 create columns?
-video link
-scrolling
+video link?
+scrolling?
+
+adding quiz
 
 
-Editing course, editing module, editing task flow
+ordering milestones
+deleting milestones
+
+
+adding scorecards and attaching scorecards to questions
+(do this after v1 is built with everything using only objective questions in exam and quiz mode)
+
+
+pending
+
+
+course creation
+- preview question
+- preview quiz
+- exam type?
+- course url
+
+assigning cohorts to courses after the course flow is complete
+
+learner view
+- course url
+
+analytics?
+- overall metrics
+- learner level analytics? NO
+
+creating groups
+bulk upload tasks (import)
+choosing which school to view (owner of one, admin in multiple)
+
+mentor view? NO
+profile for learner? NO
+
+responsiveness? NO FOR NOW
+
+embedding the home page? (Khushbu)
+
+LMS features (Amit + Gayathri)
+
+Editing course name? NO
+Editing Cohort name? NO
+Editing group name? NO
+Editing school name? NO
+Editing school slug? NO
+
+
+Generate course? NO
+
+types of content blocks - only text for now

@@ -3,7 +3,15 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import LearnerCourseView from "@/components/LearnerCourseView";
-import { CourseDetails, Module } from "@/types/course";
+import { Module } from "@/types/course";
+
+// Define Milestone interface for the API response
+interface Milestone {
+    id: number;
+    name: string;
+    color: string;
+    ordering: number;
+}
 
 export default function CoursePreviewPage() {
     const params = useParams();
@@ -25,11 +33,29 @@ export default function CoursePreviewPage() {
                     throw new Error(`Failed to fetch course details: ${response.status}`);
                 }
 
-                const data: CourseDetails = await response.json();
+                const data = await response.json();
                 setCourseTitle(data.name);
 
-                // If the API returns modules, use those, otherwise use an empty array
-                setModules(data.modules || []);
+                // Check if milestones are available in the response
+                if (data.milestones && Array.isArray(data.milestones)) {
+                    // Transform milestones to match our Module interface
+                    const transformedModules = data.milestones.map((milestone: Milestone) => ({
+                        id: milestone.id.toString(),
+                        title: milestone.name,
+                        position: milestone.ordering,
+                        items: [],
+                        isExpanded: false,
+                        backgroundColor: `${milestone.color}80`, // Add 50% opacity for UI display
+                    }));
+
+                    // Sort modules by position/ordering if needed
+                    transformedModules.sort((a: { position: number }, b: { position: number }) => a.position - b.position);
+
+                    // Set the modules state
+                    setModules(transformedModules);
+                } else {
+                    setModules([]);
+                }
 
                 setIsLoading(false);
             } catch (err) {

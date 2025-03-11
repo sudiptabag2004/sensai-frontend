@@ -25,9 +25,17 @@ const DynamicQuizEditor = dynamic(
 import { QuizQuestion, QuizQuestionConfig } from "../../../../../components/QuizEditor";
 
 // Define interfaces
+interface Milestone {
+    id: number;
+    name: string;
+    color: string;
+    ordering: number;
+}
+
 interface CourseDetails {
     id: number;
     name: string;
+    milestones?: Milestone[];
 }
 
 interface LearningMaterial {
@@ -109,6 +117,27 @@ export default function CreateCourse() {
                 const data = await response.json();
                 setCourseDetails(data);
                 setCourseTitle(data.name);
+
+                // Check if milestones are available in the response
+                if (data.milestones && Array.isArray(data.milestones)) {
+                    // Transform milestones to match our Module interface
+                    const transformedModules = data.milestones.map((milestone: Milestone) => ({
+                        id: milestone.id.toString(),
+                        title: milestone.name,
+                        position: milestone.ordering,
+                        items: [],
+                        isExpanded: false,
+                        backgroundColor: `${milestone.color}80`, // Add 50% opacity for UI display
+                        isEditing: false
+                    }));
+
+                    // Sort modules by position/ordering if needed
+                    transformedModules.sort((a: Module, b: Module) => a.position - b.position);
+
+                    // Set the modules state
+                    setModules(transformedModules);
+                }
+
                 setIsLoading(false);
             } catch (err) {
                 console.error("Error fetching course details:", err);
