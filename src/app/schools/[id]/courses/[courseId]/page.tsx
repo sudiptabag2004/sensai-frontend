@@ -695,14 +695,41 @@ export default function CreateCourse() {
         // We'll update the state when the user finishes editing (on blur or when save is clicked)
     };
 
-    const saveModuleTitle = (moduleId: string) => {
+    const saveModuleTitle = async (moduleId: string) => {
         // Find the heading element by data attribute
         const headingElement = document.querySelector(`[data-module-id="${moduleId}"]`) as HTMLHeadingElement;
         if (headingElement) {
-            // Get the current content and update the state
+            // Get the current content
             const newTitle = headingElement.textContent || "";
-            updateModuleTitle(moduleId, newTitle);
+
+            try {
+                // Make API call to update the milestone on the server
+                const response = await fetch(`http://localhost:8001/milestones/${moduleId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: newTitle
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to update module title: ${response.status}`);
+                }
+
+                // If successful, update the state
+                updateModuleTitle(moduleId, newTitle);
+                console.log("Module title updated successfully");
+            } catch (error) {
+                console.error("Error updating module title:", error);
+
+                // Still update the local state even if the API call fails
+                // This provides a better user experience while allowing for retry later
+                updateModuleTitle(moduleId, newTitle);
+            }
         }
+
         // Turn off editing mode
         toggleModuleEditing(moduleId, false);
     };
@@ -986,7 +1013,6 @@ export default function CreateCourse() {
                                                     contentEditable
                                                     suppressContentEditableWarning
                                                     onInput={(e) => handleModuleTitleInput(e, module.id)}
-                                                    onBlur={() => saveModuleTitle(module.id)}
                                                     onKeyDown={handleKeyDown}
                                                     className="text-xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
                                                     data-module-id={module.id}
