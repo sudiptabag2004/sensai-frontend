@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Zap, Sparkles, Eye, Check, FileEdit, Clipboard, ArrowLeft } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Block } from "@blocknote/core";
@@ -681,6 +681,63 @@ export default function CreateCourse() {
         setIsCourseTitleEditing(false);
     };
 
+    // Helper function to set cursor at the end of a contentEditable element
+    const setCursorToEnd = (element: HTMLElement) => {
+        if (!element) return;
+
+        const range = document.createRange();
+        const selection = window.getSelection();
+
+        // Clear any existing selection first
+        selection?.removeAllRanges();
+
+        // Set range to end of content
+        range.selectNodeContents(element);
+        range.collapse(false); // false means collapse to end
+
+        // Apply the selection
+        selection?.addRange(range);
+        element.focus();
+    };
+
+    // For course title editing
+    const enableCourseTitleEditing = () => {
+        setIsCourseTitleEditing(true);
+
+        // Need to use setTimeout to ensure the element is editable before focusing
+        setTimeout(() => {
+            if (titleRef.current) {
+                setCursorToEnd(titleRef.current);
+            }
+        }, 0);
+    };
+
+    // For module title editing
+    const enableModuleEditing = (moduleId: string) => {
+        toggleModuleEditing(moduleId, true);
+
+        // More reliable method to set cursor at end with a sufficient delay
+        setTimeout(() => {
+            const moduleElement = document.querySelector(`h2[contenteditable="true"]`) as HTMLElement;
+            if (moduleElement && moduleElement.textContent) {
+                // Create a text node at the end for more reliable cursor placement
+                const textNode = moduleElement.firstChild;
+                if (textNode) {
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+
+                    // Place cursor at the end of the text
+                    range.setStart(textNode, textNode.textContent?.length || 0);
+                    range.setEnd(textNode, textNode.textContent?.length || 0);
+
+                    selection?.removeAllRanges();
+                    selection?.addRange(range);
+                }
+                moduleElement.focus();
+            }
+        }, 100); // Increased delay for better reliability
+    };
+
     return (
         <div className="min-h-screen bg-white dark:bg-black">
             {/* Use the reusable Header component with showCreateCourseButton set to false */}
@@ -729,7 +786,7 @@ export default function CreateCourse() {
                                 {isCourseTitleEditing ? (
                                     <>
                                         <button
-                                            className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#4F46E5] hover:bg-[#222222] focus:border-[#4F46E5] focus:outline-none rounded-full transition-all cursor-pointer shadow-md"
+                                            className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border-2 !border-[#4F46E5] hover:bg-[#222222] outline-none rounded-full transition-all cursor-pointer shadow-md"
                                             onClick={saveCourseTitle}
                                         >
                                             <span className="mr-2 text-base">
@@ -742,7 +799,7 @@ export default function CreateCourse() {
                                             <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">Save</span>
                                         </button>
                                         <button
-                                            className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#6B7280] hover:bg-[#222222] focus:border-[#6B7280] focus:outline-none rounded-full transition-all cursor-pointer shadow-md"
+                                            className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border-2 !border-[#6B7280] hover:bg-[#222222] outline-none rounded-full transition-all cursor-pointer shadow-md"
                                             onClick={cancelCourseTitleEditing}
                                         >
                                             <span className="mr-2 text-base">
@@ -754,8 +811,8 @@ export default function CreateCourse() {
                                 ) : (
                                     <>
                                         <button
-                                            className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#4F46E5] hover:bg-[#222222] focus:border-[#4F46E5] focus:outline-none rounded-full transition-all cursor-pointer shadow-md"
-                                            onClick={() => setIsCourseTitleEditing(true)}
+                                            className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border-2 !border-[#4F46E5] hover:bg-[#222222] outline-none rounded-full transition-all cursor-pointer shadow-md"
+                                            onClick={enableCourseTitleEditing}
                                         >
                                             <span className="mr-2 text-base">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -766,7 +823,7 @@ export default function CreateCourse() {
                                             <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">Edit</span>
                                         </button>
                                         <button
-                                            className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#EF4444] hover:bg-[#222222] focus:border-[#EF4444] focus:outline-none rounded-full transition-all cursor-pointer shadow-md"
+                                            className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border-2 !border-[#EF4444] hover:bg-[#222222] outline-none rounded-full transition-all cursor-pointer shadow-md"
                                             onClick={() => {
                                                 // Preview action
                                                 console.log('Preview course');
@@ -782,7 +839,7 @@ export default function CreateCourse() {
                                         </button>
                                         {hasAnyItems() && (
                                             <button
-                                                className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border border-[#016037] hover:bg-[#222222] focus:border-[#016037] focus:outline-none rounded-full transition-all cursor-pointer shadow-md"
+                                                className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border-2 !border-[#016037] hover:bg-[#222222] outline-none rounded-full transition-all cursor-pointer shadow-md"
                                                 onClick={() => {
                                                     // Publish action
                                                     console.log('Publish course');
@@ -837,7 +894,6 @@ export default function CreateCourse() {
                                                     data-module-id={module.id}
                                                     data-placeholder="New Module"
                                                     onClick={(e) => e.stopPropagation()}
-                                                    autoFocus
                                                 >
                                                     {module.title}
                                                 </h2>
@@ -883,7 +939,7 @@ export default function CreateCourse() {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        toggleModuleEditing(module.id, true);
+                                                        enableModuleEditing(module.id);
                                                     }}
                                                     className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
                                                     aria-label="Edit module title"
