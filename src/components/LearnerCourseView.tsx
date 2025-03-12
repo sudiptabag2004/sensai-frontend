@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
-import { ChevronDown, ChevronRight, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { ModuleItem, Module } from "@/types/course";
+import CourseModuleList, { LocalModule } from "./CourseModuleList";
 
 interface LearnerCourseViewProps {
     courseTitle: string;
@@ -23,7 +23,7 @@ export default function LearnerCourseView({
     const modulesWithFilteredItems = modules.map(module => ({
         ...module,
         items: module.items.filter(item => item.status !== 'draft')
-    }));
+    })) as LocalModule[];
 
     // Filter out empty modules (those with no items after filtering)
     const filteredModules = modulesWithFilteredItems.filter(module => module.items.length > 0);
@@ -53,61 +53,12 @@ export default function LearnerCourseView({
                     </h1>
 
                     {filteredModules.length > 0 ? (
-                        <div className="space-y-4">
-                            {filteredModules.map((module) => (
-                                <div
-                                    key={module.id}
-                                    className="border border-gray-200 dark:border-gray-800 rounded-lg"
-                                    style={{ backgroundColor: module.backgroundColor }}
-                                >
-                                    <div
-                                        className="flex items-center p-4 cursor-pointer"
-                                        onClick={() => toggleModule(module.id)}
-                                    >
-                                        <div className="mr-2">
-                                            {expandedModules[module.id] ?
-                                                <ChevronDown className="h-5 w-5 text-gray-500 dark:text-gray-400" /> :
-                                                <ChevronRight className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                                            }
-                                        </div>
-                                        <h2 className="text-xl font-light text-black dark:text-white">
-                                            {module.title || "Untitled Module"}
-                                        </h2>
-                                    </div>
-
-                                    {expandedModules[module.id] && (
-                                        <div className="p-4 pt-0 pl-12">
-                                            {module.items.length > 0 ? (
-                                                <div className="space-y-3">
-                                                    {module.items.map((item) => (
-                                                        <div
-                                                            key={item.id}
-                                                            className="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md cursor-pointer relative mt-4"
-                                                        >
-                                                            {item.status === 'draft' && (
-                                                                <div className="absolute -top-2.5 left-0">
-                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500 text-white">
-                                                                        DRAFT
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            <BookOpen className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
-                                                            <div className="flex-1">
-                                                                <span className="text-gray-700 dark:text-gray-300">{item.title}</span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="text-gray-500 dark:text-gray-400 italic">
-                                                    Nothing added in this module yet
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                        <CourseModuleList
+                            modules={filteredModules}
+                            mode="view"
+                            expandedModules={expandedModules}
+                            onToggleModule={toggleModule}
+                        />
                     ) : (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div>
