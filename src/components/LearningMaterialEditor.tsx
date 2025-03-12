@@ -5,6 +5,7 @@ import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { useEffect, useRef } from "react";
+import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 
 // Add custom styles for dark mode
 import "./editor-styles.css";
@@ -49,11 +50,20 @@ export default function LearningMaterialEditor({
 }: LearningMaterialEditorProps) {
     const editorContainerRef = useRef<HTMLDivElement>(null);
 
-    // Creates a new editor instance
+    // Remove the advanced blocks from the schema
+    // Extract only the blocks we don't want
+    const { image, table, video, audio, file, ...basicBlockSpecs } = defaultBlockSpecs;
+
+    // Create a schema with only the basic blocks
+    const schema = BlockNoteSchema.create({
+        blockSpecs: basicBlockSpecs,
+    });
+
+    // Creates a new editor instance with the custom schema
     const editor = useCreateBlockNote({
         initialContent: initialContent.length > 0 ? initialContent : undefined,
-        // Add uploadFile function to enable image uploads
         uploadFile,
+        schema, // Use our custom schema with limited blocks
     });
 
     // Handle content changes
