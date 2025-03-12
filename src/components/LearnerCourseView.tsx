@@ -262,7 +262,7 @@ export default function LearnerCourseView({
                                 <>
                                     {activeItem?.type === 'material' && (
                                         <DynamicLearningMaterialEditor
-                                            initialContent={activeItem.content || []}
+                                            taskId={activeItem.id}
                                             readOnly={true}
                                         />
                                     )}
