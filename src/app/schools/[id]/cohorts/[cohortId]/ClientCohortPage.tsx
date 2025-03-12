@@ -491,193 +491,195 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                     Back To Cohorts
                                 </Link>
 
-                                <div className="flex items-center">
-                                    <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mr-4">
-                                        <Layers size={24} className="text-white" />
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center">
+                                        <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mr-4">
+                                            <Layers size={24} className="text-white" />
+                                        </div>
+                                        <div>
+                                            <h1 className="text-3xl font-light outline-none">
+                                                {cohort.name}
+                                            </h1>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h1 className="text-3xl font-light outline-none">
-                                            {cohort.name}
-                                        </h1>
-                                    </div>
-                                </div>
 
-                                <div className="mt-6 relative">
-                                    <button
-                                        data-dropdown-toggle="true"
-                                        className="flex items-center space-x-2 px-6 py-2 bg-transparent border text-white border-gray-700 rounded-full hover:bg-gray-900 transition-colors cursor-pointer"
-                                        onClick={() => {
-                                            setIsDropdownOpen(!isDropdownOpen);
-                                            if (!isDropdownOpen) {
-                                                // Reset the temporary selected courses when opening the dropdown
-                                                setTempSelectedCourses([]);
-                                                fetchAvailableCourses();
-                                            }
-                                        }}
-                                    >
-                                        <Plus size={16} />
-                                        <span>Add Course</span>
-                                    </button>
+                                    <div className="relative">
+                                        <button
+                                            data-dropdown-toggle="true"
+                                            className="flex items-center space-x-2 px-6 py-2 bg-transparent border text-white border-gray-700 rounded-full hover:bg-gray-900 transition-colors cursor-pointer"
+                                            onClick={() => {
+                                                setIsDropdownOpen(!isDropdownOpen);
+                                                if (!isDropdownOpen) {
+                                                    // Reset the temporary selected courses when opening the dropdown
+                                                    setTempSelectedCourses([]);
+                                                    fetchAvailableCourses();
+                                                }
+                                            }}
+                                        >
+                                            <Plus size={16} />
+                                            <span>Add Course</span>
+                                        </button>
 
-                                    {isDropdownOpen && (
-                                        <div
-                                            ref={dropdownRef}
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="absolute top-full left-0 mt-2 w-[400px] bg-[#1A1A1A] border border-gray-800 rounded-lg shadow-xl z-50">
-                                            <div className="p-4 pb-2">
-                                                {/* Only show search when there are available courses */}
-                                                {!(totalSchoolCourses === 0 || availableCourses.length === 0) && (
-                                                    <div className="relative">
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Search courses"
-                                                            className="w-full bg-[#111] border border-gray-800 rounded-md px-3 py-2 text-white"
-                                                            value={courseSearchQuery}
-                                                            onChange={handleCourseSearch}
-                                                        />
-                                                    </div>
-                                                )}
+                                        {isDropdownOpen && (
+                                            <div
+                                                ref={dropdownRef}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="absolute top-full right-0 mt-2 w-[400px] bg-[#1A1A1A] border border-gray-800 rounded-lg shadow-xl z-50">
+                                                <div className="p-4 pb-2">
+                                                    {/* Only show search when there are available courses */}
+                                                    {!(totalSchoolCourses === 0 || availableCourses.length === 0) && (
+                                                        <div className="relative">
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Search courses"
+                                                                className="w-full bg-[#111] border border-gray-800 rounded-md px-3 py-2 text-white"
+                                                                value={courseSearchQuery}
+                                                                onChange={handleCourseSearch}
+                                                            />
+                                                        </div>
+                                                    )}
 
-                                                {/* Show temporarily selected courses right below the search bar */}
-                                                {tempSelectedCourses.length > 0 && (
-                                                    <div className="mt-3 flex flex-wrap gap-2">
-                                                        {tempSelectedCourses.map(course => (
-                                                            <div
-                                                                key={course.id}
-                                                                className="flex items-center bg-[#222] px-3 py-1 rounded-full"
-                                                            >
-                                                                <span className="text-white text-sm font-light mr-2">{course.name}</span>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        removeTempCourse(course.id);
-                                                                    }}
-                                                                    className="text-gray-400 hover:text-white cursor-pointer"
+                                                    {/* Show temporarily selected courses right below the search bar */}
+                                                    {tempSelectedCourses.length > 0 && (
+                                                        <div className="mt-3 flex flex-wrap gap-2">
+                                                            {tempSelectedCourses.map(course => (
+                                                                <div
+                                                                    key={course.id}
+                                                                    className="flex items-center bg-[#222] px-3 py-1 rounded-full"
                                                                 >
-                                                                    <X size={14} />
-                                                                </button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="max-h-72 overflow-y-auto py-2 px-2">
-                                                {isLoadingCourses ? (
-                                                    <div className="flex justify-center items-center py-6">
-                                                        <div className="w-8 h-8 border-2 border-t-purple-500 border-r-purple-500 border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-                                                    </div>
-                                                ) : courseError ? (
-                                                    <div className="p-4 text-center">
-                                                        <p className="text-red-400 mb-2">{courseError}</p>
-                                                        <button
-                                                            className="text-purple-400 hover:text-purple-300 cursor-pointer"
-                                                            onClick={fetchAvailableCourses}
-                                                        >
-                                                            Try again
-                                                        </button>
-                                                    </div>
-                                                ) : filteredCourses.length === 0 ? (
-                                                    <div className="p-4 text-center">
-                                                        {totalSchoolCourses === 0 ? (
-                                                            // School has no courses at all
-                                                            <>
-                                                                <h3 className="text-lg font-light mb-1">No courses available</h3>
-                                                                <p className="text-gray-400 text-sm">Create courses in your school first that you can publish to your cohort</p>
-                                                                <Link
-                                                                    href={`/schools/${schoolId}#courses`}
-                                                                    className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity"
-                                                                >
-                                                                    Go to School
-                                                                </Link>
-                                                            </>
-                                                        ) : availableCourses.length === 0 ? (
-                                                            // All school courses are already in the cohort
-                                                            <>
-                                                                <h3 className="text-lg font-light mb-1">No courses left</h3>
-                                                                <p className="text-gray-400 text-sm">All courses from your school have been added to this cohort</p>
-                                                                <Link
-                                                                    href={`/schools/${schoolId}#courses`}
-                                                                    className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity cursor-pointer"
-                                                                >
-                                                                    Create more courses
-                                                                </Link>
-                                                            </>
-                                                        ) : tempSelectedCourses.length > 0 ? (
-                                                            // All available courses have been temporarily selected
-                                                            <>
-                                                                <h3 className="text-lg font-light mb-1">All courses selected</h3>
-                                                                <p className="text-gray-400 text-sm">You have selected all available courses</p>
-                                                            </>
-                                                        ) : (
-                                                            // Search returned no results
-                                                            <>
-                                                                <h3 className="text-lg font-light mb-1">No matching courses</h3>
-                                                                <p className="text-gray-400 text-sm">Try a different search term</p>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <div className="space-y-0.5">
-                                                        {filteredCourses.map(course => (
-                                                            <div
-                                                                key={course.id}
-                                                                className="flex items-center px-3 py-1.5 hover:bg-[#222] rounded-md cursor-pointer"
-                                                                onClick={() => selectCourse(course)}
-                                                            >
-                                                                <div className="w-6 h-6 bg-purple-900 rounded-md flex items-center justify-center mr-2">
-                                                                    <BookOpen size={14} className="text-white" />
+                                                                    <span className="text-white text-sm font-light mr-2">{course.name}</span>
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            removeTempCourse(course.id);
+                                                                        }}
+                                                                        className="text-gray-400 hover:text-white cursor-pointer"
+                                                                    >
+                                                                        <X size={14} />
+                                                                    </button>
                                                                 </div>
-                                                                <p className="text-white text-sm font-light">{course.name}</p>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-
-                                                {/* Add button at the end of the list */}
-                                                {(filteredCourses.length > 0 || tempSelectedCourses.length > 0) && (
-                                                    <div className="px-2 pt-4 pb-1">
-                                                        <button
-                                                            className="w-full bg-white text-black py-3 rounded-md text-sm hover:bg-gray-200 transition-colors cursor-pointer"
-                                                            onClick={handleAddSelectedCourses}
-                                                            disabled={isLoadingCourses}
-                                                        >
-                                                            {isLoadingCourses ? "Adding..." : "Add courses to cohort"}
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Display selected courses */}
-                                {cohort?.courses && cohort.courses.length > 0 && (
-                                    <>
-                                        <h2 className="mt-8 mb-3 text-sm font-light">Courses</h2>
-                                        <div className="flex flex-wrap gap-3">
-                                            {cohort.courses.map(course => (
-                                                <div
-                                                    key={course.id}
-                                                    className="flex items-center bg-[#222] px-4 py-2 rounded-full group hover:bg-[#333] transition-colors"
-                                                >
-                                                    <span className="text-white text-sm font-light mr-3">{course.name}</span>
-                                                    <button
-                                                        onClick={() => removeCourseFromCohort(course.id)}
-                                                        className="text-gray-400 hover:text-white cursor-pointer"
-                                                        aria-label="Remove course from cohort"
-                                                    >
-                                                        <X size={16} />
-                                                    </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
+
+                                                <div className="max-h-72 overflow-y-auto py-2 px-2">
+                                                    {isLoadingCourses ? (
+                                                        <div className="flex justify-center items-center py-6">
+                                                            <div className="w-8 h-8 border-2 border-t-purple-500 border-r-purple-500 border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+                                                        </div>
+                                                    ) : courseError ? (
+                                                        <div className="p-4 text-center">
+                                                            <p className="text-red-400 mb-2">{courseError}</p>
+                                                            <button
+                                                                className="text-purple-400 hover:text-purple-300 cursor-pointer"
+                                                                onClick={fetchAvailableCourses}
+                                                            >
+                                                                Try again
+                                                            </button>
+                                                        </div>
+                                                    ) : filteredCourses.length === 0 ? (
+                                                        <div className="p-4 text-center">
+                                                            {totalSchoolCourses === 0 ? (
+                                                                // School has no courses at all
+                                                                <>
+                                                                    <h3 className="text-lg font-light mb-1">No courses available</h3>
+                                                                    <p className="text-gray-400 text-sm">Create courses in your school first that you can publish to your cohort</p>
+                                                                    <Link
+                                                                        href={`/schools/${schoolId}#courses`}
+                                                                        className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity"
+                                                                    >
+                                                                        Go to School
+                                                                    </Link>
+                                                                </>
+                                                            ) : availableCourses.length === 0 ? (
+                                                                // All school courses are already in the cohort
+                                                                <>
+                                                                    <h3 className="text-lg font-light mb-1">No courses left</h3>
+                                                                    <p className="text-gray-400 text-sm">All courses from your school have been added to this cohort</p>
+                                                                    <Link
+                                                                        href={`/schools/${schoolId}#courses`}
+                                                                        className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity cursor-pointer"
+                                                                    >
+                                                                        Create more courses
+                                                                    </Link>
+                                                                </>
+                                                            ) : tempSelectedCourses.length > 0 ? (
+                                                                // All available courses have been temporarily selected
+                                                                <>
+                                                                    <h3 className="text-lg font-light mb-1">All courses selected</h3>
+                                                                    <p className="text-gray-400 text-sm">You have selected all available courses</p>
+                                                                </>
+                                                            ) : (
+                                                                // Search returned no results
+                                                                <>
+                                                                    <h3 className="text-lg font-light mb-1">No matching courses</h3>
+                                                                    <p className="text-gray-400 text-sm">Try a different search term</p>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-0.5">
+                                                            {filteredCourses.map(course => (
+                                                                <div
+                                                                    key={course.id}
+                                                                    className="flex items-center px-3 py-1.5 hover:bg-[#222] rounded-md cursor-pointer"
+                                                                    onClick={() => selectCourse(course)}
+                                                                >
+                                                                    <div className="w-6 h-6 bg-purple-900 rounded-md flex items-center justify-center mr-2">
+                                                                        <BookOpen size={14} className="text-white" />
+                                                                    </div>
+                                                                    <p className="text-white text-sm font-light">{course.name}</p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Add button at the end of the list */}
+                                                    {(filteredCourses.length > 0 || tempSelectedCourses.length > 0) && (
+                                                        <div className="px-2 pt-4 pb-1">
+                                                            <button
+                                                                className="w-full bg-white text-black py-3 rounded-md text-sm hover:bg-gray-200 transition-colors cursor-pointer"
+                                                                onClick={handleAddSelectedCourses}
+                                                                disabled={isLoadingCourses}
+                                                            >
+                                                                {isLoadingCourses ? "Adding..." : "Add courses to cohort"}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="mb-8">
+                        {/* Display selected courses */}
+                        {cohort?.courses && cohort.courses.length > 0 && (
+                            <>
+                                <h2 className="mt-4 mb-3 text-sm font-light">Courses</h2>
+                                <div className="flex flex-wrap gap-3">
+                                    {cohort.courses.map(course => (
+                                        <div
+                                            key={course.id}
+                                            className="flex items-center bg-[#222] px-4 py-2 rounded-full group hover:bg-[#333] transition-colors"
+                                        >
+                                            <span className="text-white text-sm font-light mr-3">{course.name}</span>
+                                            <button
+                                                onClick={() => removeCourseFromCohort(course.id)}
+                                                className="text-gray-400 hover:text-white cursor-pointer"
+                                                aria-label="Remove course from cohort"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        <div className="mt-8 mb-8">
                             <div className="flex border-b border-gray-800">
                                 <button
                                     className={`px-4 py-2 font-light cursor-pointer ${tab === 'learners' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
