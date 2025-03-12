@@ -35,6 +35,8 @@ export default function LearnerCourseView({
     const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    // Track completed tasks
+    const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
     const dialogTitleRef = useRef<HTMLHeadingElement>(null);
     const dialogContentRef = useRef<HTMLDivElement>(null);
 
@@ -120,7 +122,7 @@ export default function LearnerCourseView({
 
     // Function to mark task as completed (placeholder for now)
     const markTaskComplete = async () => {
-        if (!activeItem) return;
+        if (!activeItem || !activeModuleId) return;
 
         try {
             // API call to mark the task as completed would go here
@@ -137,8 +139,29 @@ export default function LearnerCourseView({
             //     }),
             // });
 
-            // Close the dialog after marking complete
-            closeDialog();
+            // Mark the task as completed in our local state
+            setCompletedTasks(prev => ({
+                ...prev,
+                [activeItem.id]: true
+            }));
+
+            // Find the current module
+            const currentModule = filteredModules.find(m => m.id === activeModuleId);
+            if (!currentModule) return;
+
+            // Find the index of the current task in the module
+            const currentTaskIndex = currentModule.items.findIndex(item => item.id === activeItem.id);
+            if (currentTaskIndex === -1) return;
+
+            // Check if there's a next task in this module
+            if (currentTaskIndex < currentModule.items.length - 1) {
+                // Navigate to the next task in the same module
+                const nextTask = currentModule.items[currentTaskIndex + 1];
+                openTaskItem(activeModuleId, nextTask.id);
+            } else {
+                // This was the last task in the module, close the dialog
+                closeDialog();
+            }
         } catch (error) {
             console.error("Error marking task as complete:", error);
         }
@@ -219,22 +242,29 @@ export default function LearnerCourseView({
                             </div>
 
                             {/* Task List */}
-                            <div className="flex-1 overflow-y-auto py-2">
-                                {activeModuleId && filteredModules.find(m => m.id === activeModuleId)?.items.map(item => (
+                            <div className="flex-1 overflow-y-auto pt-0 pb-2">
+                                {activeModuleId && filteredModules.find(m => m.id === activeModuleId)?.items.map((item) => (
                                     <div
                                         key={item.id}
                                         className={`px-4 py-2 cursor-pointer flex items-center ${item.id === activeItem.id
                                             ? "bg-[#222222] border-l-2 border-green-500"
-                                            : "hover:bg-[#1A1A1A] border-l-2 border-transparent"
+                                            : completedTasks[item.id]
+                                                ? "border-l-2 border-green-500 text-green-500"
+                                                : "hover:bg-[#1A1A1A] border-l-2 border-transparent"
                                             }`}
                                         onClick={() => openTaskItem(activeModuleId, item.id)}
                                     >
-                                        <div className="flex items-center mr-2 text-gray-400">
-                                            {item.type === 'material' ? <BookOpen size={14} /> :
-                                                item.type === 'quiz' ? <HelpCircle size={14} /> :
-                                                    <Clipboard size={14} />}
+                                        <div className={`flex items-center mr-2 ${completedTasks[item.id] ? "text-green-500" : "text-gray-400"}`}>
+                                            {completedTasks[item.id]
+                                                ? <CheckCircle size={14} />
+                                                : item.type === 'material'
+                                                    ? <BookOpen size={14} />
+                                                    : item.type === 'quiz'
+                                                        ? <HelpCircle size={14} />
+                                                        : <Clipboard size={14} />
+                                            }
                                         </div>
-                                        <div className="flex-1 text-sm text-gray-200 truncate">
+                                        <div className={`flex-1 text-sm ${completedTasks[item.id] ? "text-green-500" : "text-gray-200"} truncate`}>
                                             {item.title}
                                         </div>
                                     </div>
@@ -271,14 +301,24 @@ export default function LearnerCourseView({
                                     </h2>
                                 </div>
                                 <div className="flex items-center space-x-3">
-                                    <button
-                                        onClick={markTaskComplete}
-                                        className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
-                                        aria-label="Mark complete"
-                                    >
-                                        <CheckCircle size={16} className="mr-2" />
-                                        Mark Complete
-                                    </button>
+                                    {completedTasks[activeItem?.id] ? (
+                                        <button
+                                            className="flex items-center px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-full transition-colors cursor-default"
+                                            disabled
+                                        >
+                                            <CheckCircle size={16} className="mr-2" />
+                                            Completed
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={markTaskComplete}
+                                            className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                            aria-label="Mark complete"
+                                        >
+                                            <CheckCircle size={16} className="mr-2" />
+                                            Mark Complete
+                                        </button>
+                                    )}
                                     <button
                                         onClick={closeDialog}
                                         className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer p-1 md:hidden"
