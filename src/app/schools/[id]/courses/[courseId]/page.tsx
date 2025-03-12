@@ -252,9 +252,25 @@ export default function CreateCourse() {
     // Focus the dialog title when dialog opens and set initial content
     useEffect(() => {
         if (isDialogOpen && dialogTitleRef.current && activeItem) {
-            // Set the initial content
-            dialogTitleRef.current.textContent = activeItem.title;
-            dialogTitleRef.current.focus();
+            // Only set the initial content if it's empty or different
+            // This prevents cursor issues when reopening the same item
+            if (!dialogTitleRef.current.textContent || dialogTitleRef.current.textContent !== activeItem.title) {
+                dialogTitleRef.current.textContent = activeItem.title;
+            }
+
+            // Don't automatically focus the title - let the editor get focus instead
+        }
+    }, [isDialogOpen, activeItem]);
+
+    // Add a useEffect to focus the editor when the dialog opens
+    useEffect(() => {
+        if (isDialogOpen && activeItem) {
+            // Wait for the dialog to fully render before focusing the editor
+            const timeoutId = setTimeout(() => {
+                focusEditor();
+            }, 300);
+
+            return () => clearTimeout(timeoutId);
         }
     }, [isDialogOpen, activeItem]);
 
@@ -271,6 +287,65 @@ export default function CreateCourse() {
             window.removeEventListener('keydown', handleEscKey);
         };
     }, [isDialogOpen]);
+
+    // Add a useEffect to ensure the editor gets focus after a short delay
+    useEffect(() => {
+        if (isDialogOpen && activeItem) {
+            // Use a short timeout to ensure the editor is fully mounted
+            const timeoutId = setTimeout(() => {
+                // Find the editor container and try to focus it
+                const editorContainer = document.querySelector('.dialog-content-editor');
+                if (editorContainer) {
+                    // Try to find the first focusable element within the editor
+                    const focusableElement = editorContainer.querySelector('div[contenteditable="true"], [tabindex="0"]');
+                    if (focusableElement instanceof HTMLElement) {
+                        focusableElement.focus();
+                    }
+                }
+            }, 100);
+
+            return () => clearTimeout(timeoutId);
+        }
+    }, [isDialogOpen, activeItem]);
+
+    // Add a useEffect to ensure the editor gets focus after a short delay
+    useEffect(() => {
+        if (isDialogOpen && activeItem) {
+            // Use a longer timeout to ensure the editor is fully mounted and ready
+            const timeoutId = setTimeout(() => {
+                try {
+                    // Try different selectors to find the editor element
+                    const selectors = [
+                        // Common editor selectors
+                        '.bn-editor',
+                        '.ProseMirror',
+                        '.dialog-content-editor [contenteditable="true"]',
+                        '.dialog-content-editor .bn-container',
+                        // More generic focusable elements
+                        '.dialog-content-editor [tabindex="0"]',
+                        '.dialog-content-editor [role="textbox"]',
+                        // Very aggressive - just any contenteditable in the dialog
+                        '.dialog-content-editor div[contenteditable]'
+                    ];
+
+                    // Try each selector until we find something
+                    for (const selector of selectors) {
+                        const editorElement = document.querySelector(selector);
+                        if (editorElement instanceof HTMLElement) {
+                            console.log('Found editor element with selector:', selector);
+                            editorElement.focus();
+                            // If we found an element and focused it, we're done
+                            break;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error trying to focus editor:', error);
+                }
+            }, 500); // Increased delay for better reliability
+
+            return () => clearTimeout(timeoutId);
+        }
+    }, [isDialogOpen, activeItem]);
 
     const addModule = async () => {
         // Generate a diverse set of theme-compatible colors for dark mode
@@ -371,6 +446,13 @@ export default function CreateCourse() {
         // Prevent creating a new line when pressing Enter
         if (e.key === "Enter") {
             e.preventDefault();
+
+            // If this is the dialog title, save it
+            if (e.currentTarget === dialogTitleRef.current && activeItem && activeModuleId) {
+                saveDialogTitle();
+            }
+
+            // Remove focus
             (e.currentTarget as HTMLHeadingElement).blur();
         }
     };
@@ -781,11 +863,52 @@ export default function CreateCourse() {
         setActiveModuleId(null);
     };
 
+    // Add a function to focus the editor
+    const focusEditor = () => {
+        // First, blur the title element
+        if (dialogTitleRef.current) {
+            dialogTitleRef.current.blur();
+        }
+
+        // Then try to find and focus the editor
+        setTimeout(() => {
+            try {
+                const selectors = [
+                    '.bn-editor',
+                    '.ProseMirror',
+                    '.dialog-content-editor [contenteditable="true"]',
+                    '.dialog-content-editor .bn-container',
+                    '.dialog-content-editor [tabindex="0"]',
+                    '.dialog-content-editor [role="textbox"]',
+                    '.dialog-content-editor div[contenteditable]'
+                ];
+
+                for (const selector of selectors) {
+                    const el = document.querySelector(selector);
+                    if (el instanceof HTMLElement) {
+                        console.log('Found and focusing editor element:', selector);
+                        el.focus();
+                        return; // Exit once we've focused an element
+                    }
+                }
+                console.log('Could not find editor element to focus');
+            } catch (err) {
+                console.error('Error focusing editor:', err);
+            }
+        }, 200);
+    };
+
     // Update the title of the active item in the dialog
     const handleDialogTitleChange = (e: React.FormEvent<HTMLHeadingElement>) => {
-        if (!activeItem || !activeModuleId) return;
+        // Don't update the state during typing to prevent cursor jumps
+        // The actual update will happen when the user finishes editing (on blur)
+    };
 
-        const newTitle = e.currentTarget.textContent || "";
+    // Add a new function to save the dialog title when editing is complete
+    const saveDialogTitle = () => {
+        if (!activeItem || !activeModuleId || !dialogTitleRef.current) return;
+
+        const newTitle = dialogTitleRef.current.textContent || "";
         updateItemTitle(activeModuleId, activeItem.id, newTitle);
     };
 
@@ -832,6 +955,67 @@ export default function CreateCourse() {
                 return module;
             })
         );
+    };
+
+    // Add a function to publish an item
+    const publishItem = async (moduleId: string, itemId: string) => {
+        try {
+            // Find the item to get its type
+            const module = modules.find(m => m.id === moduleId);
+            if (!module) return;
+
+            const item = module.items.find(i => i.id === itemId);
+            if (!item) return;
+
+            // Make API request to update the item status
+            const response = await fetch(`http://localhost:8001/tasks/${itemId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    status: 'published'
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to publish ${item.type}: ${response.status}`);
+            }
+
+            // Update the UI after successful API call
+            setModules(prevModules =>
+                prevModules.map(module => {
+                    if (module.id === moduleId) {
+                        return {
+                            ...module,
+                            items: module.items.map(item => {
+                                if (item.id === itemId) {
+                                    return {
+                                        ...item,
+                                        status: 'published'
+                                    };
+                                }
+                                return item;
+                            })
+                        };
+                    }
+                    return module;
+                })
+            );
+
+            // Also update active item if it's currently being edited
+            if (activeItem && activeItem.id === itemId) {
+                setActiveItem({
+                    ...activeItem,
+                    status: 'published'
+                });
+            }
+
+            console.log(`${item.type} published successfully`);
+        } catch (error) {
+            console.error("Error publishing item:", error);
+            // You might want to show an error message to the user here
+        }
     };
 
     const handleModuleTitleInput = (e: React.FormEvent<HTMLHeadingElement>, moduleId: string) => {
@@ -1406,6 +1590,28 @@ export default function CreateCourse() {
                                     suppressContentEditableWarning
                                     onInput={handleDialogTitleChange}
                                     onKeyDown={handleKeyDown}
+                                    onBlur={saveDialogTitle}
+                                    onClick={(e) => {
+                                        // Prevent click from bubbling up
+                                        e.stopPropagation();
+
+                                        // Set a flag to indicate the title is being edited
+                                        const titleElement = e.currentTarget as HTMLElement;
+                                        titleElement.dataset.editing = "true";
+
+                                        // Set cursor position at the end of text
+                                        const range = document.createRange();
+                                        const selection = window.getSelection();
+                                        const textNode = titleElement.firstChild || titleElement;
+
+                                        if (textNode) {
+                                            const textLength = textNode.textContent?.length || 0;
+                                            range.setStart(textNode, textLength);
+                                            range.setEnd(textNode, textLength);
+                                            selection?.removeAllRanges();
+                                            selection?.addRange(range);
+                                        }
+                                    }}
                                     className="text-2xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none cursor-text"
                                     data-placeholder={activeItem?.type === 'material' ? 'New Learning Material' : activeItem?.type === 'quiz' ? 'New Quiz' : 'New Exam'}
                                 >
@@ -1413,6 +1619,16 @@ export default function CreateCourse() {
                                 </h2>
                             </div>
                             <div className="flex items-center space-x-3">
+                                {activeItem?.status === 'draft' && (
+                                    <button
+                                        onClick={() => activeModuleId && publishItem(activeModuleId, activeItem.id)}
+                                        className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                        aria-label="Publish item"
+                                    >
+                                        <Sparkles size={16} className="mr-2" />
+                                        Publish
+                                    </button>
+                                )}
                                 {activeItem?.type === 'quiz' && (
                                     <button
                                         onClick={() => setIsPreviewMode(!isPreviewMode)}
@@ -1442,7 +1658,16 @@ export default function CreateCourse() {
                         </div>
 
                         {/* Dialog Content */}
-                        <div className="flex-1 overflow-y-auto p-6">
+                        <div
+                            className="flex-1 overflow-y-auto p-6 dialog-content-editor"
+                            onClick={(e) => {
+                                // Ensure the click event doesn't bubble up
+                                e.stopPropagation();
+
+                                // Focus the editor
+                                focusEditor();
+                            }}
+                        >
                             {activeItem?.type === 'material' ? (
                                 <DynamicLearningMaterialEditor
                                     initialContent={activeItem.content}
