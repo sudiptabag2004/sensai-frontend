@@ -9,6 +9,7 @@ import Image from "next/image";
 import { Header } from "@/components/layout/header";
 import { useRouter, useParams } from "next/navigation";
 import CourseModuleList, { LocalModule } from "@/components/CourseModuleList";
+import CourseItemDialog from "@/components/CourseItemDialog";
 
 // Dynamically import the editor components
 const DynamicLearningMaterialEditor = dynamic(
@@ -94,6 +95,14 @@ const defaultQuestionConfig: QuizQuestionConfig = {
     evaluationCriteria: []
 };
 
+// Add TaskData interface at the top of the file with the other interfaces
+interface TaskData {
+    id: string;
+    title: string;
+    blocks: any[];
+    status: string;
+}
+
 export default function CreateCourse() {
     const router = useRouter();
     const params = useParams();
@@ -111,8 +120,6 @@ export default function CreateCourse() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const titleRef = useRef<HTMLHeadingElement>(null);
-    const dialogTitleRef = useRef<HTMLHeadingElement>(null);
-    const dialogContentRef = useRef<HTMLDivElement>(null);
     const [lastUsedColorIndex, setLastUsedColorIndex] = useState<number>(-1);
     const [isCourseTitleEditing, setIsCourseTitleEditing] = useState(false);
     const [isEditMode, setIsEditMode] = useState<boolean>(false);
@@ -252,31 +259,6 @@ export default function CreateCourse() {
         }
     }, [modules, activeModuleId, activeItem]);
 
-    // Focus the dialog title when dialog opens and set initial content
-    useEffect(() => {
-        if (isDialogOpen && dialogTitleRef.current && activeItem) {
-            // Only set the initial content if it's empty or different
-            // This prevents cursor issues when reopening the same item
-            if (!dialogTitleRef.current.textContent || dialogTitleRef.current.textContent !== activeItem.title) {
-                dialogTitleRef.current.textContent = activeItem.title;
-            }
-
-            // Don't automatically focus the title - let the editor get focus instead
-        }
-    }, [isDialogOpen, activeItem]);
-
-    // Add a useEffect to focus the editor when the dialog opens
-    useEffect(() => {
-        if (isDialogOpen && activeItem) {
-            // Wait for the dialog to fully render before focusing the editor
-            const timeoutId = setTimeout(() => {
-                focusEditor();
-            }, 300);
-
-            return () => clearTimeout(timeoutId);
-        }
-    }, [isDialogOpen, activeItem]);
-
     // Handle Escape key to close dialog
     useEffect(() => {
         const handleEscKey = (e: KeyboardEvent) => {
@@ -290,65 +272,6 @@ export default function CreateCourse() {
             window.removeEventListener('keydown', handleEscKey);
         };
     }, [isDialogOpen]);
-
-    // Add a useEffect to ensure the editor gets focus after a short delay
-    useEffect(() => {
-        if (isDialogOpen && activeItem) {
-            // Use a short timeout to ensure the editor is fully mounted
-            const timeoutId = setTimeout(() => {
-                // Find the editor container and try to focus it
-                const editorContainer = document.querySelector('.dialog-content-editor');
-                if (editorContainer) {
-                    // Try to find the first focusable element within the editor
-                    const focusableElement = editorContainer.querySelector('div[contenteditable="true"], [tabindex="0"]');
-                    if (focusableElement instanceof HTMLElement) {
-                        focusableElement.focus();
-                    }
-                }
-            }, 100);
-
-            return () => clearTimeout(timeoutId);
-        }
-    }, [isDialogOpen, activeItem]);
-
-    // Add a useEffect to ensure the editor gets focus after a short delay
-    useEffect(() => {
-        if (isDialogOpen && activeItem) {
-            // Use a longer timeout to ensure the editor is fully mounted and ready
-            const timeoutId = setTimeout(() => {
-                try {
-                    // Try different selectors to find the editor element
-                    const selectors = [
-                        // Common editor selectors
-                        '.bn-editor',
-                        '.ProseMirror',
-                        '.dialog-content-editor [contenteditable="true"]',
-                        '.dialog-content-editor .bn-container',
-                        // More generic focusable elements
-                        '.dialog-content-editor [tabindex="0"]',
-                        '.dialog-content-editor [role="textbox"]',
-                        // Very aggressive - just any contenteditable in the dialog
-                        '.dialog-content-editor div[contenteditable]'
-                    ];
-
-                    // Try each selector until we find something
-                    for (const selector of selectors) {
-                        const editorElement = document.querySelector(selector);
-                        if (editorElement instanceof HTMLElement) {
-                            console.log('Found editor element with selector:', selector);
-                            editorElement.focus();
-                            // If we found an element and focused it, we're done
-                            break;
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error trying to focus editor:', error);
-                }
-            }, 500); // Increased delay for better reliability
-
-            return () => clearTimeout(timeoutId);
-        }
-    }, [isDialogOpen, activeItem]);
 
     const addModule = async () => {
         // Generate a diverse set of theme-compatible colors for dark mode
@@ -449,11 +372,6 @@ export default function CreateCourse() {
         // Prevent creating a new line when pressing Enter
         if (e.key === "Enter") {
             e.preventDefault();
-
-            // If this is the dialog title, save it
-            if (e.currentTarget === dialogTitleRef.current && activeItem && activeModuleId) {
-                saveDialogTitle();
-            }
 
             // Remove focus
             (e.currentTarget as HTMLHeadingElement).blur();
@@ -886,48 +804,17 @@ export default function CreateCourse() {
         // No need to fetch data here
     };
 
-    // Add a function to focus the editor
-    const focusEditor = () => {
-        // First, blur the title element
-        if (dialogTitleRef.current) {
-            dialogTitleRef.current.blur();
-        }
-
-        // Then try to find and focus the editor
-        setTimeout(() => {
-            try {
-                const selectors = [
-                    '.bn-editor',
-                    '.ProseMirror',
-                    '.dialog-content-editor [contenteditable="true"]',
-                    '.dialog-content-editor .bn-container',
-                    '.dialog-content-editor [tabindex="0"]',
-                    '.dialog-content-editor [role="textbox"]',
-                    '.dialog-content-editor div[contenteditable]'
-                ];
-
-                for (const selector of selectors) {
-                    const el = document.querySelector(selector);
-                    if (el instanceof HTMLElement) {
-                        console.log('Found and focusing editor element:', selector);
-                        el.focus();
-                        return; // Exit once we've focused an element
-                    }
-                }
-                console.log('Could not find editor element to focus');
-            } catch (err) {
-                console.error('Error focusing editor:', err);
-            }
-        }, 200);
-    };
-
     // Handle dialog title change
     const handleDialogTitleChange = (e: React.FormEvent<HTMLHeadingElement>) => {
         if (!activeItem || !activeModuleId) return;
 
+        // Skip title updates for learning materials - they manage their own titles
+        // and only emit changes after publishing
+        if (activeItem.type === 'material') return;
+
         const newTitle = e.currentTarget.textContent || "";
 
-        // Update the title in the API
+        // Update the title in the API - only for quizzes and exams
         fetch(`http://localhost:8001/tasks/${activeItem.id}`, {
             method: 'PUT',
             headers: {
@@ -974,19 +861,6 @@ export default function CreateCourse() {
             .catch(error => {
                 console.error("Error updating title:", error);
             });
-    };
-
-    // Save dialog title is no longer needed as we're updating the title directly in handleDialogTitleChange
-    const saveDialogTitle = () => {
-        // No-op - title is saved directly in handleDialogTitleChange
-    };
-
-    // Handle click outside dialog to close it
-    const handleDialogBackdropClick = (e: React.MouseEvent) => {
-        // Only close if clicking directly on the backdrop, not on the dialog content
-        if (dialogContentRef.current && !dialogContentRef.current.contains(e.target as Node)) {
-            closeDialog();
-        }
     };
 
     // Handle quiz content changes
@@ -1042,10 +916,19 @@ export default function CreateCourse() {
     const handleConfirmPublish = async () => {
         // For learning materials, the API call is now handled in the LearningMaterialEditor component
         if (activeItem?.type === 'material') {
-            // The LearningMaterialEditor will handle the API call and update the UI
+            // The LearningMaterialEditor has already handled the API call
+            // We still need to update the modules list to reflect the status change
+            // Don't update the title here - it will be included in the publishedTaskData from onPublishSuccess
+
+            // The update will happen in CourseItemDialog's onPublishSuccess callback
+            // which will update the activeItem with the appropriate title
+
+            // Hide the confirmation dialog
+            setShowPublishConfirmation(false);
             return;
         }
 
+        // For other item types (quizzes, exams)
         // Hide the confirmation dialog
         setShowPublishConfirmation(false);
 
@@ -1053,6 +936,7 @@ export default function CreateCourse() {
 
         try {
             // Make API request to update the item status
+            console.log('Inside handleConfirmPublish');
             const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}`, {
                 method: 'PUT',
                 headers: {
@@ -1288,12 +1172,7 @@ export default function CreateCourse() {
     const enableEditMode = () => {
         setIsEditMode(true);
 
-        // Focus the title for editing
-        setTimeout(() => {
-            if (dialogTitleRef.current) {
-                setCursorToEnd(dialogTitleRef.current);
-            }
-        }, 0);
+        // Focus the title for editing is now handled in CourseModuleList
     };
 
     // Save the current item
@@ -1303,6 +1182,7 @@ export default function CreateCourse() {
         // For learning materials, we need to fetch the latest data from the API
         if (activeItem.type === 'material') {
             try {
+                console.log("Saving learning material");
                 const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}`);
                 if (!response.ok) {
                     throw new Error(`Failed to fetch task: ${response.status}`);
@@ -1511,238 +1391,22 @@ export default function CreateCourse() {
                             onMoveModuleDown={moveModuleDown}
                             onDeleteModule={deleteModule}
                             onEditModuleTitle={enableModuleEditing}
+                            isDialogOpen={isDialogOpen}
+                            activeItem={activeItem}
+                            activeModuleId={activeModuleId}
+                            isEditMode={isEditMode}
+                            isPreviewMode={isPreviewMode}
+                            showPublishConfirmation={showPublishConfirmation}
+                            handleConfirmPublish={handleConfirmPublish}
+                            handleCancelPublish={handleCancelPublish}
+                            closeDialog={closeDialog}
+                            saveItem={saveItem}
+                            cancelEditMode={cancelEditMode}
+                            enableEditMode={enableEditMode}
+                            handleDialogTitleChange={handleDialogTitleChange}
+                            handleQuizContentChange={handleQuizContentChange}
+                            setShowPublishConfirmation={setShowPublishConfirmation}
                         />
-                    </div>
-                </div>
-            )}
-
-            {/* Learning Material/Quiz Dialog */}
-            {isDialogOpen && activeItem && (
-                <div
-                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                    onClick={handleDialogBackdropClick}
-                >
-                    <div
-                        ref={dialogContentRef}
-                        style={{
-                            backgroundColor: '#1A1A1A',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                            borderColor: '#1A1A1A',
-                            border: '1px solid #1A1A1A'
-                        }}
-                        className="w-full max-w-6xl h-[90vh] rounded-lg shadow-2xl flex flex-col transform transition-all duration-300 ease-in-out scale-100 translate-y-0"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Dialog Header */}
-                        <div
-                            className="flex items-center justify-between p-4 border-b border-gray-800"
-                            style={{ backgroundColor: '#111111' }}
-                        >
-                            <div className="flex-1 flex items-center">
-                                <h2
-                                    ref={dialogTitleRef}
-                                    contentEditable={activeItem?.status !== 'published' || isEditMode}
-                                    suppressContentEditableWarning
-                                    onInput={handleDialogTitleChange}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            // Blur the element to trigger save
-                                            (e.target as HTMLElement).blur();
-                                        }
-                                    }}
-                                    onClick={(e) => {
-                                        // Prevent click from bubbling up
-                                        e.stopPropagation();
-
-                                        // If not editable, don't continue
-                                        if (activeItem?.status === 'published' && !isEditMode) {
-                                            return;
-                                        }
-
-                                        // Set a flag to indicate the title is being edited
-                                        const titleElement = e.currentTarget as HTMLElement;
-                                        titleElement.dataset.editing = "true";
-
-                                        // Set cursor position at the end of text
-                                        const range = document.createRange();
-                                        const selection = window.getSelection();
-                                        const textNode = titleElement.firstChild || titleElement;
-
-                                        if (textNode) {
-                                            const textLength = textNode.textContent?.length || 0;
-                                            range.setStart(textNode, textLength);
-                                            range.setEnd(textNode, textLength);
-                                            selection?.removeAllRanges();
-                                            selection?.addRange(range);
-                                        }
-                                    }}
-                                    className="text-2xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none cursor-text"
-                                    data-placeholder={activeItem?.type === 'material' ? 'New Learning Material' : activeItem?.type === 'quiz' ? 'New Quiz' : 'New Exam'}
-                                >
-                                    {activeItem?.title}
-                                </h2>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                                {activeItem?.status === 'draft' && (
-                                    <button
-                                        onClick={() => setShowPublishConfirmation(true)}
-                                        className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
-                                        aria-label="Publish item"
-                                    >
-                                        <Sparkles size={16} className="mr-2" />
-                                        Publish
-                                    </button>
-                                )}
-                                {activeItem?.status === 'published' && isEditMode ? (
-                                    <>
-                                        <button
-                                            onClick={saveItem}
-                                            className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
-                                            aria-label="Save changes"
-                                        >
-                                            <Check size={16} className="mr-2" />
-                                            Save
-                                        </button>
-                                        <button
-                                            onClick={cancelEditMode}
-                                            className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-gray-500 hover:bg-[#222222] focus:border-gray-500 active:border-gray-500 rounded-full transition-colors cursor-pointer"
-                                            aria-label="Cancel editing"
-                                        >
-                                            <X size={16} className="mr-2" />
-                                            Cancel
-                                        </button>
-                                    </>
-                                ) : activeItem?.status === 'published' && !isEditMode && (
-                                    <button
-                                        onClick={enableEditMode}
-                                        className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-blue-500 hover:bg-[#222222] focus:border-blue-500 active:border-blue-500 rounded-full transition-colors cursor-pointer"
-                                        aria-label="Edit item"
-                                    >
-                                        <Pencil size={16} className="mr-2" />
-                                        Edit
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Dialog Content */}
-                        <div
-                            className="flex-1 overflow-y-auto p-6 dialog-content-editor"
-                            onClick={(e) => {
-                                // Ensure the click event doesn't bubble up
-                                e.stopPropagation();
-
-                                // Only focus the editor if in editable mode
-                                if (activeItem?.status !== 'published' || isEditMode) {
-                                    // Focus the editor
-                                    focusEditor();
-                                }
-                            }}
-                        >
-                            {activeItem?.type === 'material' ? (
-                                <DynamicLearningMaterialEditor
-                                    readOnly={activeItem.status === 'published' && !isEditMode}
-                                    showPublishConfirmation={showPublishConfirmation}
-                                    onPublishConfirm={handleConfirmPublish}
-                                    onPublishCancel={handleCancelPublish}
-                                    taskId={activeItem.id}
-                                    onPublishSuccess={() => {
-                                        // Use setTimeout to break the current render cycle
-                                        // and prevent the "Maximum update depth exceeded" error
-                                        setTimeout(() => {
-                                            // Check if component is still mounted
-                                            if (dialogContentRef.current) {
-                                                // Fetch the updated task data
-                                                fetch(`http://localhost:8001/tasks/${activeItem.id}`)
-                                                    .then(response => {
-                                                        if (!response.ok) {
-                                                            throw new Error(`Failed to fetch task: ${response.status}`);
-                                                        }
-                                                        return response.json();
-                                                    })
-                                                    .then(data => {
-                                                        // Update the active item with the fetched data
-                                                        const updatedItem = {
-                                                            ...activeItem,
-                                                            title: data.title,
-                                                            content: data.blocks || [],
-                                                            status: data.status
-                                                        };
-
-                                                        // Update the active item
-                                                        setActiveItem(updatedItem);
-
-                                                        // Update the modules state
-                                                        setModules(prevModules =>
-                                                            prevModules.map(module => {
-                                                                if (module.id === activeModuleId) {
-                                                                    return {
-                                                                        ...module,
-                                                                        items: module.items.map(item => {
-                                                                            if (item.id === activeItem.id) {
-                                                                                return {
-                                                                                    ...item,
-                                                                                    title: data.title,
-                                                                                    content: data.blocks || [],
-                                                                                    status: data.status
-                                                                                };
-                                                                            }
-                                                                            return item;
-                                                                        })
-                                                                    };
-                                                                }
-                                                                return module;
-                                                            })
-                                                        );
-
-                                                        // Hide the publish confirmation dialog
-                                                        setShowPublishConfirmation(false);
-                                                    })
-                                                    .catch(error => {
-                                                        console.error("Error fetching updated task:", error);
-                                                        // Still update the UI to show the item as published
-                                                        setActiveItem({
-                                                            ...activeItem,
-                                                            status: 'published'
-                                                        });
-
-                                                        // Update the modules state
-                                                        setModules(prevModules =>
-                                                            prevModules.map(module => {
-                                                                if (module.id === activeModuleId) {
-                                                                    return {
-                                                                        ...module,
-                                                                        items: module.items.map(item => {
-                                                                            if (item.id === activeItem.id) {
-                                                                                return {
-                                                                                    ...item,
-                                                                                    status: 'published'
-                                                                                };
-                                                                            }
-                                                                            return item;
-                                                                        })
-                                                                    };
-                                                                }
-                                                                return module;
-                                                            })
-                                                        );
-
-                                                        // Hide the publish confirmation dialog
-                                                        setShowPublishConfirmation(false);
-                                                    });
-                                            }
-                                        }, 0);
-                                    }}
-                                />
-                            ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (
-                                <DynamicQuizEditor
-                                    initialQuestions={(activeItem as Quiz | Exam)?.questions || []}
-                                    onChange={handleQuizContentChange}
-                                    isPreviewMode={isPreviewMode}
-                                />
-                            ) : null}
-                        </div>
                     </div>
                 </div>
             )}

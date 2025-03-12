@@ -66,6 +66,7 @@ export default function LearnerCourseView({
             if (!item) return;
 
             // Fetch item details from API
+            console.log("Fetching task data for taskId for learner view:", itemId);
             const response = await fetch(`http://localhost:8001/tasks/${itemId}`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch task: ${response.status}`);

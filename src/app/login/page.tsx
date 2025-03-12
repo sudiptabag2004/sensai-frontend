@@ -3,9 +3,10 @@
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
-export default function LoginPage() {
+// Create a separate component that uses useSearchParams
+function LoginContent() {
     const router = useRouter();
     const { data: session, status } = useSession();
     const searchParams = useSearchParams();
@@ -78,5 +79,18 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+// Main component with Suspense boundary
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-screen bg-white px-4">
+                <div className="w-12 h-12 border-t-2 border-b-2 border-black rounded-full animate-spin"></div>
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
     );
 } 

@@ -11,7 +11,6 @@ import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 import "./editor-styles.css";
 
 interface LearningMaterialEditorProps {
-    initialContent?: any[];
     onChange?: (content: any[]) => void;
     isDarkMode?: boolean;
     className?: string;
@@ -20,7 +19,7 @@ interface LearningMaterialEditorProps {
     onPublishConfirm?: () => void;
     onPublishCancel?: () => void;
     taskId?: string;
-    onPublishSuccess?: () => void;
+    onPublishSuccess?: (updatedData?: TaskData) => void;
 }
 
 interface TaskData {
@@ -54,7 +53,6 @@ async function uploadFile(file: File) {
 }
 
 export default function LearningMaterialEditor({
-    initialContent = [],
     onChange,
     isDarkMode = true, // Default to dark mode
     className = "",
@@ -82,8 +80,7 @@ export default function LearningMaterialEditor({
 
     // Creates a new editor instance with the custom schema
     const editor = useCreateBlockNote({
-        initialContent: taskData?.blocks && taskData.blocks.length > 0 ? taskData.blocks :
-            initialContent.length > 0 ? initialContent : undefined,
+        initialContent: taskData?.blocks && taskData.blocks.length > 0 ? taskData.blocks : undefined,
         uploadFile,
         schema, // Use our custom schema with limited blocks
     });
@@ -91,54 +88,55 @@ export default function LearningMaterialEditor({
     // Fetch task data when taskId changes
     useEffect(() => {
         if (taskId) {
-            const fetchTaskData = async () => {
-                setIsLoading(true);
-                try {
-                    const response = await fetch(`http://localhost:8001/tasks/${taskId}`);
+            setIsLoading(true);
+
+            // Use AbortController to cancel any in-flight requests
+            const controller = new AbortController();
+
+            console.log("Fetching task data for taskId:", taskId);
+            fetch(`http://localhost:8001/tasks/${taskId}`, {
+                signal: controller.signal
+            })
+                .then(response => {
                     if (!response.ok) {
                         throw new Error(`Failed to fetch task: ${response.status}`);
                     }
-
-                    const data = await response.json();
+                    return response.json();
+                })
+                .then(data => {
+                    // We only use the data fetched from our own API call
+                    // Title updates only happen after publishing, not during editing
                     setTaskData(data);
-
-                    // If we have blocks from the API, use them
-                    if (data.blocks && data.blocks.length > 0 && editor) {
-                        try {
-                            editor.replaceBlocks(editor.document, data.blocks);
-                        } catch (error) {
-                            console.error("Error updating editor content:", error);
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error fetching task data:", error);
-                } finally {
                     setIsLoading(false);
-                }
+                })
+                .catch(error => {
+                    // Ignore AbortError as it's expected when navigating away
+                    if (error.name !== 'AbortError') {
+                        console.error("Error fetching task data:", error);
+                    }
+                    setIsLoading(false);
+                });
+
+            // Clean up function will abort the fetch if the component unmounts
+            // or if the effect runs again (i.e., taskId changes)
+            return () => {
+                controller.abort();
             };
-
-            fetchTaskData();
         }
-    }, [taskId]);
+    }, [taskId, editor]);
 
-    // Reinitialize the editor content when initialContent changes
     useEffect(() => {
-        if (initialContent && initialContent.length > 0 && editor && !taskData) {
-            // Only replace content if it's different to avoid unnecessary rerenders
-            const currentContent = editor.document;
-            const contentChanged = JSON.stringify(currentContent) !== JSON.stringify(initialContent);
-
-            if (contentChanged) {
+        if (editor && taskData && taskData.blocks && taskData.blocks.length > 0) {
+            // Optionally use setTimeout to delay update until editor is fully ready
+            setTimeout(() => {
                 try {
-                    // Replace the editor content with the new content
-                    editor.replaceBlocks(editor.document, initialContent);
-                    console.log("Editor content updated with new initialContent");
+                    editor.replaceBlocks(editor.document, taskData.blocks);
                 } catch (error) {
                     console.error("Error updating editor content:", error);
                 }
-            }
+            }, 0);
         }
-    }, [editor, initialContent, taskData]);
+    }, [editor, taskData]);
 
     // Handle content changes
     useEffect(() => {
@@ -209,13 +207,38 @@ export default function LearningMaterialEditor({
         setPublishError(null);
 
         try {
-            // Make POST request to publish the learning material
+            // Get the current title from the dialog - it may have been edited
+            // We'll use the dialog title element ref which is passed from CourseItemDialog
+            // This allows us to capture any title changes made in the dialog
+            const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
+            const currentTitle = dialogTitleElement?.textContent || taskData?.title || "";
+
+            // First, update the title if it has changed
+            if (currentTitle !== taskData?.title) {
+                const titleResponse = await fetch(`http://localhost:8001/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: currentTitle
+                    }),
+                });
+
+                if (!titleResponse.ok) {
+                    console.warn(`Warning: Failed to update title: ${titleResponse.status}`);
+                    // Continue with publishing even if title update fails
+                }
+            }
+
+            // Make POST request to publish the learning material content
             const response = await fetch(`http://localhost:8001/tasks/${taskId}/learning_material`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    title: currentTitle,
                     blocks: editor.document
                 }),
             });
@@ -227,8 +250,15 @@ export default function LearningMaterialEditor({
             // Get the updated task data from the response
             const updatedTaskData = await response.json();
 
-            // Update our local state with the new data
-            setTaskData(updatedTaskData);
+            // Ensure the status is set to 'published' and use the title we just set
+            const publishedTaskData = {
+                ...updatedTaskData,
+                status: 'published',  // Force status to 'published' to ensure UI update
+                title: currentTitle   // Use the current title from the dialog
+            };
+
+            // Update our local state with the data from the API
+            setTaskData(publishedTaskData);
 
             console.log("Learning material published successfully");
 
@@ -241,11 +271,12 @@ export default function LearningMaterialEditor({
             }
 
             // Call the onPublishSuccess callback if provided
+            // This is where we emit the updated title and content to parent components
             // This should be the last operation as it might trigger UI changes
             if (onPublishSuccess) {
                 // Use setTimeout to break the current render cycle
                 setTimeout(() => {
-                    onPublishSuccess();
+                    onPublishSuccess(publishedTaskData);
                 }, 0);
             }
         } catch (error) {
