@@ -124,6 +124,12 @@ export default function CreateCourse() {
     const [isCourseTitleEditing, setIsCourseTitleEditing] = useState(false);
     const [isEditMode, setIsEditMode] = useState<boolean>(false);
     const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
+    const [showPublishDialog, setShowPublishDialog] = useState(false);
+    const [cohorts, setCohorts] = useState<any[]>([]);
+    const [isLoadingCohorts, setIsLoadingCohorts] = useState(false);
+    const [cohortSearchQuery, setCohortSearchQuery] = useState('');
+    const [filteredCohorts, setFilteredCohorts] = useState<any[]>([]);
+    const [cohortError, setCohortError] = useState<string | null>(null);
 
     // Fetch course details from the backend
     useEffect(() => {
@@ -1251,6 +1257,78 @@ export default function CreateCourse() {
         setIsEditMode(false);
     };
 
+    const fetchCohorts = async () => {
+        try {
+            setIsLoadingCohorts(true);
+            setCohortError(null); // Clear any previous errors
+
+            // Use the same API endpoint format as the school page, including org_id
+            const response = await fetch(`http://localhost:8001/cohorts/?org_id=${schoolId}${cohortSearchQuery ? `&query=${cohortSearchQuery}` : ''}`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch cohorts: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setCohorts(data);
+            setFilteredCohorts(data);
+            setIsLoadingCohorts(false);
+        } catch (error) {
+            console.error("Error fetching cohorts:", error);
+            setCohortError("Failed to load cohorts. Please try again later.");
+            setIsLoadingCohorts(false);
+        }
+    };
+
+    const handleCohortSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const query = e.target.value;
+        setCohortSearchQuery(query);
+
+        // If the query is short, just filter the existing cohorts client-side
+        if (cohorts.length > 0) {
+            if (query.trim() === '') {
+                setFilteredCohorts(cohorts);
+            } else {
+                const filtered = cohorts.filter(cohort =>
+                    cohort.name.toLowerCase().includes(query.toLowerCase())
+                );
+                setFilteredCohorts(filtered);
+            }
+        }
+
+        // If query is more substantial, fetch from server
+        if (query.length > 2) {
+            fetchCohorts(); // This will use the updated cohortSearchQuery with org_id
+        }
+    };
+
+    const publishCourseToSelectedCohort = async (cohortId: string) => {
+        try {
+            setCohortError(null); // Clear any previous errors
+            const response = await fetch(`http://localhost:8001/courses/${courseId}/publish`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    cohort_id: cohortId
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to publish course: ${response.status}`);
+            }
+
+            // Close the dialog and show a success message
+            setShowPublishDialog(false);
+            // You could add a toast notification here
+            console.log("Course published successfully");
+        } catch (error) {
+            console.error("Error publishing course:", error);
+            setCohortError("Failed to publish course. Please try again later.");
+        }
+    };
+
     return (
         <div className="min-h-screen bg-white dark:bg-black">
             {/* Use the reusable Header component with showCreateCourseButton set to false */}
@@ -1354,8 +1432,9 @@ export default function CreateCourse() {
                                             <button
                                                 className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border-2 !border-[#016037] hover:bg-[#222222] outline-none rounded-full transition-all cursor-pointer shadow-md"
                                                 onClick={() => {
-                                                    // Publish action
-                                                    console.log('Publish course');
+                                                    // Show publish dialog and fetch cohorts
+                                                    setShowPublishDialog(true);
+                                                    fetchCohorts();
                                                 }}
                                             >
                                                 <span className="mr-2 text-base">🚀</span>
@@ -1405,6 +1484,135 @@ export default function CreateCourse() {
                             handleQuizContentChange={handleQuizContentChange}
                             setShowPublishConfirmation={setShowPublishConfirmation}
                         />
+                    </div>
+                </div>
+            )}
+
+            {/* Show publish confirmation dialog */}
+            {showPublishConfirmation && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+                    <div className="bg-[#111] p-6 rounded-lg shadow-xl max-w-md w-full">
+                        <h3 className="text-xl font-light text-white mb-4">Publish this item?</h3>
+                        <p className="text-gray-300 mb-6">
+                            Are you sure you want to publish this item? Published items will be visible to your learners.
+                        </p>
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                className="px-4 py-2 text-sm text-white bg-transparent border border-gray-600 hover:bg-gray-800 rounded-md transition-colors"
+                                onClick={handleCancelPublish}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors"
+                                onClick={handleConfirmPublish}
+                            >
+                                Publish
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cohort selection dialog for publishing course */}
+            {showPublishDialog && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+                    <div className="bg-[#111] p-6 rounded-lg shadow-xl max-w-md w-full">
+                        <div className="flex justify-between items-center mb-4">
+                            {/* Only show "Publish Course" if we have cohorts */}
+                            {!isLoadingCohorts && !cohortError && filteredCohorts.length > 0 && (
+                                <h3 className="text-xl font-light text-white">Publish Course</h3>
+                            )}
+                            <button
+                                onClick={() => setShowPublishDialog(false)}
+                                className={`text-gray-400 hover:text-white ${!isLoadingCohorts && !cohortError && filteredCohorts.length === 0 ? 'ml-auto' : ''}`}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Only show instructions if we have cohorts */}
+                        {!isLoadingCohorts && !cohortError && filteredCohorts.length > 0 && (
+                            <p className="text-gray-300 mb-4">
+                                Select a cohort to publish this course to:
+                            </p>
+                        )}
+
+                        {cohortError && (
+                            <div className="mb-4 p-3 bg-red-900/50 border border-red-700 text-red-200 rounded-md">
+                                {cohortError}
+                                <button
+                                    className="ml-2 underline"
+                                    onClick={() => {
+                                        setCohortError(null);
+                                        fetchCohorts();
+                                    }}
+                                >
+                                    Try again
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Only show search bar if we have cohorts */}
+                        {!isLoadingCohorts && !cohortError && filteredCohorts.length > 0 && (
+                            <div className="mb-4">
+                                <input
+                                    type="text"
+                                    placeholder="Search cohorts..."
+                                    value={cohortSearchQuery}
+                                    onChange={handleCohortSearch}
+                                    className="w-full p-2 bg-[#222] text-white border border-gray-700 rounded-md focus:outline-none focus:border-green-500"
+                                />
+                            </div>
+                        )}
+
+                        <div className="max-h-60 overflow-y-auto mb-4">
+                            {isLoadingCohorts ? (
+                                <div className="flex justify-center items-center py-8">
+                                    <div className="w-8 h-8 border-2 border-t-green-500 border-r-green-500 border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+                                </div>
+                            ) : cohortError ? (
+                                <div className="py-8 text-center">
+                                    <button
+                                        onClick={() => {
+                                            setCohortError(null);
+                                            fetchCohorts();
+                                        }}
+                                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+                                    >
+                                        Retry
+                                    </button>
+                                </div>
+                            ) : filteredCohorts.length > 0 ? (
+                                <ul className="space-y-2">
+                                    {filteredCohorts.map(cohort => (
+                                        <li
+                                            key={cohort.id}
+                                            className="p-3 bg-[#222] rounded-md hover:bg-[#333] cursor-pointer transition-colors"
+                                            onClick={() => publishCourseToSelectedCohort(cohort.id)}
+                                        >
+                                            <div className="font-medium text-white">{cohort.name}</div>
+                                            <div className="text-sm text-gray-400">{cohort.students_count} students</div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <div className="py-8 text-center">
+                                    <h2 className="text-2xl font-light text-white mb-4">
+                                        Create a cohort
+                                    </h2>
+                                    <p className="text-gray-400 mb-6">
+                                        Cohorts are groups of learners - create a cohort in your school that you can publish courses to
+                                    </p>
+                                    <Link
+                                        href={`/schools/${schoolId}#cohorts`}
+                                        className="inline-block px-6 py-3 bg-white text-black font-medium rounded-full hover:opacity-90 transition-opacity"
+                                    >
+                                        Go To School
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
