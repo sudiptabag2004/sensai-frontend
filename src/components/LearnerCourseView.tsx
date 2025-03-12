@@ -82,7 +82,7 @@ export default function LearnerCourseView({
                                                     {module.items.map((item) => (
                                                         <div
                                                             key={item.id}
-                                                            className="flex items-start p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md cursor-pointer relative mt-4"
+                                                            className="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md cursor-pointer relative mt-4"
                                                         >
                                                             {item.status === 'draft' && (
                                                                 <div className="absolute -top-2.5 left-0">
@@ -91,8 +91,8 @@ export default function LearnerCourseView({
                                                                     </span>
                                                                 </div>
                                                             )}
-                                                            <BookOpen className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400 mt-1" />
-                                                            <div className="flex-1 mt-1">
+                                                            <BookOpen className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+                                                            <div className="flex-1">
                                                                 <span className="text-gray-700 dark:text-gray-300">{item.title}</span>
                                                             </div>
                                                         </div>

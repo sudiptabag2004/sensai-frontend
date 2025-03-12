@@ -1588,7 +1588,7 @@ export default function CreateCourse() {
                                                 {module.items.map((item, itemIndex) => (
                                                     <div
                                                         key={item.id}
-                                                        className="flex items-start group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors relative mt-4"
+                                                        className="flex items-center group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors relative mt-4"
                                                         onClick={() => openItemDialog(module.id, item.id)}
                                                         style={{
                                                             "--hover-bg-color": "#2A2A2A"
@@ -1601,12 +1601,12 @@ export default function CreateCourse() {
                                                                 </span>
                                                             </div>
                                                         )}
-                                                        <div className="mr-2 text-gray-400 mt-1">
+                                                        <div className="flex items-center mr-2 text-gray-400">
                                                             {item.type === 'material' ? <BookOpen size={16} /> :
                                                                 item.type === 'quiz' ? <HelpCircle size={16} /> :
                                                                     <Clipboard size={16} />}
                                                         </div>
-                                                        <div className="flex-1 mt-1">
+                                                        <div className="flex-1">
                                                             <div className="text-base font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none">
                                                                 {item.title || (item.type === 'material' ? "New Learning Material" : item.type === 'quiz' ? "New Quiz" : "New Exam")}
                                                             </div>
