@@ -194,11 +194,14 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
     // Function to handle removing a course from the cohort
     const removeCourseFromCohort = async (courseId: number) => {
         try {
-            const response = await fetch(`http://localhost:8001/cohorts/${cohortId}/courses/${courseId}`, {
+            const response = await fetch(`http://localhost:8001/cohorts/${cohortId}/courses`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
-                }
+                },
+                body: JSON.stringify({
+                    course_ids: [courseId]
+                }),
             });
 
             if (!response.ok) {
@@ -650,40 +653,26 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
 
                                 {/* Display selected courses */}
                                 {cohort?.courses && cohort.courses.length > 0 && (
-                                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {cohort.courses.map(course => (
-                                            <div
-                                                key={course.id}
-                                                className="p-4 border border-gray-800 rounded-lg relative group hover:border-gray-700 transition-colors"
-                                            >
-                                                <button
-                                                    className="absolute top-2 right-2 p-1 text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                                    onClick={() => removeCourseFromCohort(course.id)}
-                                                    aria-label="Remove course from cohort"
+                                    <>
+                                        <h2 className="mt-8 mb-3 text-sm font-light">Courses</h2>
+                                        <div className="flex flex-wrap gap-3">
+                                            {cohort.courses.map(course => (
+                                                <div
+                                                    key={course.id}
+                                                    className="flex items-center bg-[#222] px-4 py-2 rounded-full group hover:bg-[#333] transition-colors"
                                                 >
-                                                    <X size={16} />
-                                                </button>
-                                                <div className="flex items-start space-x-3">
-                                                    <div className="w-10 h-10 bg-purple-900 rounded-md flex items-center justify-center flex-shrink-0">
-                                                        <BookOpen size={18} className="text-white" />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-lg font-light">{course.name}</h3>
-                                                        <p className="text-gray-400 text-sm mt-1">
-                                                            {course.moduleCount || 0} modules
-                                                        </p>
-                                                        <Link
-                                                            href={`/schools/${schoolId}/courses/${course.id}`}
-                                                            className="text-xs text-purple-400 hover:text-purple-300 inline-flex items-center mt-2"
-                                                        >
-                                                            <span>View course</span>
-                                                            <ChevronDown size={14} className="ml-1 transform -rotate-90" />
-                                                        </Link>
-                                                    </div>
+                                                    <span className="text-white text-sm font-light mr-3">{course.name}</span>
+                                                    <button
+                                                        onClick={() => removeCourseFromCohort(course.id)}
+                                                        className="text-gray-400 hover:text-white cursor-pointer"
+                                                        aria-label="Remove course from cohort"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </div>
