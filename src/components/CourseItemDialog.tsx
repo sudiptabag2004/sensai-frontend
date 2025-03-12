@@ -167,7 +167,19 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                         {activeItem?.status === 'published' && isEditMode ? (
                             <>
                                 <button
-                                    onClick={onSaveItem}
+                                    onClick={() => {
+                                        if (activeItem?.type === 'material') {
+                                            // For learning materials, trigger the handleSave function 
+                                            // in the LearningMaterialEditor component
+                                            const saveButton = document.getElementById('save-learning-material');
+                                            if (saveButton) {
+                                                saveButton.click();
+                                            }
+                                        } else {
+                                            // For other item types, use the original save function
+                                            onSaveItem();
+                                        }
+                                    }}
                                     className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
                                     aria-label="Save changes"
                                 >
@@ -175,7 +187,18 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                     Save
                                 </button>
                                 <button
-                                    onClick={onCancelEditMode}
+                                    onClick={() => {
+                                        if (activeItem?.type === 'material') {
+                                            // For learning materials, trigger the handleCancel function 
+                                            // in the LearningMaterialEditor component
+                                            const cancelButton = document.getElementById('cancel-learning-material');
+                                            if (cancelButton) {
+                                                cancelButton.click();
+                                            }
+                                        }
+                                        // Always call the parent's cancel function
+                                        onCancelEditMode();
+                                    }}
                                     className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-gray-500 hover:bg-[#222222] focus:border-gray-500 active:border-gray-500 rounded-full transition-colors cursor-pointer"
                                     aria-label="Cancel editing"
                                 >
@@ -217,6 +240,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                             onPublishConfirm={onPublishConfirm}
                             onPublishCancel={onPublishCancel}
                             taskId={activeItem.id}
+                            isEditMode={isEditMode}
                             onPublishSuccess={(updatedData?: TaskData) => {
                                 // Handle publish success
                                 if (updatedData) {
@@ -237,6 +261,23 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                 }
                                 // Hide the publish confirmation dialog
                                 onSetShowPublishConfirmation(false);
+                            }}
+                            onSaveSuccess={(updatedData?: TaskData) => {
+                                // Handle save success - similar to publish success but without status change
+                                if (updatedData) {
+                                    // Update the activeItem with new title and content
+                                    if (activeItem) {
+                                        activeItem.title = updatedData.title;
+
+                                        if (updatedData.blocks) {
+                                            // @ts-ignore - types may not perfectly match
+                                            activeItem.content = updatedData.blocks;
+                                        }
+                                    }
+
+                                    // Call the parent's save function
+                                    onSaveItem();
+                                }
                             }}
                         />
                     ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (

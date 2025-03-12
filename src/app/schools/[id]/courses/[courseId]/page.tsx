@@ -797,11 +797,24 @@ export default function CreateCourse() {
 
     // Cancel edit mode and revert to original state
     const cancelEditMode = () => {
+        // For learning materials, the LearningMaterialEditor has already reverted the changes
+        // We need to revert the activeItem object to reflect the original state
+        if (activeItem && activeModuleId && activeItem.type === 'material') {
+            // Find the original module item from modules state
+            const module = modules.find(m => m.id === activeModuleId);
+            if (module) {
+                const originalItem = module.items.find(i => i.id === activeItem.id);
+                if (originalItem) {
+                    // Reset activeItem to match the original state
+                    setActiveItem({
+                        ...originalItem
+                    });
+                }
+            }
+        }
+
         // Exit edit mode without saving changes
         setIsEditMode(false);
-
-        // For learning materials, the LearningMaterialEditor will handle its own data
-        // No need to fetch data here
     };
 
     // Handle dialog title change
@@ -1179,55 +1192,40 @@ export default function CreateCourse() {
     const saveItem = async () => {
         if (!activeItem || !activeModuleId) return;
 
-        // For learning materials, we need to fetch the latest data from the API
+        // For learning materials, changes are already handled in the LearningMaterialEditor
         if (activeItem.type === 'material') {
-            try {
-                console.log("Saving learning material");
-                const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}`);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch task: ${response.status}`);
-                }
+            // The title and content updates have already been applied to the activeItem
+            // by the CourseItemDialog's onSaveSuccess callback
 
-                const data = await response.json();
+            // Now we need to update the modules state to reflect the changes in the UI
+            setModules(prevModules =>
+                prevModules.map(module => {
+                    if (module.id === activeModuleId) {
+                        return {
+                            ...module,
+                            items: module.items.map(item => {
+                                if (item.id === activeItem.id) {
+                                    return {
+                                        ...item,
+                                        title: activeItem.title,
+                                        content: activeItem.content
+                                    };
+                                }
+                                return item;
+                            })
+                        };
+                    }
+                    return module;
+                })
+            );
 
-                // Update the active item with the fetched data
-                const updatedItem = {
-                    ...activeItem,
-                    title: data.title,
-                    content: data.blocks || [],
-                    status: data.status
-                };
+            // Exit edit mode
+            setIsEditMode(false);
+            return;
+        }
 
-                // Update the active item
-                setActiveItem(updatedItem);
-
-                // Update the modules state
-                setModules(prevModules =>
-                    prevModules.map(module => {
-                        if (module.id === activeModuleId) {
-                            return {
-                                ...module,
-                                items: module.items.map(item => {
-                                    if (item.id === activeItem.id) {
-                                        return {
-                                            ...item,
-                                            title: data.title,
-                                            content: data.blocks || [],
-                                            status: data.status
-                                        };
-                                    }
-                                    return item;
-                                })
-                            };
-                        }
-                        return module;
-                    })
-                );
-            } catch (error) {
-                console.error("Error fetching updated task:", error);
-            }
-        } else if (activeItem.type === 'quiz' || activeItem.type === 'exam') {
-            // For quizzes and exams, save the content to the API
+        // For quizzes and exams, save the content to the API
+        if (activeItem.type === 'quiz' || activeItem.type === 'exam') {
             try {
                 const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}/quiz`, {
                     method: 'POST',

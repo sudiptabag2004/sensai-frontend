@@ -20,6 +20,8 @@ interface LearningMaterialEditorProps {
     onPublishCancel?: () => void;
     taskId?: string;
     onPublishSuccess?: (updatedData?: TaskData) => void;
+    onSaveSuccess?: (updatedData?: TaskData) => void;
+    isEditMode?: boolean;
 }
 
 interface TaskData {
@@ -62,12 +64,17 @@ export default function LearningMaterialEditor({
     onPublishCancel,
     taskId,
     onPublishSuccess,
+    onSaveSuccess,
+    isEditMode = false,
 }: LearningMaterialEditorProps) {
     const editorContainerRef = useRef<HTMLDivElement>(null);
     const [isPublishing, setIsPublishing] = useState(false);
     const [publishError, setPublishError] = useState<string | null>(null);
     const [taskData, setTaskData] = useState<TaskData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Add a ref to store the original data for reverting on cancel
+    const originalDataRef = useRef<TaskData | null>(null);
 
     // Remove the advanced blocks from the schema
     // Extract only the blocks we don't want
@@ -107,6 +114,10 @@ export default function LearningMaterialEditor({
                     // We only use the data fetched from our own API call
                     // Title updates only happen after publishing, not during editing
                     setTaskData(data);
+
+                    // Store the original data for reverting on cancel
+                    originalDataRef.current = { ...data };
+
                     setIsLoading(false);
                 })
                 .catch(error => {
@@ -195,6 +206,29 @@ export default function LearningMaterialEditor({
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    // Handle cancel in edit mode - revert to original data
+    const handleCancel = () => {
+        if (!originalDataRef.current) return;
+
+        // Restore the original data
+        setTaskData(originalDataRef.current);
+
+        // Replace the editor content with the original blocks
+        if (editor && originalDataRef.current.blocks) {
+            try {
+                editor.replaceBlocks(editor.document, originalDataRef.current.blocks);
+            } catch (error) {
+                console.error("Error restoring original content:", error);
+            }
+        }
+
+        // Return the original title to the dialog header
+        const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
+        if (dialogTitleElement && originalDataRef.current.title) {
+            dialogTitleElement.textContent = originalDataRef.current.title;
+        }
+    };
 
     const handleConfirmPublish = async () => {
         if (!taskId) {
@@ -293,6 +327,78 @@ export default function LearningMaterialEditor({
         }
     };
 
+    // Handle saving changes when in edit mode
+    const handleSave = async () => {
+        if (!taskId) {
+            console.error("Cannot save: taskId is not provided");
+            return;
+        }
+
+        try {
+            // Get the current title from the dialog - it may have been edited
+            const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
+            const currentTitle = dialogTitleElement?.textContent || taskData?.title || "";
+
+            // First, update the title if it has changed
+            if (currentTitle !== taskData?.title) {
+                const titleResponse = await fetch(`http://localhost:8001/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: currentTitle
+                    }),
+                });
+
+                if (!titleResponse.ok) {
+                    console.warn(`Warning: Failed to update title: ${titleResponse.status}`);
+                }
+            }
+
+            // Make POST request to update the learning material content, keeping the same status
+            const response = await fetch(`http://localhost:8001/tasks/${taskId}/learning_material`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: currentTitle,
+                    blocks: editor.document
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to save learning material: ${response.status}`);
+            }
+
+            // Get the updated task data from the response
+            const updatedTaskData = await response.json();
+
+            // Create updated data with the current title
+            const updatedData = {
+                ...updatedTaskData,
+                title: currentTitle // Use the current title from the dialog
+            };
+
+            // Update our local state with the data from the API
+            setTaskData(updatedData);
+
+            console.log("Learning material saved successfully");
+
+            // Call the onSaveSuccess callback if provided
+            // This is where we emit the updated title and content to parent components
+            if (onSaveSuccess) {
+                // Use setTimeout to break the current render cycle
+                setTimeout(() => {
+                    onSaveSuccess(updatedData);
+                }, 0);
+            }
+        } catch (error) {
+            console.error("Error saving learning material:", error);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center">
@@ -312,6 +418,14 @@ export default function LearningMaterialEditor({
                 className="dark-editor" // Add a class for additional styling
                 editable={!readOnly}
             />
+
+            {/* Add refs for the save and cancel functions to be called externally */}
+            {isEditMode && (
+                <>
+                    <div style={{ display: 'none' }} id="save-learning-material" onClick={handleSave} />
+                    <div style={{ display: 'none' }} id="cancel-learning-material" onClick={handleCancel} />
+                </>
+            )}
 
             {/* Publish Confirmation Dialog */}
             {showPublishConfirmation && (
