@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Zap, Sparkles, Eye, Check, FileEdit, Clipboard, ArrowLeft } from "lucide-react";
+import { ChevronUp, ChevronDown, X, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Zap, Sparkles, Eye, Check, FileEdit, Clipboard, ArrowLeft, Pencil } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Block } from "@blocknote/core";
 import Link from "next/link";
@@ -114,6 +114,7 @@ export default function CreateCourse() {
     const dialogContentRef = useRef<HTMLDivElement>(null);
     const [lastUsedColorIndex, setLastUsedColorIndex] = useState<number>(-1);
     const [isCourseTitleEditing, setIsCourseTitleEditing] = useState(false);
+    const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
     // Fetch course details from the backend
     useEffect(() => {
@@ -847,13 +848,59 @@ export default function CreateCourse() {
             );
 
             setActiveItem(updatedItem);
-        } else {
-            setActiveItem(item);
-        }
+            setActiveModuleId(moduleId);
+            setIsPreviewMode(false);
+            setIsDialogOpen(true);
+        } else if (item.type === 'material') {
+            // For learning materials, fetch content from API
+            fetch(`http://localhost:8001/tasks/${itemId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch learning material: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Fetched learning material:", data);
 
-        setActiveModuleId(moduleId);
-        setIsPreviewMode(false);
-        setIsDialogOpen(true);
+                    // Create updated item with blocks from API
+                    const updatedItem: LearningMaterial = {
+                        ...item,
+                        content: data.blocks || [] // Use blocks from API or empty array if not available
+                    };
+
+                    // Update the module with the fetched item
+                    setModules(prevModules =>
+                        prevModules.map(m =>
+                            m.id === moduleId
+                                ? {
+                                    ...m,
+                                    items: m.items.map(i => i.id === itemId ? updatedItem : i)
+                                }
+                                : m
+                        )
+                    );
+
+                    setActiveItem(updatedItem);
+                    setActiveModuleId(moduleId);
+                    setIsPreviewMode(false);
+                    setIsDialogOpen(true);
+                })
+                .catch(error => {
+                    console.error("Error fetching learning material:", error);
+                    // Still open dialog with existing data if fetch fails
+                    setActiveItem(item);
+                    setActiveModuleId(moduleId);
+                    setIsPreviewMode(false);
+                    setIsDialogOpen(true);
+                });
+        } else {
+            // For other types like exams, just open the dialog
+            setActiveItem(item);
+            setActiveModuleId(moduleId);
+            setIsPreviewMode(false);
+            setIsDialogOpen(true);
+        }
     };
 
     // Close the dialog
@@ -861,6 +908,48 @@ export default function CreateCourse() {
         setIsDialogOpen(false);
         setActiveItem(null);
         setActiveModuleId(null);
+        setIsEditMode(false);
+    };
+
+    // Cancel edit mode and revert to original state
+    const cancelEditMode = () => {
+        // Exit edit mode without saving changes
+        setIsEditMode(false);
+
+        // If we have a module ID and item ID, fetch the original content again
+        if (activeItem && activeModuleId && activeItem.type === 'material') {
+            fetch(`http://localhost:8001/tasks/${activeItem.id}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch learning material: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Create updated item with blocks from API
+                    const updatedItem: LearningMaterial = {
+                        ...activeItem,
+                        content: data.blocks || [] // Use blocks from API or empty array if not available
+                    };
+
+                    // Update the module with the fetched item
+                    setModules(prevModules =>
+                        prevModules.map(m =>
+                            m.id === activeModuleId
+                                ? {
+                                    ...m,
+                                    items: m.items.map(i => i.id === activeItem.id ? updatedItem : i)
+                                }
+                                : m
+                        )
+                    );
+
+                    setActiveItem(updatedItem);
+                })
+                .catch(error => {
+                    console.error("Error fetching learning material for cancel:", error);
+                });
+        }
     };
 
     // Add a function to focus the editor
@@ -1194,6 +1283,56 @@ export default function CreateCourse() {
                 moduleElement.focus();
             }
         }, 100); // Increased delay for better reliability
+    };
+
+    // Modified function to enable edit mode
+    const enableEditMode = () => {
+        setIsEditMode(true);
+
+        // Focus the title for editing
+        setTimeout(() => {
+            if (dialogTitleRef.current) {
+                setCursorToEnd(dialogTitleRef.current);
+            }
+        }, 0);
+    };
+
+    // Add a function to save the item after editing
+    const saveItem = async () => {
+        if (!activeItem || !activeModuleId) return;
+
+        try {
+            // Save title changes first
+            if (dialogTitleRef.current) {
+                saveDialogTitle();
+            }
+
+            // For learning materials, save content to API
+            if (activeItem.type === 'material') {
+                const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: activeItem.title,
+                        blocks: activeItem.content
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to save learning material: ${response.status}`);
+                }
+
+                console.log("Learning material saved successfully");
+            }
+
+            // Exit edit mode
+            setIsEditMode(false);
+        } catch (error) {
+            console.error("Error saving item:", error);
+            // You might want to show an error message to the user here
+        }
     };
 
     return (
@@ -1586,7 +1725,7 @@ export default function CreateCourse() {
                             <div className="flex-1 flex items-center">
                                 <h2
                                     ref={dialogTitleRef}
-                                    contentEditable
+                                    contentEditable={activeItem?.status !== 'published' || isEditMode}
                                     suppressContentEditableWarning
                                     onInput={handleDialogTitleChange}
                                     onKeyDown={handleKeyDown}
@@ -1594,6 +1733,11 @@ export default function CreateCourse() {
                                     onClick={(e) => {
                                         // Prevent click from bubbling up
                                         e.stopPropagation();
+
+                                        // If not editable, don't continue
+                                        if (activeItem?.status === 'published' && !isEditMode) {
+                                            return;
+                                        }
 
                                         // Set a flag to indicate the title is being edited
                                         const titleElement = e.currentTarget as HTMLElement;
@@ -1629,31 +1773,35 @@ export default function CreateCourse() {
                                         Publish
                                     </button>
                                 )}
-                                {activeItem?.type === 'quiz' && (
+                                {activeItem?.status === 'published' && isEditMode ? (
+                                    <>
+                                        <button
+                                            onClick={saveItem}
+                                            className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                            aria-label="Save changes"
+                                        >
+                                            <Check size={16} className="mr-2" />
+                                            Save
+                                        </button>
+                                        <button
+                                            onClick={cancelEditMode}
+                                            className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-gray-500 hover:bg-[#222222] focus:border-gray-500 active:border-gray-500 rounded-full transition-colors cursor-pointer"
+                                            aria-label="Cancel editing"
+                                        >
+                                            <X size={16} className="mr-2" />
+                                            Cancel
+                                        </button>
+                                    </>
+                                ) : activeItem?.status === 'published' && !isEditMode && (
                                     <button
-                                        onClick={() => setIsPreviewMode(!isPreviewMode)}
+                                        onClick={enableEditMode}
                                         className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-blue-500 hover:bg-[#222222] focus:border-blue-500 active:border-blue-500 rounded-full transition-colors cursor-pointer"
-                                        aria-label={isPreviewMode ? "Edit quiz" : "Preview quiz"}
+                                        aria-label="Edit item"
                                     >
-                                        {isPreviewMode ? (
-                                            <>
-                                                <FileEdit size={16} className="mr-2" />
-                                                Edit Mode
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Zap size={16} className="mr-2" />
-                                                Preview Mode
-                                            </>
-                                        )}
+                                        <Pencil size={16} className="mr-2" />
+                                        Edit
                                     </button>
                                 )}
-                                <button
-                                    onClick={closeDialog}
-                                    className="text-gray-400 hover:text-white transition-colors"
-                                >
-                                    <X size={20} />
-                                </button>
                             </div>
                         </div>
 
@@ -1664,14 +1812,18 @@ export default function CreateCourse() {
                                 // Ensure the click event doesn't bubble up
                                 e.stopPropagation();
 
-                                // Focus the editor
-                                focusEditor();
+                                // Only focus the editor if in editable mode
+                                if (activeItem?.status !== 'published' || isEditMode) {
+                                    // Focus the editor
+                                    focusEditor();
+                                }
                             }}
                         >
                             {activeItem?.type === 'material' ? (
                                 <DynamicLearningMaterialEditor
                                     initialContent={activeItem.content}
                                     onChange={handleEditorContentChange}
+                                    readOnly={activeItem.status === 'published' && !isEditMode}
                                 />
                             ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (
                                 <DynamicQuizEditor

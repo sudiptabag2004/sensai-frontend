@@ -55,6 +55,25 @@
     background-color: #3a3a3a !important;
 }
 
+/* Fix for the white border at the bottom of the editor */
+.dark-editor .ProseMirror {
+    border-bottom: none !important;
+}
+
+.dark-editor .ProseMirror>*:last-child {
+    border-bottom: none !important;
+}
+
+/* Fix for any bottom borders in the editor content */
+.dark-editor .bn-editor,
+.dark-editor .bn-content,
+.dark-editor .ProseMirror,
+.dark-editor .tiptap,
+.dark-editor [data-content-type="block"]:last-child {
+    border-bottom-color: transparent !important;
+    box-shadow: none !important;
+}
+
 /* Dialog box styling */
 [role="dialog"],
 [data-state="open"],
@@ -382,4 +401,63 @@ div[role="dialog"]>div {
     margin-top: 12px;
     font-size: 12px;
     color: #A0A0A0;
+}
+
+/* Fix for borders between blocks and the last block border */
+.dark-editor [data-node-type="paragraph"],
+.dark-editor [data-node-type="heading"],
+.dark-editor [data-node-type="bulletListItem"],
+.dark-editor [data-node-type="numberedListItem"],
+.dark-editor [data-node-type="blockquote"],
+.dark-editor [data-node-type="codeBlock"] {
+    border-color: #444444 !important;
+}
+
+/* Ensure the last block has no border */
+.dark-editor [data-node-type]:last-child {
+    border-bottom: none !important;
+    margin-bottom: 0 !important;
+}
+
+/* Remove any default white outlines and borders */
+.dark-editor .ProseMirror:focus {
+    outline: none !important;
+    border-color: transparent !important;
+}
+
+/* Fix for the bottom padding/margin to eliminate any white space */
+.dark-editor .ProseMirror {
+    padding-bottom: 16px !important;
+    margin-bottom: 0 !important;
+    border-bottom: 0 !important;
+}
+
+/* Target the container element with no bottom border */
+.no-bottom-border {
+    border-bottom: none !important;
+}
+
+.no-bottom-border>* {
+    border-bottom: none !important;
+}
+
+/* Target any potential border-bottom on the BlockNoteView container */
+.dark-editor-container .bn-container,
+.dark-editor-container .ProseMirror {
+    border-bottom: none !important;
+}
+
+/* Fix for the default white borders in BlockNote */
+.dark-editor :where(.bn-container, [data-node-type], .ProseMirror) {
+    border-color: #444444 !important;
+}
+
+/* Ensure proper background color at the bottom of the editor */
+.dark-editor .ProseMirror::after {
+    content: "";
+    display: block;
+    height: 20px;
+    background-color: #1A1A1A;
+    margin-top: 10px;
+    border: none !important;
 }

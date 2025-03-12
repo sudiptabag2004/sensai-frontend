@@ -66,6 +66,25 @@ export default function LearningMaterialEditor({
         schema, // Use our custom schema with limited blocks
     });
 
+    // Reinitialize the editor content when initialContent changes
+    useEffect(() => {
+        if (initialContent && initialContent.length > 0 && editor) {
+            // Only replace content if it's different to avoid unnecessary rerenders
+            const currentContent = editor.document;
+            const contentChanged = JSON.stringify(currentContent) !== JSON.stringify(initialContent);
+
+            if (contentChanged) {
+                try {
+                    // Replace the editor content with the new content
+                    editor.replaceBlocks(editor.document, initialContent);
+                    console.log("Editor content updated with new initialContent");
+                } catch (error) {
+                    console.error("Error updating editor content:", error);
+                }
+            }
+        }
+    }, [editor, initialContent]);
+
     // Handle content changes
     useEffect(() => {
         if (onChange) {
@@ -118,7 +137,7 @@ export default function LearningMaterialEditor({
     return (
         <div
             ref={editorContainerRef}
-            className={`h-full dark-editor-container dark-dialog ${className}`}
+            className={`h-full dark-editor-container dark-dialog no-bottom-border ${className}`}
         >
             <BlockNoteView
                 editor={editor}
