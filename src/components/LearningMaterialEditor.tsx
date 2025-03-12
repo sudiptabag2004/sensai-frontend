@@ -19,6 +19,15 @@ interface LearningMaterialEditorProps {
     showPublishConfirmation?: boolean;
     onPublishConfirm?: () => void;
     onPublishCancel?: () => void;
+    taskId?: string;
+    onPublishSuccess?: () => void;
+}
+
+interface TaskData {
+    id: string;
+    title: string;
+    blocks: any[];
+    status: string;
 }
 
 // Uploads a file and returns the URL to the uploaded file
@@ -53,8 +62,14 @@ export default function LearningMaterialEditor({
     showPublishConfirmation = false,
     onPublishConfirm,
     onPublishCancel,
+    taskId,
+    onPublishSuccess,
 }: LearningMaterialEditorProps) {
     const editorContainerRef = useRef<HTMLDivElement>(null);
+    const [isPublishing, setIsPublishing] = useState(false);
+    const [publishError, setPublishError] = useState<string | null>(null);
+    const [taskData, setTaskData] = useState<TaskData | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Remove the advanced blocks from the schema
     // Extract only the blocks we don't want
@@ -67,14 +82,48 @@ export default function LearningMaterialEditor({
 
     // Creates a new editor instance with the custom schema
     const editor = useCreateBlockNote({
-        initialContent: initialContent.length > 0 ? initialContent : undefined,
+        initialContent: taskData?.blocks && taskData.blocks.length > 0 ? taskData.blocks :
+            initialContent.length > 0 ? initialContent : undefined,
         uploadFile,
         schema, // Use our custom schema with limited blocks
     });
 
+    // Fetch task data when taskId changes
+    useEffect(() => {
+        if (taskId) {
+            const fetchTaskData = async () => {
+                setIsLoading(true);
+                try {
+                    const response = await fetch(`http://localhost:8001/tasks/${taskId}`);
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch task: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    setTaskData(data);
+
+                    // If we have blocks from the API, use them
+                    if (data.blocks && data.blocks.length > 0 && editor) {
+                        try {
+                            editor.replaceBlocks(editor.document, data.blocks);
+                        } catch (error) {
+                            console.error("Error updating editor content:", error);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error fetching task data:", error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            fetchTaskData();
+        }
+    }, [taskId]);
+
     // Reinitialize the editor content when initialContent changes
     useEffect(() => {
-        if (initialContent && initialContent.length > 0 && editor) {
+        if (initialContent && initialContent.length > 0 && editor && !taskData) {
             // Only replace content if it's different to avoid unnecessary rerenders
             const currentContent = editor.document;
             const contentChanged = JSON.stringify(currentContent) !== JSON.stringify(initialContent);
@@ -89,19 +138,28 @@ export default function LearningMaterialEditor({
                 }
             }
         }
-    }, [editor, initialContent]);
+    }, [editor, initialContent, taskData]);
 
     // Handle content changes
     useEffect(() => {
-        if (onChange) {
+        if (onChange && !isPublishing) {
             const handleChange = () => {
-                onChange(editor.document);
+                // Don't trigger onChange during publishing to prevent update loops
+                if (!isPublishing) {
+                    onChange(editor.document);
+                }
             };
 
             // Add change listener
             editor.onEditorContentChange(handleChange);
+
+            // Return cleanup function
+            return () => {
+                // We can't remove the listener directly, but we can use the isPublishing flag
+                // to prevent updates when needed
+            };
         }
-    }, [editor, onChange]);
+    }, [editor, onChange, isPublishing]);
 
     // This effect prevents the editor from losing focus
     useEffect(() => {
@@ -140,17 +198,77 @@ export default function LearningMaterialEditor({
         };
     }, []);
 
-    const handleConfirmPublish = () => {
-        if (onPublishConfirm) {
-            onPublishConfirm();
+    const handleConfirmPublish = async () => {
+        if (!taskId) {
+            console.error("Cannot publish: taskId is not provided");
+            setPublishError("Cannot publish: Task ID is missing");
+            return;
+        }
+
+        setIsPublishing(true);
+        setPublishError(null);
+
+        try {
+            // Make POST request to publish the learning material
+            const response = await fetch(`http://localhost:8001/tasks/${taskId}/learning_material`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    blocks: editor.document
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to publish learning material: ${response.status}`);
+            }
+
+            // Get the updated task data from the response
+            const updatedTaskData = await response.json();
+
+            // Update our local state with the new data
+            setTaskData(updatedTaskData);
+
+            console.log("Learning material published successfully");
+
+            // First set publishing to false to avoid state updates during callbacks
+            setIsPublishing(false);
+
+            // Call the original onPublishConfirm callback if provided
+            if (onPublishConfirm) {
+                onPublishConfirm();
+            }
+
+            // Call the onPublishSuccess callback if provided
+            // This should be the last operation as it might trigger UI changes
+            if (onPublishSuccess) {
+                // Use setTimeout to break the current render cycle
+                setTimeout(() => {
+                    onPublishSuccess();
+                }, 0);
+            }
+        } catch (error) {
+            console.error("Error publishing learning material:", error);
+            setPublishError(error instanceof Error ? error.message : "Failed to publish learning material");
+            setIsPublishing(false);
         }
     };
 
     const handleCancelPublish = () => {
+        setPublishError(null);
         if (onPublishCancel) {
             onPublishCancel();
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+            </div>
+        );
+    }
 
     return (
         <div
@@ -170,20 +288,30 @@ export default function LearningMaterialEditor({
                     <div className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl border border-gray-800">
                         <div className="p-6">
                             <h2 className="text-xl font-light text-white mb-4">Ready to publish?</h2>
-                            <p className="text-gray-300">This will make your learning material available to all users. Please ensure all content is complete and reviewed.</p>
+                            <p className="text-gray-300">Make sure your content is complete and reviewed for errors before publishing</p>
+                            {publishError && (
+                                <p className="mt-4 text-red-400 text-sm">{publishError}</p>
+                            )}
                         </div>
                         <div className="flex justify-end gap-4 p-6 border-t border-gray-800">
                             <button
                                 onClick={handleCancelPublish}
                                 className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                                disabled={isPublishing}
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleConfirmPublish}
-                                className="px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-full hover:bg-green-700 transition-colors focus:outline-none cursor-pointer"
+                                className={`px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-full hover:bg-green-700 transition-colors focus:outline-none cursor-pointer ${isPublishing ? 'opacity-70' : ''}`}
+                                disabled={isPublishing}
                             >
-                                Publish Now
+                                {isPublishing ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                        <span>Publish Now</span>
+                                    </div>
+                                ) : 'Publish Now'}
                             </button>
                         </div>
                     </div>

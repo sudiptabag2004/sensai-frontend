@@ -854,48 +854,12 @@ export default function CreateCourse() {
             setIsPreviewMode(false);
             setIsDialogOpen(true);
         } else if (item.type === 'material') {
-            // For learning materials, fetch content from API
-            fetch(`http://localhost:8001/tasks/${itemId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch learning material: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("Fetched learning material:", data);
-
-                    // Create updated item with blocks from API
-                    const updatedItem: LearningMaterial = {
-                        ...item,
-                        content: data.blocks || [] // Use blocks from API or empty array if not available
-                    };
-
-                    // Update the module with the fetched item
-                    setModules(prevModules =>
-                        prevModules.map(m =>
-                            m.id === moduleId
-                                ? {
-                                    ...m,
-                                    items: m.items.map(i => i.id === itemId ? updatedItem : i)
-                                }
-                                : m
-                        )
-                    );
-
-                    setActiveItem(updatedItem);
-                    setActiveModuleId(moduleId);
-                    setIsPreviewMode(false);
-                    setIsDialogOpen(true);
-                })
-                .catch(error => {
-                    console.error("Error fetching learning material:", error);
-                    // Still open dialog with existing data if fetch fails
-                    setActiveItem(item);
-                    setActiveModuleId(moduleId);
-                    setIsPreviewMode(false);
-                    setIsDialogOpen(true);
-                });
+            // For learning materials, we don't need to fetch content here
+            // The LearningMaterialEditor will fetch its own data using the taskId
+            setActiveItem(item);
+            setActiveModuleId(moduleId);
+            setIsPreviewMode(false);
+            setIsDialogOpen(true);
         } else {
             // For other types like exams, just open the dialog
             setActiveItem(item);
@@ -918,40 +882,8 @@ export default function CreateCourse() {
         // Exit edit mode without saving changes
         setIsEditMode(false);
 
-        // If we have a module ID and item ID, fetch the original content again
-        if (activeItem && activeModuleId && activeItem.type === 'material') {
-            fetch(`http://localhost:8001/tasks/${activeItem.id}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch learning material: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Create updated item with blocks from API
-                    const updatedItem: LearningMaterial = {
-                        ...activeItem,
-                        content: data.blocks || [] // Use blocks from API or empty array if not available
-                    };
-
-                    // Update the module with the fetched item
-                    setModules(prevModules =>
-                        prevModules.map(m =>
-                            m.id === activeModuleId
-                                ? {
-                                    ...m,
-                                    items: m.items.map(i => i.id === activeItem.id ? updatedItem : i)
-                                }
-                                : m
-                        )
-                    );
-
-                    setActiveItem(updatedItem);
-                })
-                .catch(error => {
-                    console.error("Error fetching learning material for cancel:", error);
-                });
-        }
+        // For learning materials, the LearningMaterialEditor will handle its own data
+        // No need to fetch data here
     };
 
     // Add a function to focus the editor
@@ -989,18 +921,64 @@ export default function CreateCourse() {
         }, 200);
     };
 
-    // Update the title of the active item in the dialog
+    // Handle dialog title change
     const handleDialogTitleChange = (e: React.FormEvent<HTMLHeadingElement>) => {
-        // Don't update the state during typing to prevent cursor jumps
-        // The actual update will happen when the user finishes editing (on blur)
+        if (!activeItem || !activeModuleId) return;
+
+        const newTitle = e.currentTarget.textContent || "";
+
+        // Update the title in the API
+        fetch(`http://localhost:8001/tasks/${activeItem.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: newTitle
+            }),
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to update title: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update the active item
+                setActiveItem({
+                    ...activeItem,
+                    title: newTitle
+                });
+
+                // Update the modules state
+                setModules(prevModules =>
+                    prevModules.map(module => {
+                        if (module.id === activeModuleId) {
+                            return {
+                                ...module,
+                                items: module.items.map(item => {
+                                    if (item.id === activeItem.id) {
+                                        return {
+                                            ...item,
+                                            title: newTitle
+                                        };
+                                    }
+                                    return item;
+                                })
+                            };
+                        }
+                        return module;
+                    })
+                );
+            })
+            .catch(error => {
+                console.error("Error updating title:", error);
+            });
     };
 
-    // Add a new function to save the dialog title when editing is complete
+    // Save dialog title is no longer needed as we're updating the title directly in handleDialogTitleChange
     const saveDialogTitle = () => {
-        if (!activeItem || !activeModuleId || !dialogTitleRef.current) return;
-
-        const newTitle = dialogTitleRef.current.textContent || "";
-        updateItemTitle(activeModuleId, activeItem.id, newTitle);
+        // No-op - title is saved directly in handleDialogTitleChange
     };
 
     // Handle click outside dialog to close it
@@ -1008,13 +986,6 @@ export default function CreateCourse() {
         // Only close if clicking directly on the backdrop, not on the dialog content
         if (dialogContentRef.current && !dialogContentRef.current.contains(e.target as Node)) {
             closeDialog();
-        }
-    };
-
-    // Handle content change from the editor
-    const handleEditorContentChange = (content: any[]) => {
-        if (activeItem && activeModuleId && activeItem.type === 'material') {
-            updateItemContent(activeModuleId, activeItem.id, content);
         }
     };
 
@@ -1069,6 +1040,12 @@ export default function CreateCourse() {
 
     // Add a new function to handle the actual publishing after confirmation
     const handleConfirmPublish = async () => {
+        // For learning materials, the API call is now handled in the LearningMaterialEditor component
+        if (activeItem?.type === 'material') {
+            // The LearningMaterialEditor will handle the API call and update the UI
+            return;
+        }
+
         // Hide the confirmation dialog
         setShowPublishConfirmation(false);
 
@@ -1319,42 +1296,81 @@ export default function CreateCourse() {
         }, 0);
     };
 
-    // Add a function to save the item after editing
+    // Save the current item
     const saveItem = async () => {
         if (!activeItem || !activeModuleId) return;
 
-        try {
-            // Save title changes first
-            if (dialogTitleRef.current) {
-                saveDialogTitle();
-            }
+        // For learning materials, we need to fetch the latest data from the API
+        if (activeItem.type === 'material') {
+            try {
+                const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch task: ${response.status}`);
+                }
 
-            // For learning materials, save content to API
-            if (activeItem.type === 'material') {
-                const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}`, {
-                    method: 'PUT',
+                const data = await response.json();
+
+                // Update the active item with the fetched data
+                const updatedItem = {
+                    ...activeItem,
+                    title: data.title,
+                    content: data.blocks || [],
+                    status: data.status
+                };
+
+                // Update the active item
+                setActiveItem(updatedItem);
+
+                // Update the modules state
+                setModules(prevModules =>
+                    prevModules.map(module => {
+                        if (module.id === activeModuleId) {
+                            return {
+                                ...module,
+                                items: module.items.map(item => {
+                                    if (item.id === activeItem.id) {
+                                        return {
+                                            ...item,
+                                            title: data.title,
+                                            content: data.blocks || [],
+                                            status: data.status
+                                        };
+                                    }
+                                    return item;
+                                })
+                            };
+                        }
+                        return module;
+                    })
+                );
+            } catch (error) {
+                console.error("Error fetching updated task:", error);
+            }
+        } else if (activeItem.type === 'quiz' || activeItem.type === 'exam') {
+            // For quizzes and exams, save the content to the API
+            try {
+                const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}/quiz`, {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        title: activeItem.title,
-                        blocks: activeItem.content
+                        questions: (activeItem as Quiz | Exam).questions
                     }),
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Failed to save learning material: ${response.status}`);
+                    throw new Error(`Failed to save ${activeItem.type}: ${response.status}`);
                 }
 
-                console.log("Learning material saved successfully");
+                console.log(`${activeItem.type} saved successfully`);
+            } catch (error) {
+                console.error(`Error saving ${activeItem.type}:`, error);
             }
-
-            // Exit edit mode
-            setIsEditMode(false);
-        } catch (error) {
-            console.error("Error saving item:", error);
-            // You might want to show an error message to the user here
         }
+
+        // Exit edit mode
+        setIsEditMode(false);
     };
 
     return (
@@ -1528,8 +1544,13 @@ export default function CreateCourse() {
                                     contentEditable={activeItem?.status !== 'published' || isEditMode}
                                     suppressContentEditableWarning
                                     onInput={handleDialogTitleChange}
-                                    onKeyDown={handleKeyDown}
-                                    onBlur={saveDialogTitle}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            // Blur the element to trigger save
+                                            (e.target as HTMLElement).blur();
+                                        }
+                                    }}
                                     onClick={(e) => {
                                         // Prevent click from bubbling up
                                         e.stopPropagation();
@@ -1621,12 +1642,98 @@ export default function CreateCourse() {
                         >
                             {activeItem?.type === 'material' ? (
                                 <DynamicLearningMaterialEditor
-                                    initialContent={activeItem.content}
-                                    onChange={handleEditorContentChange}
                                     readOnly={activeItem.status === 'published' && !isEditMode}
                                     showPublishConfirmation={showPublishConfirmation}
                                     onPublishConfirm={handleConfirmPublish}
                                     onPublishCancel={handleCancelPublish}
+                                    taskId={activeItem.id}
+                                    onPublishSuccess={() => {
+                                        // Use setTimeout to break the current render cycle
+                                        // and prevent the "Maximum update depth exceeded" error
+                                        setTimeout(() => {
+                                            // Check if component is still mounted
+                                            if (dialogContentRef.current) {
+                                                // Fetch the updated task data
+                                                fetch(`http://localhost:8001/tasks/${activeItem.id}`)
+                                                    .then(response => {
+                                                        if (!response.ok) {
+                                                            throw new Error(`Failed to fetch task: ${response.status}`);
+                                                        }
+                                                        return response.json();
+                                                    })
+                                                    .then(data => {
+                                                        // Update the active item with the fetched data
+                                                        const updatedItem = {
+                                                            ...activeItem,
+                                                            title: data.title,
+                                                            content: data.blocks || [],
+                                                            status: data.status
+                                                        };
+
+                                                        // Update the active item
+                                                        setActiveItem(updatedItem);
+
+                                                        // Update the modules state
+                                                        setModules(prevModules =>
+                                                            prevModules.map(module => {
+                                                                if (module.id === activeModuleId) {
+                                                                    return {
+                                                                        ...module,
+                                                                        items: module.items.map(item => {
+                                                                            if (item.id === activeItem.id) {
+                                                                                return {
+                                                                                    ...item,
+                                                                                    title: data.title,
+                                                                                    content: data.blocks || [],
+                                                                                    status: data.status
+                                                                                };
+                                                                            }
+                                                                            return item;
+                                                                        })
+                                                                    };
+                                                                }
+                                                                return module;
+                                                            })
+                                                        );
+
+                                                        // Hide the publish confirmation dialog
+                                                        setShowPublishConfirmation(false);
+                                                    })
+                                                    .catch(error => {
+                                                        console.error("Error fetching updated task:", error);
+                                                        // Still update the UI to show the item as published
+                                                        setActiveItem({
+                                                            ...activeItem,
+                                                            status: 'published'
+                                                        });
+
+                                                        // Update the modules state
+                                                        setModules(prevModules =>
+                                                            prevModules.map(module => {
+                                                                if (module.id === activeModuleId) {
+                                                                    return {
+                                                                        ...module,
+                                                                        items: module.items.map(item => {
+                                                                            if (item.id === activeItem.id) {
+                                                                                return {
+                                                                                    ...item,
+                                                                                    status: 'published'
+                                                                                };
+                                                                            }
+                                                                            return item;
+                                                                        })
+                                                                    };
+                                                                }
+                                                                return module;
+                                                            })
+                                                        );
+
+                                                        // Hide the publish confirmation dialog
+                                                        setShowPublishConfirmation(false);
+                                                    });
+                                            }
+                                        }, 0);
+                                    }}
                                 />
                             ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (
                                 <DynamicQuizEditor
