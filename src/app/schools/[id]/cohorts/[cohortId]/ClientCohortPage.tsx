@@ -584,7 +584,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                                                 // School has no courses at all
                                                                 <>
                                                                     <h3 className="text-lg font-light mb-1">No courses available</h3>
-                                                                    <p className="text-gray-400 text-sm">Create courses in your school first that you can publish to your cohort</p>
+                                                                    <p className="text-gray-400 text-sm">Create courses in your school that you can publish to your cohort</p>
                                                                     <Link
                                                                         href={`/schools/${schoolId}#courses`}
                                                                         className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity"
