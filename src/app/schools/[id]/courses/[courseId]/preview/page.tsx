@@ -3,13 +3,22 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import LearnerCourseView from "@/components/LearnerCourseView";
-import { Module } from "@/types/course";
+import { Module, ModuleItem } from "@/types/course";
 
 // Define Milestone interface for the API response
 interface Milestone {
     id: number;
     name: string;
     color: string;
+    ordering: number;
+    tasks?: Task[];
+}
+
+interface Task {
+    id: number;
+    title: string;
+    type: string;
+    status: string;
     ordering: number;
 }
 
@@ -39,14 +48,55 @@ export default function CoursePreviewPage() {
                 // Check if milestones are available in the response
                 if (data.milestones && Array.isArray(data.milestones)) {
                     // Transform milestones to match our Module interface
-                    const transformedModules = data.milestones.map((milestone: Milestone) => ({
-                        id: milestone.id.toString(),
-                        title: milestone.name,
-                        position: milestone.ordering,
-                        items: [],
-                        isExpanded: false,
-                        backgroundColor: `${milestone.color}80`, // Add 50% opacity for UI display
-                    }));
+                    const transformedModules = data.milestones.map((milestone: Milestone) => {
+                        // Map tasks to module items if they exist
+                        const moduleItems: ModuleItem[] = [];
+
+                        if (milestone.tasks && Array.isArray(milestone.tasks)) {
+                            milestone.tasks.forEach((task: Task) => {
+                                if (task.type === 'learning_material') {
+                                    moduleItems.push({
+                                        id: task.id.toString(),
+                                        title: task.title,
+                                        position: task.ordering,
+                                        type: 'material',
+                                        content: [], // Empty content initially
+                                        status: task.status // Add status from API response
+                                    });
+                                } else if (task.type === 'quiz') {
+                                    moduleItems.push({
+                                        id: task.id.toString(),
+                                        title: task.title,
+                                        position: task.ordering,
+                                        type: 'quiz',
+                                        questions: [], // Empty questions initially
+                                        status: task.status // Add status from API response
+                                    });
+                                } else if (task.type === 'exam') {
+                                    moduleItems.push({
+                                        id: task.id.toString(),
+                                        title: task.title,
+                                        position: task.ordering,
+                                        type: 'exam',
+                                        questions: [], // Empty questions initially
+                                        status: task.status // Add status from API response
+                                    });
+                                }
+                            });
+
+                            // Sort items by position/ordering
+                            moduleItems.sort((a, b) => a.position - b.position);
+                        }
+
+                        return {
+                            id: milestone.id.toString(),
+                            title: milestone.name,
+                            position: milestone.ordering,
+                            items: moduleItems,
+                            isExpanded: false,
+                            backgroundColor: `${milestone.color}80`, // Add 50% opacity for UI display
+                        };
+                    });
 
                     // Sort modules by position/ordering if needed
                     transformedModules.sort((a: { position: number }, b: { position: number }) => a.position - b.position);

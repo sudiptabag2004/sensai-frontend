@@ -19,6 +19,15 @@ export default function LearnerCourseView({
 }: LearnerCourseViewProps) {
     const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
 
+    // Filter out draft items from modules in both preview and learner view
+    const modulesWithFilteredItems = modules.map(module => ({
+        ...module,
+        items: module.items.filter(item => item.status !== 'draft')
+    }));
+
+    // Filter out empty modules (those with no items after filtering)
+    const filteredModules = modulesWithFilteredItems.filter(module => module.items.length > 0);
+
     const toggleModule = (moduleId: string) => {
         setExpandedModules(prev => ({
             ...prev,
@@ -43,9 +52,9 @@ export default function LearnerCourseView({
                         {courseTitle}
                     </h1>
 
-                    {modules.length > 0 ? (
+                    {filteredModules.length > 0 ? (
                         <div className="space-y-4">
-                            {modules.map((module) => (
+                            {filteredModules.map((module) => (
                                 <div
                                     key={module.id}
                                     className="border border-gray-200 dark:border-gray-800 rounded-lg"
@@ -73,10 +82,19 @@ export default function LearnerCourseView({
                                                     {module.items.map((item) => (
                                                         <div
                                                             key={item.id}
-                                                            className="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md cursor-pointer"
+                                                            className="flex items-start p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md cursor-pointer relative mt-4"
                                                         >
-                                                            <BookOpen className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
-                                                            <span className="text-gray-700 dark:text-gray-300">{item.title}</span>
+                                                            {item.status === 'draft' && (
+                                                                <div className="absolute -top-2.5 left-0">
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500 text-white">
+                                                                        DRAFT
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            <BookOpen className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400 mt-1" />
+                                                            <div className="flex-1 mt-1">
+                                                                <span className="text-gray-700 dark:text-gray-300">{item.title}</span>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>

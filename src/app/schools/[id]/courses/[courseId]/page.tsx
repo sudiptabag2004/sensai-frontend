@@ -30,6 +30,15 @@ interface Milestone {
     name: string;
     color: string;
     ordering: number;
+    tasks?: Task[];
+}
+
+interface Task {
+    id: number;
+    title: string;
+    type: string;
+    status: string;
+    ordering: number;
 }
 
 interface CourseDetails {
@@ -44,6 +53,7 @@ interface LearningMaterial {
     position: number;
     type: 'material';
     content?: any[]; // Using any[] instead of Block[] to avoid type issues
+    status?: string; // Add status field to track draft/published state
 }
 
 interface Quiz {
@@ -52,6 +62,7 @@ interface Quiz {
     position: number;
     type: 'quiz';
     questions: QuizQuestion[];
+    status?: string; // Add status field to track draft/published state
 }
 
 interface Exam {
@@ -60,6 +71,7 @@ interface Exam {
     position: number;
     type: 'exam';
     questions: QuizQuestion[];
+    status?: string; // Add status field to track draft/published state
 }
 
 type ModuleItem = LearningMaterial | Quiz | Exam;
@@ -121,15 +133,56 @@ export default function CreateCourse() {
                 // Check if milestones are available in the response
                 if (data.milestones && Array.isArray(data.milestones)) {
                     // Transform milestones to match our Module interface
-                    const transformedModules = data.milestones.map((milestone: Milestone) => ({
-                        id: milestone.id.toString(),
-                        title: milestone.name,
-                        position: milestone.ordering,
-                        items: [],
-                        isExpanded: false,
-                        backgroundColor: `${milestone.color}80`, // Add 50% opacity for UI display
-                        isEditing: false
-                    }));
+                    const transformedModules = data.milestones.map((milestone: Milestone) => {
+                        // Map tasks to module items if they exist
+                        const moduleItems: ModuleItem[] = [];
+
+                        if (milestone.tasks && Array.isArray(milestone.tasks)) {
+                            milestone.tasks.forEach((task: Task) => {
+                                if (task.type === 'learning_material') {
+                                    moduleItems.push({
+                                        id: task.id.toString(),
+                                        title: task.title,
+                                        position: task.ordering,
+                                        type: 'material',
+                                        content: [], // Empty content initially
+                                        status: task.status // Add status from API response
+                                    });
+                                } else if (task.type === 'quiz') {
+                                    moduleItems.push({
+                                        id: task.id.toString(),
+                                        title: task.title,
+                                        position: task.ordering,
+                                        type: 'quiz',
+                                        questions: [], // Empty questions initially
+                                        status: task.status // Add status from API response
+                                    });
+                                } else if (task.type === 'exam') {
+                                    moduleItems.push({
+                                        id: task.id.toString(),
+                                        title: task.title,
+                                        position: task.ordering,
+                                        type: 'exam',
+                                        questions: [], // Empty questions initially
+                                        status: task.status // Add status from API response
+                                    });
+                                }
+                            });
+
+                            // Sort items by position/ordering
+                            moduleItems.sort((a: ModuleItem, b: ModuleItem) => a.position - b.position);
+                        }
+
+                        return {
+                            id: milestone.id.toString(),
+                            title: milestone.name,
+                            position: milestone.ordering,
+                            items: moduleItems,
+                            isExpanded: false,
+                            backgroundColor: `${milestone.color}80`, // Add 50% opacity for UI display
+                            isEditing: false
+                        };
+                    });
 
                     // Sort modules by position/ordering if needed
                     transformedModules.sort((a: Module, b: Module) => a.position - b.position);
@@ -385,76 +438,170 @@ export default function CreateCourse() {
         ));
     };
 
-    const addLearningMaterial = (moduleId: string) => {
-        setModules(modules.map(module => {
-            if (module.id === moduleId) {
-                const newItem: LearningMaterial = {
-                    id: `material-${Date.now()}`,
-                    title: "",
-                    position: module.items.length,
-                    type: 'material',
-                    content: [] // Empty content, the editor will initialize with default content
-                };
+    const addLearningMaterial = async (moduleId: string) => {
+        try {
+            // Make API request to create a new learning material
+            const response = await fetch(`http://localhost:8001/tasks`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    org_id: parseInt(schoolId),
+                    course_id: parseInt(courseId),
+                    milestone_id: parseInt(moduleId),
+                    type: "learning_material",
+                    title: "New Learning Material",
+                    status: "draft" // Add status to API request
+                }),
+            });
 
-                setActiveItem(newItem);
-                setActiveModuleId(moduleId);
-
-                return {
-                    ...module,
-                    items: [...module.items, newItem]
-                };
+            if (!response.ok) {
+                throw new Error(`Failed to create learning material: ${response.status}`);
             }
-            return module;
-        }));
+
+            // Get the learning material ID from the response
+            const data = await response.json();
+            console.log("Learning material created successfully:", data);
+
+            // Update the UI only after the API request is successful
+            setModules(modules.map(module => {
+                if (module.id === moduleId) {
+                    const newItem: LearningMaterial = {
+                        id: data.id.toString(), // Use the ID from the API
+                        title: "New Learning Material",
+                        position: module.items.length,
+                        type: 'material',
+                        content: [], // Empty content, the editor will initialize with default content
+                        status: 'draft' // Create as draft instead of published
+                    };
+
+                    setActiveItem(newItem);
+                    setActiveModuleId(moduleId);
+
+                    return {
+                        ...module,
+                        items: [...module.items, newItem]
+                    };
+                }
+                return module;
+            }));
+        } catch (error) {
+            console.error("Error creating learning material:", error);
+            // You might want to show an error message to the user here
+        }
     };
 
-    const addQuiz = (moduleId: string) => {
-        setModules(modules.map(module => {
-            if (module.id === moduleId) {
-                const newItem: Quiz = {
-                    id: `quiz-${Date.now()}`,
-                    title: "",
-                    position: module.items.length,
-                    type: 'quiz',
-                    questions: [{
-                        id: `question-${Date.now()}`,
-                        content: [],
-                        config: { ...defaultQuestionConfig }
-                    }]
-                };
+    const addQuiz = async (moduleId: string) => {
+        try {
+            // Make API request to create a new quiz
+            const response = await fetch(`http://localhost:8001/tasks`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    org_id: parseInt(schoolId),
+                    course_id: parseInt(courseId),
+                    milestone_id: parseInt(moduleId),
+                    type: "quiz",
+                    title: "New Quiz",
+                    status: "draft"
+                }),
+            });
 
-                setActiveItem(newItem);
-                setActiveModuleId(moduleId);
-
-                return {
-                    ...module,
-                    items: [...module.items, newItem]
-                };
+            if (!response.ok) {
+                throw new Error(`Failed to create quiz: ${response.status}`);
             }
-            return module;
-        }));
+
+            // Get the quiz ID from the response
+            const data = await response.json();
+            console.log("Quiz created successfully:", data);
+
+            // Update the UI only after the API request is successful
+            setModules(modules.map(module => {
+                if (module.id === moduleId) {
+                    const newItem: Quiz = {
+                        id: data.id.toString(), // Use the ID from the API
+                        title: "New Quiz",
+                        position: module.items.length,
+                        type: 'quiz',
+                        questions: [{
+                            id: `question-${Date.now()}`,
+                            content: [],
+                            config: { ...defaultQuestionConfig }
+                        }],
+                        status: 'draft'
+                    };
+
+                    setActiveItem(newItem);
+                    setActiveModuleId(moduleId);
+
+                    return {
+                        ...module,
+                        items: [...module.items, newItem]
+                    };
+                }
+                return module;
+            }));
+        } catch (error) {
+            console.error("Error creating quiz:", error);
+            // You might want to show an error message to the user here
+        }
     };
 
-    const addExam = (moduleId: string) => {
-        setModules(modules.map(module => {
-            if (module.id === moduleId) {
-                const newExamId = Math.random().toString();
-                return {
-                    ...module,
-                    items: [
-                        ...module.items,
-                        {
-                            id: newExamId,
-                            title: 'New Exam',
-                            position: module.items.length + 1,
-                            type: 'exam',
-                            questions: []
-                        } as Exam
-                    ]
-                };
+    const addExam = async (moduleId: string) => {
+        try {
+            // Make API request to create a new exam
+            const response = await fetch(`http://localhost:8001/tasks`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    org_id: parseInt(schoolId),
+                    course_id: parseInt(courseId),
+                    milestone_id: parseInt(moduleId),
+                    type: "exam",
+                    title: "New Exam",
+                    status: "draft"
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to create exam: ${response.status}`);
             }
-            return module;
-        }));
+
+            // Get the exam ID from the response
+            const data = await response.json();
+            console.log("Exam created successfully:", data);
+
+            // Update the UI only after the API request is successful
+            setModules(modules.map(module => {
+                if (module.id === moduleId) {
+                    const newItem: Exam = {
+                        id: data.id.toString(), // Use the ID from the API
+                        title: "New Exam",
+                        position: module.items.length,
+                        type: 'exam',
+                        questions: [],
+                        status: 'draft'
+                    };
+
+                    setActiveItem(newItem);
+                    setActiveModuleId(moduleId);
+
+                    return {
+                        ...module,
+                        items: [...module.items, newItem]
+                    };
+                }
+                return module;
+            }));
+        } catch (error) {
+            console.error("Error creating exam:", error);
+            // You might want to show an error message to the user here
+        }
     };
 
     const updateItemTitle = (moduleId: string, itemId: string, title: string) => {
@@ -750,7 +897,9 @@ export default function CreateCourse() {
 
     // Add this helper function before the return statement
     const hasAnyItems = () => {
-        return modules.some(module => module.items.length > 0);
+        return modules.some(module =>
+            module.items.some(item => item.status !== 'draft')
+        );
     };
 
     // Add these functions for course title editing
@@ -1116,18 +1265,25 @@ export default function CreateCourse() {
                                                 {module.items.map((item, itemIndex) => (
                                                     <div
                                                         key={item.id}
-                                                        className="flex items-center group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors"
+                                                        className="flex items-start group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors relative mt-4"
                                                         onClick={() => openItemDialog(module.id, item.id)}
                                                         style={{
                                                             "--hover-bg-color": "#2A2A2A"
                                                         } as React.CSSProperties}
                                                     >
-                                                        <div className="mr-2 text-gray-400">
+                                                        {item.status === 'draft' && (
+                                                            <div className="absolute -top-4 left-0">
+                                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500 text-white">
+                                                                    DRAFT
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        <div className="mr-2 text-gray-400 mt-1">
                                                             {item.type === 'material' ? <BookOpen size={16} /> :
                                                                 item.type === 'quiz' ? <HelpCircle size={16} /> :
                                                                     <Clipboard size={16} />}
                                                         </div>
-                                                        <div className="flex-1">
+                                                        <div className="flex-1 mt-1">
                                                             <div className="text-base font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none">
                                                                 {item.title || (item.type === 'material' ? "New Learning Material" : item.type === 'quiz' ? "New Quiz" : "New Exam")}
                                                             </div>
@@ -1171,21 +1327,40 @@ export default function CreateCourse() {
 
                                                 <div className="flex space-x-2 mt-4">
                                                     <button
-                                                        onClick={() => addLearningMaterial(module.id)}
+                                                        onClick={async () => {
+                                                            // Create a loading state for this specific button if needed
+                                                            try {
+                                                                await addLearningMaterial(module.id);
+                                                            } catch (error) {
+                                                                console.error("Failed to add learning material:", error);
+                                                            }
+                                                        }}
                                                         className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors cursor-pointer"
                                                     >
                                                         <Plus size={14} className="mr-1" />
                                                         Learning Material
                                                     </button>
                                                     <button
-                                                        onClick={() => addQuiz(module.id)}
+                                                        onClick={async () => {
+                                                            try {
+                                                                await addQuiz(module.id);
+                                                            } catch (error) {
+                                                                console.error("Failed to add quiz:", error);
+                                                            }
+                                                        }}
                                                         className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors cursor-pointer"
                                                     >
                                                         <Plus size={14} className="mr-1" />
                                                         Quiz
                                                     </button>
                                                     <button
-                                                        onClick={() => addExam(module.id)}
+                                                        onClick={async () => {
+                                                            try {
+                                                                await addExam(module.id);
+                                                            } catch (error) {
+                                                                console.error("Failed to add exam:", error);
+                                                            }
+                                                        }}
                                                         className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors cursor-pointer"
                                                     >
                                                         <Plus size={14} className="mr-1" />

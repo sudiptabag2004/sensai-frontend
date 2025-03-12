@@ -13,6 +13,7 @@ export interface LearningMaterial {
   position: number;
   type: 'material';
   content?: any[]; // Using any[] for content blocks
+  status?: string; // Add status field to track draft/published state
 }
 
 export interface Quiz {
@@ -21,6 +22,7 @@ export interface Quiz {
   position: number;
   type: 'quiz';
   questions: QuizQuestion[];
+  status?: string; // Add status field to track draft/published state
 }
 
 export interface Exam {
@@ -29,6 +31,7 @@ export interface Exam {
   position: number;
   type: 'exam';
   questions: QuizQuestion[];
+  status?: string; // Add status field to track draft/published state
 }
 
 export type ModuleItem = LearningMaterial | Quiz | Exam;

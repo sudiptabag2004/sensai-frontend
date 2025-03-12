@@ -90,8 +90,14 @@ export default function Home() {
 
   // Memoize event handlers
   const handleCreateCourseButtonClick = useCallback(() => {
-    setIsCreateCourseDialogOpen(true);
-  }, []);
+    if (hasSchool && schoolId) {
+      // If school already exists, show the course creation dialog
+      setIsCreateCourseDialogOpen(true);
+    } else {
+      // If no school exists, redirect to school creation page
+      router.push("/schools/create");
+    }
+  }, [hasSchool, schoolId, router]);
 
   // Handle creating a new course with the provided name
   const handleCreateCourse = useCallback(async (courseName: string) => {
