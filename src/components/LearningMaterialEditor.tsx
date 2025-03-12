@@ -4,7 +4,7 @@ import "@blocknote/core/fonts/inter.css";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 
 // Add custom styles for dark mode
@@ -16,6 +16,9 @@ interface LearningMaterialEditorProps {
     isDarkMode?: boolean;
     className?: string;
     readOnly?: boolean;
+    showPublishConfirmation?: boolean;
+    onPublishConfirm?: () => void;
+    onPublishCancel?: () => void;
 }
 
 // Uploads a file and returns the URL to the uploaded file
@@ -47,6 +50,9 @@ export default function LearningMaterialEditor({
     isDarkMode = true, // Default to dark mode
     className = "",
     readOnly = false,
+    showPublishConfirmation = false,
+    onPublishConfirm,
+    onPublishCancel,
 }: LearningMaterialEditorProps) {
     const editorContainerRef = useRef<HTMLDivElement>(null);
 
@@ -134,6 +140,18 @@ export default function LearningMaterialEditor({
         };
     }, []);
 
+    const handleConfirmPublish = () => {
+        if (onPublishConfirm) {
+            onPublishConfirm();
+        }
+    };
+
+    const handleCancelPublish = () => {
+        if (onPublishCancel) {
+            onPublishCancel();
+        }
+    };
+
     return (
         <div
             ref={editorContainerRef}
@@ -145,6 +163,32 @@ export default function LearningMaterialEditor({
                 className="dark-editor" // Add a class for additional styling
                 editable={!readOnly}
             />
+
+            {/* Publish Confirmation Dialog */}
+            {showPublishConfirmation && (
+                <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl border border-gray-800">
+                        <div className="p-6">
+                            <h2 className="text-xl font-light text-white mb-4">Ready to publish?</h2>
+                            <p className="text-gray-300">This will make your learning material available to all users. Please ensure all content is complete and reviewed.</p>
+                        </div>
+                        <div className="flex justify-end gap-4 p-6 border-t border-gray-800">
+                            <button
+                                onClick={handleCancelPublish}
+                                className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmPublish}
+                                className="px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-full hover:bg-green-700 transition-colors focus:outline-none cursor-pointer"
+                            >
+                                Publish Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

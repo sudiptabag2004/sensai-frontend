@@ -121,7 +121,7 @@ export default function CourseModuleList({
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-2">
             {modules.map((module, index) => (
                 <div
                     key={module.id}
@@ -269,23 +269,16 @@ export default function CourseModuleList({
 
                     {getIsExpanded(module.id) && (
                         <div className="px-4 pb-4 pt-0">
-                            <div className="pl-6 border-l border-gray-200 dark:border-gray-800 ml-2 space-y-3">
+                            <div className="pl-6 border-l border-gray-200 dark:border-gray-800 ml-2 space-y-2">
                                 {module.items.map((item, itemIndex) => (
                                     <div
                                         key={item.id}
-                                        className="flex items-center group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors relative mt-4"
+                                        className="flex items-center group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors relative mt-2"
                                         onClick={() => onOpenItem && onOpenItem(module.id, item.id)}
                                         style={{
                                             "--hover-bg-color": "#2A2A2A"
                                         } as React.CSSProperties}
                                     >
-                                        {item.status === 'draft' && (
-                                            <div className="absolute -top-4 left-0">
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500 text-white">
-                                                    DRAFT
-                                                </span>
-                                            </div>
-                                        )}
                                         <div className="flex items-center mr-2 text-gray-400">
                                             {item.type === 'material' ? <BookOpen size={16} /> :
                                                 item.type === 'quiz' ? <HelpCircle size={16} /> :
@@ -300,6 +293,11 @@ export default function CourseModuleList({
                                         {/* Item action buttons - only in edit mode */}
                                         {mode === 'edit' && (
                                             <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+                                                {item.status === 'draft' && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500 text-white mr-2">
+                                                        DRAFT
+                                                    </span>
+                                                )}
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();

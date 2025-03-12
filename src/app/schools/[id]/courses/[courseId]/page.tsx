@@ -116,6 +116,7 @@ export default function CreateCourse() {
     const [lastUsedColorIndex, setLastUsedColorIndex] = useState<number>(-1);
     const [isCourseTitleEditing, setIsCourseTitleEditing] = useState(false);
     const [isEditMode, setIsEditMode] = useState<boolean>(false);
+    const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
 
     // Fetch course details from the backend
     useEffect(() => {
@@ -1047,18 +1048,35 @@ export default function CreateCourse() {
         );
     };
 
-    // Add a function to publish an item
+    // Modify the publishItem function to first show the confirmation dialog
     const publishItem = async (moduleId: string, itemId: string) => {
+        // Store the current module and item IDs for use when confirmed
+        setActiveModuleId(moduleId);
+
+        // Find the item to get its type
+        const module = modules.find(m => m.id === moduleId);
+        if (!module) return;
+
+        const item = module.items.find(i => i.id === itemId);
+        if (!item) return;
+
+        // Set the active item
+        setActiveItem(item);
+
+        // Show the confirmation dialog
+        setShowPublishConfirmation(true);
+    };
+
+    // Add a new function to handle the actual publishing after confirmation
+    const handleConfirmPublish = async () => {
+        // Hide the confirmation dialog
+        setShowPublishConfirmation(false);
+
+        if (!activeModuleId || !activeItem) return;
+
         try {
-            // Find the item to get its type
-            const module = modules.find(m => m.id === moduleId);
-            if (!module) return;
-
-            const item = module.items.find(i => i.id === itemId);
-            if (!item) return;
-
             // Make API request to update the item status
-            const response = await fetch(`http://localhost:8001/tasks/${itemId}`, {
+            const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1069,17 +1087,17 @@ export default function CreateCourse() {
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to publish ${item.type}: ${response.status}`);
+                throw new Error(`Failed to publish ${activeItem.type}: ${response.status}`);
             }
 
             // Update the UI after successful API call
             setModules(prevModules =>
                 prevModules.map(module => {
-                    if (module.id === moduleId) {
+                    if (module.id === activeModuleId) {
                         return {
                             ...module,
                             items: module.items.map(item => {
-                                if (item.id === itemId) {
+                                if (item.id === activeItem.id) {
                                     return {
                                         ...item,
                                         status: 'published'
@@ -1094,18 +1112,21 @@ export default function CreateCourse() {
             );
 
             // Also update active item if it's currently being edited
-            if (activeItem && activeItem.id === itemId) {
-                setActiveItem({
-                    ...activeItem,
-                    status: 'published'
-                });
-            }
+            setActiveItem({
+                ...activeItem,
+                status: 'published'
+            });
 
-            console.log(`${item.type} published successfully`);
+            console.log(`${activeItem.type} published successfully`);
         } catch (error) {
             console.error("Error publishing item:", error);
             // You might want to show an error message to the user here
         }
+    };
+
+    // Add a function to handle canceling the publish action
+    const handleCancelPublish = () => {
+        setShowPublishConfirmation(false);
     };
 
     const handleModuleTitleInput = (e: React.FormEvent<HTMLHeadingElement>, moduleId: string) => {
@@ -1544,7 +1565,7 @@ export default function CreateCourse() {
                             <div className="flex items-center space-x-3">
                                 {activeItem?.status === 'draft' && (
                                     <button
-                                        onClick={() => activeModuleId && publishItem(activeModuleId, activeItem.id)}
+                                        onClick={() => setShowPublishConfirmation(true)}
                                         className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
                                         aria-label="Publish item"
                                     >
@@ -1603,6 +1624,9 @@ export default function CreateCourse() {
                                     initialContent={activeItem.content}
                                     onChange={handleEditorContentChange}
                                     readOnly={activeItem.status === 'published' && !isEditMode}
+                                    showPublishConfirmation={showPublishConfirmation}
+                                    onPublishConfirm={handleConfirmPublish}
+                                    onPublishCancel={handleCancelPublish}
                                 />
                             ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (
                                 <DynamicQuizEditor
