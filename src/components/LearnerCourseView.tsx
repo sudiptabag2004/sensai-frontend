@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ModuleItem, Module } from "@/types/course";
 import CourseModuleList, { LocalModule } from "./CourseModuleList";
 import dynamic from "next/dynamic";
-import { X, CheckCircle, BookOpen, HelpCircle, Clipboard } from "lucide-react";
+import { X, CheckCircle, BookOpen, HelpCircle, Clipboard, ChevronLeft, ChevronRight } from "lucide-react";
 
 // Dynamically import editor components to avoid SSR issues
 const DynamicLearningMaterialEditor = dynamic(
@@ -165,6 +165,68 @@ export default function LearnerCourseView({
         } catch (error) {
             console.error("Error marking task as complete:", error);
         }
+    };
+
+    // Function to navigate to the next task
+    const goToNextTask = () => {
+        if (!activeItem || !activeModuleId) return;
+
+        // Find the current module
+        const currentModule = filteredModules.find(m => m.id === activeModuleId);
+        if (!currentModule) return;
+
+        // Find the index of the current task in the module
+        const currentTaskIndex = currentModule.items.findIndex(item => item.id === activeItem.id);
+        if (currentTaskIndex === -1) return;
+
+        // Check if there's a next task in this module
+        if (currentTaskIndex < currentModule.items.length - 1) {
+            // Navigate to the next task in the same module
+            const nextTask = currentModule.items[currentTaskIndex + 1];
+            openTaskItem(activeModuleId, nextTask.id);
+        }
+    };
+
+    // Function to navigate to the previous task
+    const goToPreviousTask = () => {
+        if (!activeItem || !activeModuleId) return;
+
+        // Find the current module
+        const currentModule = filteredModules.find(m => m.id === activeModuleId);
+        if (!currentModule) return;
+
+        // Find the index of the current task in the module
+        const currentTaskIndex = currentModule.items.findIndex(item => item.id === activeItem.id);
+        if (currentTaskIndex === -1) return;
+
+        // Check if there's a previous task in this module
+        if (currentTaskIndex > 0) {
+            // Navigate to the previous task in the same module
+            const previousTask = currentModule.items[currentTaskIndex - 1];
+            openTaskItem(activeModuleId, previousTask.id);
+        }
+    };
+
+    // Function to check if we're at the first task in the module
+    const isFirstTask = () => {
+        if (!activeItem || !activeModuleId) return false;
+
+        const currentModule = filteredModules.find(m => m.id === activeModuleId);
+        if (!currentModule) return false;
+
+        const currentTaskIndex = currentModule.items.findIndex(item => item.id === activeItem.id);
+        return currentTaskIndex === 0;
+    };
+
+    // Function to check if we're at the last task in the module
+    const isLastTask = () => {
+        if (!activeItem || !activeModuleId) return false;
+
+        const currentModule = filteredModules.find(m => m.id === activeModuleId);
+        if (!currentModule) return false;
+
+        const currentTaskIndex = currentModule.items.findIndex(item => item.id === activeItem.id);
+        return currentTaskIndex === currentModule.items.length - 1;
     };
 
     // Handle Escape key to close dialog
@@ -353,6 +415,43 @@ export default function LearnerCourseView({
                                         )}
                                     </>
                                 )}
+                            </div>
+
+                            {/* Navigation Footer */}
+                            <div className="flex items-center justify-between p-4 border-t border-gray-800 bg-[#111111]">
+                                <button
+                                    onClick={goToPreviousTask}
+                                    disabled={isFirstTask()}
+                                    className={`flex items-center px-4 py-2 text-sm rounded-md transition-colors ${isFirstTask()
+                                        ? "text-gray-500 cursor-not-allowed"
+                                        : "text-white hover:bg-gray-800 cursor-pointer"
+                                        }`}
+                                >
+                                    <ChevronLeft size={16} className="mr-1" />
+                                    Previous
+                                </button>
+
+                                <div className="text-sm text-gray-400">
+                                    {activeModuleId && (
+                                        <>
+                                            {(filteredModules.find(m => m.id === activeModuleId)?.items.findIndex(item => item.id === activeItem?.id) ?? 0) + 1}
+                                            {" / "}
+                                            {filteredModules.find(m => m.id === activeModuleId)?.items.length ?? 0}
+                                        </>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={goToNextTask}
+                                    disabled={isLastTask()}
+                                    className={`flex items-center px-4 py-2 text-sm rounded-md transition-colors ${isLastTask()
+                                        ? "text-gray-500 cursor-not-allowed"
+                                        : "text-white hover:bg-gray-800 cursor-pointer"
+                                        }`}
+                                >
+                                    Next
+                                    <ChevronRight size={16} className="ml-1" />
+                                </button>
                             </div>
                         </div>
                     </div>
