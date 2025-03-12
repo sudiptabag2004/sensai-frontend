@@ -117,6 +117,18 @@ export default function CourseModuleList({
     // For editor mode where we need to keep track of expanded modules internally
     const [internalExpandedModules, setInternalExpandedModules] = useState<Record<string, boolean>>({});
 
+    // Track completed items
+    const [completedItems, setCompletedItems] = useState<Record<string, boolean>>({});
+
+    // Function to toggle item completion
+    const toggleItemCompletion = (itemId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setCompletedItems(prev => ({
+            ...prev,
+            [itemId]: !prev[itemId]
+        }));
+    };
+
     // Refs for the dialog
     const dialogTitleRef = useRef<HTMLHeadingElement | null>(null);
     const dialogContentRef = useRef<HTMLDivElement | null>(null);
@@ -341,6 +353,37 @@ export default function CourseModuleList({
                                     )}
                                 </div>
                             )}
+
+                            {/* Add expand/collapse button on the right side for view mode */}
+                            {mode === 'view' && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onToggleModule) {
+                                            onToggleModule(module.id);
+                                        } else {
+                                            setInternalExpandedModules(prev => ({
+                                                ...prev,
+                                                [module.id]: !prev[module.id]
+                                            }));
+                                        }
+                                    }}
+                                    className="flex items-center px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors cursor-pointer rounded-full border border-gray-700 bg-gray-900"
+                                    aria-label={getIsExpanded(module.id) ? "Collapse module" : "Expand module"}
+                                >
+                                    {getIsExpanded(module.id) ? (
+                                        <>
+                                            <ChevronUp size={16} className="mr-1" />
+                                            <span>Collapse</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ChevronDown size={16} className="mr-1" />
+                                            <span>Expand</span>
+                                        </>
+                                    )}
+                                </button>
+                            )}
                         </div>
 
                         {getIsExpanded(module.id) && (
@@ -349,7 +392,8 @@ export default function CourseModuleList({
                                     {module.items.map((item, itemIndex) => (
                                         <div
                                             key={item.id}
-                                            className="flex items-center group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors relative mt-2"
+                                            className={`flex items-center group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors relative mt-2 ${completedItems[item.id] ? "opacity-60" : ""
+                                                }`}
                                             onClick={() => onOpenItem && onOpenItem(module.id, item.id)}
                                             style={{
                                                 "--hover-bg-color": "#2A2A2A"
@@ -361,7 +405,8 @@ export default function CourseModuleList({
                                                         <Clipboard size={16} />}
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-base font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none">
+                                                <div className={`text-base font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none ${completedItems[item.id] ? "line-through" : ""
+                                                    }`}>
                                                     {item.title || (item.type === 'material' ? "New Learning Material" : item.type === 'quiz' ? "New Quiz" : "New Exam")}
                                                 </div>
                                             </div>
@@ -411,6 +456,26 @@ export default function CourseModuleList({
                                                         aria-label="Delete item"
                                                     >
                                                         <Trash size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Completion checkbox - only in view mode */}
+                                            {mode === 'view' && (
+                                                <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                                                    <button
+                                                        onClick={(e) => toggleItemCompletion(item.id, e)}
+                                                        className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors cursor-pointer ${completedItems[item.id]
+                                                            ? "bg-green-500 border-0"
+                                                            : "border border-gray-500 hover:border-white"
+                                                            }`}
+                                                        aria-label={completedItems[item.id] ? "Mark as incomplete" : "Mark as completed"}
+                                                    >
+                                                        {completedItems[item.id] && (
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                                            </svg>
+                                                        )}
                                                     </button>
                                                 </div>
                                             )}

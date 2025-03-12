@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ModuleItem, Module } from "@/types/course";
 import CourseModuleList, { LocalModule } from "./CourseModuleList";
 import dynamic from "next/dynamic";
-import { X, CheckCircle } from "lucide-react";
+import { X, CheckCircle, BookOpen, HelpCircle, Clipboard } from "lucide-react";
 
 // Dynamically import editor components to avoid SSR issues
 const DynamicLearningMaterialEditor = dynamic(
@@ -202,79 +202,118 @@ export default function LearnerCourseView({
             {/* Task Viewer Dialog - Using the same pattern as the editor view */}
             {isDialogOpen && activeItem && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
-                    onClick={handleDialogBackdropClick}
+                    className="fixed inset-0 bg-black z-50 overflow-hidden"
                 >
                     <div
                         ref={dialogContentRef}
-                        style={{
-                            backgroundColor: '#1A1A1A',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                            borderColor: '#1A1A1A',
-                            border: '1px solid #1A1A1A'
-                        }}
-                        className="w-full max-w-6xl h-[90vh] rounded-lg shadow-2xl flex flex-col transform transition-all duration-300 ease-in-out scale-100 translate-y-0"
+                        className="w-full h-full flex flex-row"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Dialog Header */}
-                        <div
-                            className="flex items-center justify-between p-4 border-b border-gray-800"
-                            style={{ backgroundColor: '#111111' }}
-                        >
-                            <div className="flex-1 flex items-center">
-                                <h2
-                                    ref={dialogTitleRef}
-                                    contentEditable={false}
-                                    suppressContentEditableWarning
-                                    onKeyDown={handleKeyDown}
-                                    className="text-2xl font-light text-white outline-none"
-                                >
-                                    {activeItem?.title}
-                                </h2>
+                        {/* Sidebar with module tasks */}
+                        <div className="w-64 h-full bg-[#121212] border-r border-gray-800 flex flex-col overflow-hidden">
+                            {/* Sidebar Header */}
+                            <div className="p-4 border-b border-gray-800 bg-[#0A0A0A]">
+                                <h3 className="text-lg font-light text-white truncate">
+                                    {filteredModules.find(m => m.id === activeModuleId)?.title || "Module"}
+                                </h3>
                             </div>
-                            <div className="flex items-center space-x-3">
-                                <button
-                                    onClick={markTaskComplete}
-                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
-                                    aria-label="Mark complete"
-                                >
-                                    <CheckCircle size={16} className="mr-2" />
-                                    Mark Complete
-                                </button>
+
+                            {/* Task List */}
+                            <div className="flex-1 overflow-y-auto py-2">
+                                {activeModuleId && filteredModules.find(m => m.id === activeModuleId)?.items.map(item => (
+                                    <div
+                                        key={item.id}
+                                        className={`px-4 py-2 cursor-pointer flex items-center ${item.id === activeItem.id
+                                            ? "bg-[#222222] border-l-2 border-green-500"
+                                            : "hover:bg-[#1A1A1A] border-l-2 border-transparent"
+                                            }`}
+                                        onClick={() => openTaskItem(activeModuleId, item.id)}
+                                    >
+                                        <div className="flex items-center mr-2 text-gray-400">
+                                            {item.type === 'material' ? <BookOpen size={14} /> :
+                                                item.type === 'quiz' ? <HelpCircle size={14} /> :
+                                                    <Clipboard size={14} />}
+                                        </div>
+                                        <div className="flex-1 text-sm text-gray-200 truncate">
+                                            {item.title}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Back to Course Button */}
+                            <div className="p-3 border-t border-gray-800">
                                 <button
                                     onClick={closeDialog}
-                                    className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer p-1"
+                                    className="w-full flex items-center justify-center px-3 py-2 text-sm text-gray-300 hover:text-white bg-[#1A1A1A] hover:bg-[#222222] rounded transition-colors cursor-pointer"
                                 >
-                                    <X size={20} />
+                                    Back to Course
                                 </button>
                             </div>
                         </div>
 
-                        {/* Dialog Content */}
-                        <div
-                            className="flex-1 overflow-y-auto p-6 dialog-content-editor"
-                        >
-                            {isLoading ? (
-                                <div className="flex items-center justify-center h-full">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                        {/* Main Content */}
+                        <div className="flex-1 h-full flex flex-col bg-[#1A1A1A]">
+                            {/* Dialog Header */}
+                            <div
+                                className="flex items-center justify-between p-4 border-b border-gray-800"
+                                style={{ backgroundColor: '#111111' }}
+                            >
+                                <div className="flex-1 flex items-center">
+                                    <h2
+                                        ref={dialogTitleRef}
+                                        contentEditable={false}
+                                        suppressContentEditableWarning
+                                        onKeyDown={handleKeyDown}
+                                        className="text-2xl font-light text-white outline-none"
+                                    >
+                                        {activeItem?.title}
+                                    </h2>
                                 </div>
-                            ) : (
-                                <>
-                                    {activeItem?.type === 'material' && (
-                                        <DynamicLearningMaterialEditor
-                                            taskId={activeItem.id}
-                                            readOnly={true}
-                                        />
-                                    )}
-                                    {(activeItem?.type === 'quiz' || activeItem?.type === 'exam') && (
-                                        <DynamicQuizEditor
-                                            initialQuestions={activeItem.questions || []}
-                                            readOnly={true}
-                                            isPreviewMode={true}
-                                        />
-                                    )}
-                                </>
-                            )}
+                                <div className="flex items-center space-x-3">
+                                    <button
+                                        onClick={markTaskComplete}
+                                        className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                        aria-label="Mark complete"
+                                    >
+                                        <CheckCircle size={16} className="mr-2" />
+                                        Mark Complete
+                                    </button>
+                                    <button
+                                        onClick={closeDialog}
+                                        className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer p-1 md:hidden"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Dialog Content */}
+                            <div
+                                className="flex-1 overflow-y-auto p-6 dialog-content-editor"
+                            >
+                                {isLoading ? (
+                                    <div className="flex items-center justify-center h-full">
+                                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {activeItem?.type === 'material' && (
+                                            <DynamicLearningMaterialEditor
+                                                taskId={activeItem.id}
+                                                readOnly={true}
+                                            />
+                                        )}
+                                        {(activeItem?.type === 'quiz' || activeItem?.type === 'exam') && (
+                                            <DynamicQuizEditor
+                                                initialQuestions={activeItem.questions || []}
+                                                readOnly={true}
+                                                isPreviewMode={true}
+                                            />
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
