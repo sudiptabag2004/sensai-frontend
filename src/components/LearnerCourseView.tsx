@@ -1,8 +1,21 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Header } from "@/components/layout/header";
 import Link from "next/link";
 import { ModuleItem, Module } from "@/types/course";
 import CourseModuleList, { LocalModule } from "./CourseModuleList";
+import dynamic from "next/dynamic";
+import { X, CheckCircle } from "lucide-react";
+
+// Dynamically import editor components to avoid SSR issues
+const DynamicLearningMaterialEditor = dynamic(
+    () => import("./LearningMaterialEditor"),
+    { ssr: false }
+);
+
+const DynamicQuizEditor = dynamic(
+    () => import("./QuizEditor"),
+    { ssr: false }
+);
 
 interface LearnerCourseViewProps {
     courseTitle: string;
@@ -18,6 +31,12 @@ export default function LearnerCourseView({
     schoolId
 }: LearnerCourseViewProps) {
     const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
+    const [activeItem, setActiveItem] = useState<any>(null);
+    const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const dialogTitleRef = useRef<HTMLHeadingElement>(null);
+    const dialogContentRef = useRef<HTMLDivElement>(null);
 
     // Filter out draft items from modules in both preview and learner view
     const modulesWithFilteredItems = modules.map(module => ({
@@ -33,6 +52,110 @@ export default function LearnerCourseView({
             ...prev,
             [moduleId]: !prev[moduleId]
         }));
+    };
+
+    // Function to open a task item and fetch its details
+    const openTaskItem = async (moduleId: string, itemId: string) => {
+        setIsLoading(true);
+        try {
+            // Find the item in the modules
+            const module = filteredModules.find(m => m.id === moduleId);
+            if (!module) return;
+
+            const item = module.items.find(i => i.id === itemId);
+            if (!item) return;
+
+            // Fetch item details from API
+            const response = await fetch(`http://localhost:8001/tasks/${itemId}`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch task: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log("Fetched task data:", data);
+
+            // Create an updated item with the fetched data
+            let updatedItem;
+            if (item.type === 'material') {
+                updatedItem = {
+                    ...item,
+                    content: data.blocks || []
+                };
+            } else if (item.type === 'quiz' || item.type === 'exam') {
+                updatedItem = {
+                    ...item,
+                    questions: data.questions || []
+                };
+            } else {
+                updatedItem = item;
+            }
+
+            setActiveItem(updatedItem);
+            setActiveModuleId(moduleId);
+            setIsDialogOpen(true);
+        } catch (error) {
+            console.error("Error fetching task:", error);
+            // Still open dialog with existing item data if fetch fails
+            const module = filteredModules.find(m => m.id === moduleId);
+            if (!module) return;
+
+            const item = module.items.find(i => i.id === itemId);
+            if (item) {
+                setActiveItem(item);
+                setActiveModuleId(moduleId);
+                setIsDialogOpen(true);
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Function to close the dialog
+    const closeDialog = () => {
+        setIsDialogOpen(false);
+        setActiveItem(null);
+        setActiveModuleId(null);
+    };
+
+    // Function to mark task as completed (placeholder for now)
+    const markTaskComplete = async () => {
+        if (!activeItem) return;
+
+        try {
+            // API call to mark the task as completed would go here
+            console.log("Marking task as complete:", activeItem.id);
+
+            // Placeholder for actual API call
+            // const response = await fetch(`http://localhost:8001/task-completions`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({
+            //         task_id: activeItem.id,
+            //     }),
+            // });
+
+            // Close the dialog after marking complete
+            closeDialog();
+        } catch (error) {
+            console.error("Error marking task as complete:", error);
+        }
+    };
+
+    // Handle Escape key to close dialog
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLHeadingElement>) => {
+        if (e.key === 'Escape') {
+            closeDialog();
+        }
+    };
+
+    // Handle click outside dialog to close it
+    const handleDialogBackdropClick = (e: React.MouseEvent) => {
+        // Only close if clicking directly on the backdrop, not on the dialog content
+        if (dialogContentRef.current && !dialogContentRef.current.contains(e.target as Node)) {
+            closeDialog();
+        }
     };
 
     return (
@@ -58,6 +181,7 @@ export default function LearnerCourseView({
                             mode="view"
                             expandedModules={expandedModules}
                             onToggleModule={toggleModule}
+                            onOpenItem={openTaskItem}
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -73,6 +197,87 @@ export default function LearnerCourseView({
                     )}
                 </div>
             </div>
+
+            {/* Task Viewer Dialog - Using the same pattern as the editor view */}
+            {isDialogOpen && activeItem && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+                    onClick={handleDialogBackdropClick}
+                >
+                    <div
+                        ref={dialogContentRef}
+                        style={{
+                            backgroundColor: '#1A1A1A',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            borderColor: '#1A1A1A',
+                            border: '1px solid #1A1A1A'
+                        }}
+                        className="w-full max-w-6xl h-[90vh] rounded-lg shadow-2xl flex flex-col transform transition-all duration-300 ease-in-out scale-100 translate-y-0"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Dialog Header */}
+                        <div
+                            className="flex items-center justify-between p-4 border-b border-gray-800"
+                            style={{ backgroundColor: '#111111' }}
+                        >
+                            <div className="flex-1 flex items-center">
+                                <h2
+                                    ref={dialogTitleRef}
+                                    contentEditable={false}
+                                    suppressContentEditableWarning
+                                    onKeyDown={handleKeyDown}
+                                    className="text-2xl font-light text-white outline-none"
+                                >
+                                    {activeItem?.title}
+                                </h2>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <button
+                                    onClick={markTaskComplete}
+                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                    aria-label="Mark complete"
+                                >
+                                    <CheckCircle size={16} className="mr-2" />
+                                    Mark Complete
+                                </button>
+                                <button
+                                    onClick={closeDialog}
+                                    className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer p-1"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Dialog Content */}
+                        <div
+                            className="flex-1 overflow-y-auto p-6 dialog-content-editor"
+                        >
+                            {isLoading ? (
+                                <div className="flex items-center justify-center h-full">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                                </div>
+                            ) : (
+                                <>
+                                    {activeItem?.type === 'material' && (
+                                        <DynamicLearningMaterialEditor
+                                            initialContent={activeItem.content || []}
+                                            readOnly={true}
+                                        />
+                                    )}
+                                    {(activeItem?.type === 'quiz' || activeItem?.type === 'exam') && (
+                                        <DynamicQuizEditor
+                                            initialQuestions={activeItem.questions || []}
+                                            readOnly={true}
+                                            isPreviewMode={true}
+                                        />
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 } 
