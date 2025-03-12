@@ -302,16 +302,23 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
             // Check if the ID exists before navigating
             if (newCohortData && newCohortData.id) {
                 console.log("Navigating to:", `/schools/${id}/cohorts/${newCohortData.id}`);
-                // Navigate to the new cohort page
+
+                // Important: Navigate before closing the dialog to prevent flash of school page
+                // This navigation will unmount the current component, which implicitly closes the dialog
                 router.push(`/schools/${id}/cohorts/${newCohortData.id}`);
+
+                // No need to explicitly close the dialog as the navigation will unmount the component
             } else {
                 console.error("Cohort ID is missing in the API response:", newCohortData);
-                // Fallback to schools page if ID is missing
+                // Fallback to schools page if ID is missing and close dialog
+                setIsCreateCohortDialogOpen(false);
                 router.push(`/schools/${id}#cohorts`);
             }
 
         } catch (error) {
             console.error('Error creating cohort:', error);
+            // Close dialog and show error if needed
+            setIsCreateCohortDialogOpen(false);
             // Here you would typically show an error message to the user
         }
     };

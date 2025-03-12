@@ -12,6 +12,7 @@ interface CreateCohortDialogProps {
 export default function CreateCohortDialog({ open, onClose, onCreateCohort }: CreateCohortDialogProps) {
     const [cohortName, setCohortName] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = () => {
         // Validate cohort name
@@ -20,10 +21,16 @@ export default function CreateCohortDialog({ open, onClose, onCreateCohort }: Cr
             return;
         }
 
+        // Set loading state to true
+        setIsLoading(true);
+
+        // Call the create function
         onCreateCohort(cohortName);
+
+        // Reset form state
         setCohortName('');
         setError('');
-        onClose();
+        // The parent component will handle closing the dialog after navigation begins
     };
 
     if (!open) return null;
@@ -40,6 +47,7 @@ export default function CreateCohortDialog({ open, onClose, onCreateCohort }: Cr
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                        disabled={isLoading}
                     >
                         <X size={20} />
                     </button>
@@ -62,6 +70,7 @@ export default function CreateCohortDialog({ open, onClose, onCreateCohort }: Cr
                                 }}
                                 placeholder="Enter cohort name"
                                 className={`w-full px-4 py-2 bg-[#111] border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-gray-700 cursor-text ${error ? 'border-red-500' : 'border-gray-800'}`}
+                                disabled={isLoading}
                             />
                             {error && (
                                 <p className="mt-1 text-sm text-red-500">{error}</p>
@@ -75,14 +84,23 @@ export default function CreateCohortDialog({ open, onClose, onCreateCohort }: Cr
                     <button
                         onClick={onClose}
                         className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                        disabled={isLoading}
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
-                        className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                        className={`px-6 py-2 text-sm font-medium rounded-full focus:outline-none cursor-pointer ${isLoading ?
+                            'bg-gray-500 opacity-70 cursor-not-allowed' :
+                            'bg-white text-black hover:opacity-90 transition-opacity'}`}
+                        disabled={isLoading}
                     >
-                        Create
+                        {isLoading ? (
+                            <div className="flex items-center justify-center">
+                                <div className="w-4 h-4 mr-2 border-2 border-t-2 border-r-transparent border-gray-900 rounded-full animate-spin"></div>
+                                Creating...
+                            </div>
+                        ) : 'Create'}
                     </button>
                 </div>
             </div>

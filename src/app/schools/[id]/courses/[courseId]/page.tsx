@@ -1602,7 +1602,7 @@ export default function CreateCourse() {
                                         Create a cohort
                                     </h2>
                                     <p className="text-gray-400 mb-6">
-                                        Cohorts are groups of learners - create a cohort in your school that you can publish courses to
+                                        Cohorts are groups of learners - create a cohort in your school first that you can publish courses to
                                     </p>
                                     <Link
                                         href={`/schools/${schoolId}#cohorts`}
