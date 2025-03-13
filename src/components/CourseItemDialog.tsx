@@ -177,7 +177,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                 {quizPreviewMode ? (
                                     <>
                                         <Edit2 size={16} className="mr-2" />
-                                        Edit
+                                        Editor
                                     </>
                                 ) : (
                                     <>

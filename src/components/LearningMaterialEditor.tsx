@@ -90,16 +90,7 @@ export default function LearningMaterialEditor({
 
     // Function to open the slash menu
     const openSlashMenu = () => {
-        if (editorRef.current && !readOnly) {
-            // Use setTimeout to ensure the editor is fully initialized
-            setTimeout(() => {
-                try {
-                    editorRef.current.openSuggestionMenu("/");
-                } catch (error) {
-                    console.error("Failed to open suggestion menu:", error);
-                }
-            }, 100);
-        }
+        // Function intentionally left empty - we're not programmatically opening the slash menu
     };
 
     // Remove the advanced blocks from the schema
@@ -381,21 +372,6 @@ export default function LearningMaterialEditor({
             onChange(taskData.blocks);
         }
     }, [taskData?.blocks, onChange]);
-
-    // Effect to open slash menu on initial load if content is empty
-    useEffect(() => {
-        if (
-            (!taskData?.blocks || taskData.blocks.length === 0 ||
-                (taskData.blocks.length === 1 && (!taskData.blocks[0].content || taskData.blocks[0].content.length === 0))) &&
-            !readOnly &&
-            !isLoading &&
-            editorRef.current
-        ) {
-            // Use a timeout to ensure the editor is fully initialized
-            const timer = setTimeout(openSlashMenu, 300);
-            return () => clearTimeout(timer);
-        }
-    }, [taskData, readOnly, isLoading]);
 
     if (isLoading) {
         return (

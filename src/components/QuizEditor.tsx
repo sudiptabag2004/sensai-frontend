@@ -76,17 +76,8 @@ export default function QuizEditor({
 
     // Function to open the slash menu
     const openSlashMenu = useCallback(() => {
-        if (editorRef.current && !isPreviewMode && !readOnly) {
-            // Use setTimeout to ensure the editor is fully initialized
-            setTimeout(() => {
-                try {
-                    editorRef.current.openSuggestionMenu("/");
-                } catch (error) {
-                    console.error("Failed to open suggestion menu:", error);
-                }
-            }, 100);
-        }
-    }, [isPreviewMode, readOnly]);
+        // Function intentionally left empty - we're not programmatically opening the slash menu
+    }, []);
 
     // Memoize the current question content and config to prevent unnecessary re-renders
     const currentQuestion = useMemo(() =>
@@ -168,9 +159,8 @@ export default function QuizEditor({
             onChange(updatedQuestions);
         }
 
-        // Open slash menu after adding a new question with a slightly longer delay
-        setTimeout(openSlashMenu, 300);
-    }, [questions, onChange, openSlashMenu]);
+        // Removed slash menu opening after adding a new question
+    }, [questions, onChange]);
 
     // Navigate to previous question
     const goToPreviousQuestion = useCallback(() => {
@@ -230,35 +220,6 @@ export default function QuizEditor({
             lastContentUpdateRef.current = JSON.stringify(currentQuestionContent);
         }
     }, [currentQuestionIndex, questions.length, currentQuestionContent]);
-
-    // Effect to open slash menu when navigating to an empty question
-    useEffect(() => {
-        if (
-            questions.length > 0 &&
-            (!currentQuestionContent || currentQuestionContent.length === 0 ||
-                (currentQuestionContent.length === 1 && (!currentQuestionContent[0].content || currentQuestionContent[0].content.length === 0))) &&
-            !isPreviewMode &&
-            !readOnly &&
-            editorRef.current
-        ) {
-            openSlashMenu();
-        }
-    }, [currentQuestionIndex, questions, currentQuestionContent, isPreviewMode, readOnly, openSlashMenu]);
-
-    // Effect to open slash menu on initial load if the current question is empty
-    useEffect(() => {
-        if (
-            questions.length > 0 &&
-            (!currentQuestionContent || currentQuestionContent.length === 0 ||
-                (currentQuestionContent.length === 1 && (!currentQuestionContent[0].content || currentQuestionContent[0].content.length === 0))) &&
-            !isPreviewMode &&
-            !readOnly
-        ) {
-            // Use a timeout to ensure the editor is fully initialized
-            const timer = setTimeout(openSlashMenu, 300);
-            return () => clearTimeout(timer);
-        }
-    }, [questions.length, currentQuestionContent, isPreviewMode, readOnly, openSlashMenu]);
 
     // Placeholder component for empty quiz
     const EmptyQuizPlaceholder = () => (
