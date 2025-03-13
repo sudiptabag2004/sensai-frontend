@@ -460,7 +460,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                             </div>
                         ) : (
                             <DynamicQuizEditor
-                                key={`quiz-${activeItem.id}-${isEditMode}-${hasFetchedData}-${activeItem.status === 'draft' ? Date.now() : ''}`}
+                                key={`quiz-${activeItem.id}-${isEditMode}-${hasFetchedData}`}
                                 initialQuestions={
                                     // For published quizzes, use fetched data
                                     activeItem.status === 'published' ?
