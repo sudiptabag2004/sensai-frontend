@@ -1,5 +1,5 @@
-import { useRef, useEffect } from "react";
-import { Sparkles, Check, X, Pencil } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
+import { Sparkles, Check, X, Pencil, Eye, Edit2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { QuizQuestion } from "./QuizEditor";
 
@@ -68,12 +68,25 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     // Bail early if dialog isn't open or there's no active item
     if (!isOpen || !activeItem) return null;
 
+    // State to track preview mode for quizzes
+    const [quizPreviewMode, setQuizPreviewMode] = useState(false);
+
+    // Check if the quiz has questions
+    const hasQuizQuestions = activeItem?.type === 'quiz' || activeItem?.type === 'exam'
+        ? (activeItem?.questions && activeItem.questions.length > 0)
+        : true; // Always true for non-quiz items
+
     // Handle backdrop click to close dialog
     const handleDialogBackdropClick = (e: React.MouseEvent) => {
         // Only close if clicking directly on the backdrop, not on the dialog content
         if (dialogContentRef.current && !dialogContentRef.current.contains(e.target as Node)) {
             onClose();
         }
+    };
+
+    // Toggle quiz preview mode
+    const toggleQuizPreviewMode = () => {
+        setQuizPreviewMode(!quizPreviewMode);
     };
 
     return (
@@ -154,7 +167,28 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                         </h2>
                     </div>
                     <div className="flex items-center space-x-3">
-                        {activeItem?.status === 'draft' && (
+                        {/* Preview Mode Toggle for Quizzes/Exams */}
+                        {(activeItem?.type === 'quiz' || activeItem?.type === 'exam') && hasQuizQuestions && (
+                            <button
+                                onClick={toggleQuizPreviewMode}
+                                className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-blue-500 hover:bg-[#222222] focus:border-blue-500 active:border-blue-500 rounded-full transition-colors cursor-pointer"
+                                aria-label={quizPreviewMode ? "Edit mode" : "Preview mode"}
+                            >
+                                {quizPreviewMode ? (
+                                    <>
+                                        <Edit2 size={16} className="mr-2" />
+                                        Edit
+                                    </>
+                                ) : (
+                                    <>
+                                        <Eye size={16} className="mr-2" />
+                                        Preview
+                                    </>
+                                )}
+                            </button>
+                        )}
+
+                        {activeItem?.status === 'draft' && hasQuizQuestions && (
                             <button
                                 onClick={() => onSetShowPublishConfirmation(true)}
                                 className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
@@ -283,8 +317,14 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                     ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (
                         <DynamicQuizEditor
                             initialQuestions={(activeItem)?.questions || []}
-                            onChange={onQuizContentChange}
-                            isPreviewMode={isPreviewMode}
+                            onChange={(questions) => {
+                                // Update the activeItem with the new questions
+                                if (activeItem) {
+                                    activeItem.questions = questions;
+                                }
+                                onQuizContentChange(questions);
+                            }}
+                            isPreviewMode={quizPreviewMode}
                         />
                     ) : null}
                 </div>

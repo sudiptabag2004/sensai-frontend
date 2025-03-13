@@ -3,14 +3,14 @@
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Plus, FileText, Settings, Trash2, FileCode, AudioLines, GraduationCap, MessageSquare, ClipboardList, Zap } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap } from "lucide-react";
 
 // Add custom styles for dark mode
 import "./editor-styles.css";
 
-// Import the LearningMaterialEditor for each question
-import LearningMaterialEditor from "./LearningMaterialEditor";
+// Import the BlockNoteEditor component
+import BlockNoteEditor from "./BlockNoteEditor";
 
 export interface QuizQuestionConfig {
     inputType: 'text' | 'code' | 'audio';
@@ -52,22 +52,10 @@ export default function QuizEditor({
     readOnly = false,
 }: QuizEditorProps) {
     // Initialize questions state
-    const [questions, setQuestions] = useState<QuizQuestion[]>(() => {
-        if (initialQuestions && initialQuestions.length > 0) {
-            return initialQuestions;
-        }
-        return [{
-            id: `question-${Date.now()}`,
-            content: [],
-            config: { ...defaultQuestionConfig }
-        }];
-    });
+    const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
 
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-
-    // Active tab state (description, setting)
-    const [activeTab, setActiveTab] = useState<'description' | 'setting'>('description');
 
     // State to track if a new question was just added (for animation)
     const [newQuestionAdded, setNewQuestionAdded] = useState(false);
@@ -75,58 +63,10 @@ export default function QuizEditor({
     // State for delete confirmation
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    // State for input type dropdown
-    const [inputTypeDropdownOpen, setInputTypeDropdownOpen] = useState(false);
-
-    // State for response style dropdown
-    const [responseStyleDropdownOpen, setResponseStyleDropdownOpen] = useState(false);
-
-    // Close dropdowns when clicking outside
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            const target = event.target as Node;
-
-            // Only handle clicks that are not on any form input elements
-            if (target instanceof Element) {
-                const isFormElement =
-                    target.tagName === 'INPUT' ||
-                    target.tagName === 'TEXTAREA' ||
-                    target.tagName === 'SELECT' ||
-                    target.hasAttribute('contenteditable');
-
-                if (isFormElement) {
-                    return;
-                }
-            }
-
-            // Close input type dropdown if clicking outside
-            if (inputTypeDropdownOpen) {
-                const inputTypeDropdown = document.getElementById('input-type-dropdown');
-                if (inputTypeDropdown && !inputTypeDropdown.contains(target)) {
-                    setInputTypeDropdownOpen(false);
-                }
-            }
-
-            // Close response style dropdown if clicking outside
-            if (responseStyleDropdownOpen) {
-                const responseStyleDropdown = document.getElementById('response-style-dropdown');
-                if (responseStyleDropdown && !responseStyleDropdown.contains(target)) {
-                    setResponseStyleDropdownOpen(false);
-                }
-            }
-        }
-
-        // Add event listener
-        document.addEventListener('mousedown', handleClickOutside);
-
-        // Clean up
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [inputTypeDropdownOpen, responseStyleDropdownOpen]);
-
     // Handle content change for the current question
     const handleQuestionContentChange = (content: any[]) => {
+        if (questions.length === 0) return;
+
         const updatedQuestions = [...questions];
         updatedQuestions[currentQuestionIndex] = {
             ...updatedQuestions[currentQuestionIndex],
@@ -142,6 +82,8 @@ export default function QuizEditor({
 
     // Handle configuration change for the current question
     const handleConfigChange = (configUpdate: Partial<QuizQuestionConfig>) => {
+        if (questions.length === 0) return;
+
         const updatedQuestions = [...questions];
         updatedQuestions[currentQuestionIndex] = {
             ...updatedQuestions[currentQuestionIndex],
@@ -166,8 +108,9 @@ export default function QuizEditor({
             config: { ...defaultQuestionConfig }
         };
 
-        setQuestions(prev => [...prev, newQuestion]);
-        setCurrentQuestionIndex(questions.length);
+        const updatedQuestions = [...questions, newQuestion];
+        setQuestions(updatedQuestions);
+        setCurrentQuestionIndex(updatedQuestions.length - 1);
 
         // Trigger animation
         setNewQuestionAdded(true);
@@ -176,6 +119,10 @@ export default function QuizEditor({
         setTimeout(() => {
             setNewQuestionAdded(false);
         }, 800); // slightly longer than animation duration to ensure it completes
+
+        if (onChange) {
+            onChange(updatedQuestions);
+        }
     };
 
     // Navigate to previous question
@@ -195,7 +142,13 @@ export default function QuizEditor({
     // Delete current question
     const deleteQuestion = () => {
         if (questions.length <= 1) {
-            // Don't allow deleting the last question
+            // If only one question, just clear the questions array
+            setQuestions([]);
+            setShowDeleteConfirm(false);
+
+            if (onChange) {
+                onChange([]);
+            }
             return;
         }
 
@@ -220,6 +173,26 @@ export default function QuizEditor({
     // Get the current question's content and config
     const currentQuestionContent = questions[currentQuestionIndex]?.content || [];
     const currentQuestionConfig = questions[currentQuestionIndex]?.config || defaultQuestionConfig;
+
+    // Placeholder component for empty quiz
+    const EmptyQuizPlaceholder = () => (
+        <div className="flex flex-col items-center justify-center h-full w-full text-center p-8">
+            <h3 className="text-xl font-light text-white mb-3">Questions are the gateway to learning</h3>
+            <p className="text-gray-400 max-w-md mb-8">
+                Add questions to create an interactive quiz for your learners
+            </p>
+            <button
+                onClick={addQuestion}
+                className="flex items-center px-5 py-2.5 text-sm text-black bg-white hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                disabled={readOnly}
+            >
+                <div className="w-5 h-5 rounded-full border border-black flex items-center justify-center mr-2">
+                    <Plus size={12} className="text-black" />
+                </div>
+                Add Your First Question
+            </button>
+        </div>
+    );
 
     return (
         <div className="flex flex-col h-full relative">
@@ -254,11 +227,11 @@ export default function QuizEditor({
                 </div>
             )}
 
-            {/* Quiz Controls - Hide in preview mode */}
-            {!isPreviewMode && (
-                <div className="grid grid-cols-3 mb-4 px-2 py-3">
-                    {/* Left: Question Management Buttons */}
-                    <div className="flex items-center space-x-2 justify-start">
+            {/* Quiz Controls - Hide in preview mode and when there are no questions */}
+            {!isPreviewMode && questions.length > 0 && (
+                <div className="flex justify-between items-center mb-4 px-2 py-3">
+                    {/* Left: Add Question Button */}
+                    <div className="flex-1">
                         <button
                             onClick={addQuestion}
                             className="flex items-center px-4 py-2 text-sm text-black bg-white hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
@@ -270,51 +243,10 @@ export default function QuizEditor({
                             </div>
                             Add Question
                         </button>
-
-                        {/* Always render the delete button container to maintain layout, but conditionally show the button */}
-                        <div className="w-[88px]"> {/* Approximate width of the delete button */}
-                            {questions.length > 1 && !readOnly && (
-                                <button
-                                    onClick={() => setShowDeleteConfirm(true)}
-                                    className="flex items-center px-3 py-1.5 text-sm text-red-400 hover:text-white bg-[#3A3A3A] hover:bg-red-600 rounded-md transition-colors cursor-pointer"
-                                    aria-label="Delete current question"
-                                >
-                                    <Trash2 size={16} className="mr-1" />
-                                    Delete
-                                </button>
-                            )}
-                        </div>
                     </div>
 
-                    {/* Center: Segmented Control */}
-                    <div className="flex justify-center">
-                        <div className="bg-[#2A2A2A] inline-flex rounded-md p-1">
-                            <button
-                                className={`px-4 py-2 text-sm rounded-md transition-colors cursor-pointer flex items-center gap-1.5 outline-none ${activeTab === 'description'
-                                    ? 'bg-[#444444] text-white'
-                                    : 'text-gray-400 hover:text-gray-300'
-                                    }`}
-                                onClick={() => setActiveTab('description')}
-                            >
-                                <FileText size={16} />
-                                Description
-                            </button>
-                            <button
-                                className={`px-4 py-2 text-sm rounded-md transition-colors ${activeTab === 'setting'
-                                    ? 'bg-[#444444] text-white'
-                                    : 'text-gray-400 hover:text-gray-300'
-                                    } ${readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-                                onClick={() => !readOnly && setActiveTab('setting')}
-                                disabled={readOnly}
-                            >
-                                <Settings size={16} />
-                                Settings
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Right: Navigation Controls */}
-                    <div className="flex items-center justify-end">
+                    {/* Middle: Navigation Controls */}
+                    <div className="flex-1 flex items-center justify-center">
                         <button
                             onClick={goToPreviousQuestion}
                             disabled={currentQuestionIndex === 0}
@@ -324,8 +256,8 @@ export default function QuizEditor({
                             <ChevronLeft size={20} />
                         </button>
 
-                        <div className="mx-2 px-4 py-1 rounded-full border border-[#3A3A3A] bg-[#2A2A2A] text-gray-300 text-sm">
-                            {currentQuestionIndex + 1} / {questions.length}
+                        <div className="mx-3 px-4 py-1.5 rounded-full border border-[#3A3A3A] bg-[#2A2A2A] text-gray-300 text-sm font-medium">
+                            Question {currentQuestionIndex + 1} / {questions.length}
                         </div>
 
                         <button
@@ -336,6 +268,20 @@ export default function QuizEditor({
                         >
                             <ChevronRight size={20} />
                         </button>
+                    </div>
+
+                    {/* Right: Delete Button */}
+                    <div className="flex-1 flex justify-end">
+                        {!readOnly && (
+                            <button
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="flex items-center px-3 py-1.5 text-sm text-red-400 hover:text-white bg-[#3A3A3A] hover:bg-red-600 rounded-md transition-colors cursor-pointer"
+                                aria-label="Delete current question"
+                            >
+                                <Trash2 size={16} className="mr-1" />
+                                Delete
+                            </button>
+                        )}
                     </div>
                 </div>
             )}
@@ -352,12 +298,20 @@ export default function QuizEditor({
                                 <h2 className="text-xl font-medium text-white ml-3">Question {currentQuestionIndex + 1}</h2>
                             </div>
                             <div className="question-content mb-6">
-                                <LearningMaterialEditor
-                                    key={`question-preview-${currentQuestionIndex}`}
-                                    initialContent={currentQuestionContent}
-                                    readOnly={true}
-                                    className="preview-editor"
-                                />
+                                {/* Custom content display for preview mode */}
+                                <div className="preview-content">
+                                    {/* Simple content display for now */}
+                                    {currentQuestionContent.length > 0 ? (
+                                        <div className="text-white">
+                                            {/* Placeholder for content display */}
+                                            <p>Question content would be displayed here</p>
+                                        </div>
+                                    ) : (
+                                        <div className="text-gray-400 italic">
+                                            <p>No content added to this question yet.</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="response-area">
                                 <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-2">Your Response</h3>
@@ -392,248 +346,20 @@ export default function QuizEditor({
                     </div>
                 ) : (
                     <>
-                        {activeTab === 'description' && (
+                        {questions.length === 0 ? (
+                            <div className="w-full flex justify-center items-center">
+                                <EmptyQuizPlaceholder />
+                            </div>
+                        ) : (
                             <div className="w-full">
                                 <div className="editor-container h-full">
-                                    <LearningMaterialEditor
+                                    <BlockNoteEditor
                                         key={`question-editor-${currentQuestionIndex}`}
                                         initialContent={currentQuestionContent}
                                         onChange={handleQuestionContentChange}
                                         isDarkMode={isDarkMode}
                                         readOnly={readOnly}
                                     />
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'setting' && (
-                            <div className="w-full">
-                                <div className="config-panel h-full">
-                                    <div className="config-grid">
-                                        {/* Input Type */}
-                                        <div className="config-item">
-                                            <label
-                                                className="text-gray-400 uppercase text-xs font-semibold tracking-wider mb-2"
-                                                id="input-type-label"
-                                            >
-                                                Input Type
-                                            </label>
-                                            <div className="relative">
-                                                <div
-                                                    className="flex items-center justify-between p-3 bg-[#2A2A2A] rounded-md cursor-pointer"
-                                                    onClick={() => setInputTypeDropdownOpen(!inputTypeDropdownOpen)}
-                                                    aria-haspopup="listbox"
-                                                    aria-expanded={inputTypeDropdownOpen}
-                                                    aria-labelledby="input-type-label"
-                                                >
-                                                    <div className="flex items-center">
-                                                        {currentQuestionConfig.inputType === 'text' && <FileText size={18} className="mr-2 text-gray-300" />}
-                                                        {currentQuestionConfig.inputType === 'code' && <FileCode size={18} className="mr-2 text-gray-300" />}
-                                                        {currentQuestionConfig.inputType === 'audio' && <AudioLines size={18} className="mr-2 text-gray-300" />}
-                                                        <span className="text-white">
-                                                            {currentQuestionConfig.inputType === 'text' && 'Text'}
-                                                            {currentQuestionConfig.inputType === 'code' && 'Code'}
-                                                            {currentQuestionConfig.inputType === 'audio' && 'Audio'}
-                                                        </span>
-                                                    </div>
-                                                    <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                                    </svg>
-                                                </div>
-
-                                                {/* Dropdown menu */}
-                                                {inputTypeDropdownOpen && (
-                                                    <div
-                                                        className="absolute mt-1 w-full bg-[#1A1A1A] border border-[#333333] rounded-md shadow-lg z-10"
-                                                        role="listbox"
-                                                        aria-labelledby="input-type-label"
-                                                    >
-                                                        <div
-                                                            className={`flex items-center p-3 ${currentQuestionConfig.inputType === 'text' ? 'bg-[#2A2A2A]' : ''} hover:bg-[#2A2A2A] cursor-pointer`}
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                handleConfigChange({ inputType: 'text' });
-                                                                setInputTypeDropdownOpen(false);
-                                                            }}
-                                                            role="option"
-                                                            aria-selected={currentQuestionConfig.inputType === 'text'}
-                                                        >
-                                                            <FileText size={18} className="mr-3 text-gray-300" />
-                                                            <div className="flex-1">
-                                                                <div className="font-medium text-white">Text (Paragraph)</div>
-                                                                <div className="text-xs text-gray-400">Free-form text response</div>
-                                                            </div>
-                                                            {currentQuestionConfig.inputType === 'text' && (
-                                                                <svg className="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                </svg>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Code input type option */}
-                                                        <div
-                                                            className={`flex items-center p-3 ${currentQuestionConfig.inputType === 'code' ? 'bg-[#2A2A2A]' : ''} hover:bg-[#2A2A2A] cursor-pointer`}
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                handleConfigChange({ inputType: 'code' });
-                                                                setInputTypeDropdownOpen(false);
-                                                            }}
-                                                            role="option"
-                                                            aria-selected={currentQuestionConfig.inputType === 'code'}
-                                                        >
-                                                            <FileCode size={18} className="mr-3 text-gray-300" />
-                                                            <div className="flex-1">
-                                                                <div className="font-medium text-white">Code</div>
-                                                                <div className="text-xs text-gray-400">Programming code response</div>
-                                                            </div>
-                                                            {currentQuestionConfig.inputType === 'code' && (
-                                                                <svg className="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                </svg>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Audio input type option */}
-                                                        <div
-                                                            className={`flex items-center p-3 ${currentQuestionConfig.inputType === 'audio' ? 'bg-[#2A2A2A]' : ''} hover:bg-[#2A2A2A] cursor-pointer`}
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                handleConfigChange({ inputType: 'audio' });
-                                                                setInputTypeDropdownOpen(false);
-                                                            }}
-                                                            role="option"
-                                                            aria-selected={currentQuestionConfig.inputType === 'audio'}
-                                                        >
-                                                            <AudioLines size={18} className="mr-3 text-gray-300" />
-                                                            <div className="flex-1">
-                                                                <div className="font-medium text-white">Audio</div>
-                                                                <div className="text-xs text-gray-400">Voice recording response</div>
-                                                            </div>
-                                                            {currentQuestionConfig.inputType === 'audio' && (
-                                                                <svg className="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                </svg>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Response Style */}
-                                        <div className="config-item">
-                                            <label
-                                                className="text-gray-400 uppercase text-xs font-semibold tracking-wider mb-2"
-                                                id="response-style-label"
-                                            >
-                                                AI Response Style
-                                            </label>
-                                            <div className="relative" id="response-style-dropdown">
-                                                <div
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        setResponseStyleDropdownOpen(!responseStyleDropdownOpen);
-                                                    }}
-                                                    className="w-full bg-[#1A1A1A] border border-gray-700 rounded-md p-3 text-white cursor-pointer flex items-center justify-between"
-                                                    aria-haspopup="listbox"
-                                                    aria-expanded={responseStyleDropdownOpen}
-                                                >
-                                                    <div className="flex items-center">
-                                                        {currentQuestionConfig.responseStyle === 'coach' && <MessageSquare size={18} className="mr-2 text-gray-300" />}
-                                                        {currentQuestionConfig.responseStyle === 'examiner' && <GraduationCap size={18} className="mr-2 text-gray-300" />}
-                                                        {currentQuestionConfig.responseStyle === 'evaluator' && <ClipboardList size={18} className="mr-2 text-gray-300" />}
-                                                        <span className="text-white">
-                                                            {currentQuestionConfig.responseStyle === 'coach' && 'Coach'}
-                                                            {currentQuestionConfig.responseStyle === 'examiner' && 'Exam'}
-                                                            {currentQuestionConfig.responseStyle === 'evaluator' && 'Report'}
-                                                        </span>
-                                                    </div>
-                                                    <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                                    </svg>
-                                                </div>
-
-                                                {responseStyleDropdownOpen && (
-                                                    <div
-                                                        className="absolute z-10 mt-1 w-full bg-[#1A1A1A] border border-gray-700 rounded-md overflow-hidden shadow-lg"
-                                                        role="listbox"
-                                                        aria-labelledby="response-style-label"
-                                                    >
-                                                        <div
-                                                            className={`flex items-center p-3 ${currentQuestionConfig.responseStyle === 'coach' ? 'bg-[#2A2A2A]' : ''} hover:bg-[#2A2A2A] cursor-pointer`}
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                handleConfigChange({ responseStyle: 'coach' });
-                                                                setResponseStyleDropdownOpen(false);
-                                                            }}
-                                                            role="option"
-                                                            aria-selected={currentQuestionConfig.responseStyle === 'coach'}
-                                                        >
-                                                            <MessageSquare size={18} className="mr-3 text-gray-300" />
-                                                            <div className="flex-1">
-                                                                <div className="font-medium text-white">Coach (Supportive & Guiding)</div>
-                                                                <div className="text-xs text-gray-400">Provides encouragement and guidance</div>
-                                                            </div>
-                                                            {currentQuestionConfig.responseStyle === 'coach' && (
-                                                                <svg className="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                </svg>
-                                                            )}
-                                                        </div>
-                                                        <div
-                                                            className={`flex items-center p-3 ${currentQuestionConfig.responseStyle === 'examiner' ? 'bg-[#2A2A2A]' : ''} hover:bg-[#2A2A2A] cursor-pointer`}
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                handleConfigChange({ responseStyle: 'examiner' });
-                                                                setResponseStyleDropdownOpen(false);
-                                                            }}
-                                                            role="option"
-                                                            aria-selected={currentQuestionConfig.responseStyle === 'examiner'}
-                                                        >
-                                                            <GraduationCap size={18} className="mr-3 text-gray-300" />
-                                                            <div className="flex-1">
-                                                                <div className="font-medium text-white">Exam (Objective & Formal)</div>
-                                                                <div className="text-xs text-gray-400">Formal assessment with clear scoring</div>
-                                                            </div>
-                                                            {currentQuestionConfig.responseStyle === 'examiner' && (
-                                                                <svg className="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                </svg>
-                                                            )}
-                                                        </div>
-                                                        <div
-                                                            className={`flex items-center p-3 ${currentQuestionConfig.responseStyle === 'evaluator' ? 'bg-[#2A2A2A]' : ''} hover:bg-[#2A2A2A] cursor-pointer`}
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                handleConfigChange({ responseStyle: 'evaluator' });
-                                                                setResponseStyleDropdownOpen(false);
-                                                            }}
-                                                            role="option"
-                                                            aria-selected={currentQuestionConfig.responseStyle === 'evaluator'}
-                                                        >
-                                                            <ClipboardList size={18} className="mr-3 text-gray-300" />
-                                                            <div className="flex-1">
-                                                                <div className="font-medium text-white">Report (Detailed Assessment)</div>
-                                                                <div className="text-xs text-gray-400">Comprehensive analysis with suggestions</div>
-                                                            </div>
-                                                            {currentQuestionConfig.responseStyle === 'evaluator' && (
-                                                                <svg className="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                </svg>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         )}

@@ -10,6 +10,9 @@ import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 // Add custom styles for dark mode
 import "./editor-styles.css";
 
+// Import the BlockNoteEditor component
+import BlockNoteEditor from "./BlockNoteEditor";
+
 interface LearningMaterialEditorProps {
     onChange?: (content: any[]) => void;
     isDarkMode?: boolean;
@@ -72,6 +75,7 @@ export default function LearningMaterialEditor({
     const [publishError, setPublishError] = useState<string | null>(null);
     const [taskData, setTaskData] = useState<TaskData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [editorContent, setEditorContent] = useState<any[]>([]);
 
     // Add a ref to store the original data for reverting on cancel
     const originalDataRef = useRef<TaskData | null>(null);
@@ -91,6 +95,14 @@ export default function LearningMaterialEditor({
         uploadFile,
         schema, // Use our custom schema with limited blocks
     });
+
+    // Handle content changes from the editor
+    const handleEditorChange = (content: any[]) => {
+        setEditorContent(content);
+        if (onChange && !isPublishing) {
+            onChange(content);
+        }
+    };
 
     // Fetch task data when taskId changes
     useEffect(() => {
@@ -134,7 +146,7 @@ export default function LearningMaterialEditor({
                 controller.abort();
             };
         }
-    }, [taskId, editor]);
+    }, [taskId]);
 
     useEffect(() => {
         if (editor && taskData && taskData.blocks && taskData.blocks.length > 0) {
@@ -149,79 +161,12 @@ export default function LearningMaterialEditor({
         }
     }, [editor, taskData]);
 
-    // Handle content changes
-    useEffect(() => {
-        if (onChange && !isPublishing) {
-            const handleChange = () => {
-                // Don't trigger onChange during publishing to prevent update loops
-                if (!isPublishing) {
-                    onChange(editor.document);
-                }
-            };
-
-            // Add change listener
-            editor.onEditorContentChange(handleChange);
-
-            // Return cleanup function
-            return () => {
-                // We can't remove the listener directly, but we can use the isPublishing flag
-                // to prevent updates when needed
-            };
-        }
-    }, [editor, onChange, isPublishing]);
-
-    // This effect prevents the editor from losing focus
-    useEffect(() => {
-        // We don't need to disable other contentEditable elements
-        // This was causing the issue where users couldn't edit titles/names
-
-        // Just ensure our editor doesn't lose focus unexpectedly
-        const handleClickOutside = (event: MouseEvent) => {
-            // Only handle if editor has focus and click is outside editor
-            const target = event.target as Node;
-            if (document.activeElement &&
-                editorContainerRef.current &&
-                editorContainerRef.current.contains(document.activeElement) &&
-                !editorContainerRef.current.contains(target)) {
-
-                // Check if it's an intentional click on an input element
-                if (target instanceof Element) {
-                    const isFormElement =
-                        target.tagName === 'INPUT' ||
-                        target.tagName === 'TEXTAREA' ||
-                        target.tagName === 'SELECT' ||
-                        target.hasAttribute('contenteditable');
-
-                    // If clicking on a form element, don't prevent focus change
-                    if (isFormElement) {
-                        return;
-                    }
-                }
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
     // Handle cancel in edit mode - revert to original data
     const handleCancel = () => {
         if (!originalDataRef.current) return;
 
         // Restore the original data
         setTaskData(originalDataRef.current);
-
-        // Replace the editor content with the original blocks
-        if (editor && originalDataRef.current.blocks) {
-            try {
-                editor.replaceBlocks(editor.document, originalDataRef.current.blocks);
-            } catch (error) {
-                console.error("Error restoring original content:", error);
-            }
-        }
 
         // Return the original title to the dialog header
         const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
@@ -265,6 +210,9 @@ export default function LearningMaterialEditor({
                 }
             }
 
+            // Use the current editor content
+            const currentContent = editorContent.length > 0 ? editorContent : (taskData?.blocks || []);
+
             // Make POST request to publish the learning material content
             const response = await fetch(`http://localhost:8001/tasks/${taskId}/learning_material`, {
                 method: 'POST',
@@ -273,7 +221,7 @@ export default function LearningMaterialEditor({
                 },
                 body: JSON.stringify({
                     title: currentTitle,
-                    blocks: editor.document
+                    blocks: currentContent
                 }),
             });
 
@@ -356,6 +304,9 @@ export default function LearningMaterialEditor({
                 }
             }
 
+            // Use the current editor content
+            const currentContent = editorContent.length > 0 ? editorContent : (taskData?.blocks || []);
+
             // Make POST request to update the learning material content, keeping the same status
             const response = await fetch(`http://localhost:8001/tasks/${taskId}/learning_material`, {
                 method: 'POST',
@@ -364,7 +315,7 @@ export default function LearningMaterialEditor({
                 },
                 body: JSON.stringify({
                     title: currentTitle,
-                    blocks: editor.document
+                    blocks: currentContent
                 }),
             });
 
@@ -399,6 +350,13 @@ export default function LearningMaterialEditor({
         }
     };
 
+    // Update the content when it changes
+    useEffect(() => {
+        if (onChange && taskData?.blocks) {
+            onChange(taskData.blocks);
+        }
+    }, [taskData?.blocks, onChange]);
+
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center">
@@ -412,11 +370,12 @@ export default function LearningMaterialEditor({
             ref={editorContainerRef}
             className={`h-full dark-editor-container dark-dialog no-bottom-border ${className}`}
         >
-            <BlockNoteView
-                editor={editor}
-                theme="dark" // Force dark theme
-                className="dark-editor" // Add a class for additional styling
-                editable={!readOnly}
+            <BlockNoteEditor
+                initialContent={taskData?.blocks || []}
+                onChange={handleEditorChange}
+                isDarkMode={isDarkMode}
+                readOnly={readOnly}
+                className="dark-editor"
             />
 
             {/* Add refs for the save and cancel functions to be called externally */}

@@ -15,7 +15,7 @@ scrolling?
 when clicking on cancel, ask confirmation that progress will be lost
 when clicking outside dialog box in edit mode, ask confirmation that progress will be lost
 
-add acknowledgement toasts/balloons or whatever to show something is done
+add acknowledgement toasts/balloons or whatever to show something is done and warning in places where progress can be lost
 
 learner view:
 - checkbox empty for tasks
@@ -80,3 +80,5 @@ Editing school slug? NO
 Generate course? NO
 
 types of content blocks - only text for now
+
+fix ugly dialog boxes
