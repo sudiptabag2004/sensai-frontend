@@ -384,7 +384,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                     {/* Close button */}
                     <button
                         onClick={onClose}
-                        className="ml-2 p-2 text-gray-400 hover:text-white rounded-full hover:bg-[#333333] transition-colors"
+                        className="ml-2 p-2 text-gray-400 hover:text-white rounded-full hover:bg-[#333333] transition-colors cursor-pointer"
                         aria-label="Close dialog"
                     >
                         <X size={20} />
