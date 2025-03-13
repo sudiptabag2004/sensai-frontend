@@ -966,84 +966,16 @@ export default function CreateCourse() {
     // Add a new function to handle the actual publishing after confirmation
     const handleConfirmPublish = async () => {
         // For learning materials, the API call is now handled in the LearningMaterialEditor component
-        if (activeItem?.type === 'material') {
-            // The LearningMaterialEditor has already handled the API call
-            // We still need to update the modules list to reflect the status change
-            // Don't update the title here - it will be included in the publishedTaskData from onPublishSuccess
+        // The LearningMaterialEditor has already handled the API call
+        // We still need to update the modules list to reflect the status change
+        // Don't update the title here - it will be included in the publishedTaskData from onPublishSuccess
 
-            // The update will happen in CourseItemDialog's onPublishSuccess callback
-            // which will update the activeItem with the appropriate title
+        // The update will happen in CourseItemDialog's onPublishSuccess callback
+        // which will update the activeItem with the appropriate title
 
-            // Hide the confirmation dialog
-            setShowPublishConfirmation(false);
-            return;
-        }
-
-        // For other item types (quizzes, exams)
         // Hide the confirmation dialog
         setShowPublishConfirmation(false);
-
-        if (!activeModuleId || !activeItem) return;
-
-        try {
-            // Make API request to update the item status
-            console.log('Inside handleConfirmPublish');
-            const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    status: 'published'
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to publish ${activeItem.type}: ${response.status}`);
-            }
-
-            // Update the UI after successful API call
-            setModules(prevModules =>
-                prevModules.map(module => {
-                    if (module.id === activeModuleId) {
-                        return {
-                            ...module,
-                            items: module.items.map(item => {
-                                if (item.id === activeItem.id) {
-                                    return {
-                                        ...item,
-                                        status: 'published'
-                                    };
-                                }
-                                return item;
-                            })
-                        };
-                    }
-                    return module;
-                })
-            );
-
-            // Also update active item if it's currently being edited
-            setActiveItem({
-                ...activeItem,
-                status: 'published'
-            });
-
-            console.log(`${activeItem.type} published successfully`);
-
-            // Close the dialog and show a success message
-            setShowPublishDialog(false);
-            setTempSelectedCohorts([]);
-
-            // Refresh the displayed cohorts
-            fetchCourseCohorts();
-
-            // You could add a toast notification here
-            console.log("Course published successfully to selected cohorts");
-        } catch (error) {
-            console.error("Error publishing item:", error);
-            // You might want to show an error message to the user here
-        }
+        return;
     };
 
     // Add a function to handle canceling the publish action

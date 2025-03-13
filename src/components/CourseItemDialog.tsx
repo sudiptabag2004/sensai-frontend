@@ -209,6 +209,10 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     const handleDialogBackdropClick = (e: React.MouseEvent) => {
         // Only close if clicking directly on the backdrop, not on the dialog content
         if (dialogContentRef.current && !dialogContentRef.current.contains(e.target as Node)) {
+            // Reset publish confirmation status before closing
+            if (showPublishConfirmation) {
+                onSetShowPublishConfirmation(false);
+            }
             onClose();
         }
     };
@@ -219,271 +223,282 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     };
 
     return (
-        <div
-            className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={handleDialogBackdropClick}
-        >
+        <>
             <div
-                ref={dialogContentRef}
-                style={{
-                    backgroundColor: '#1A1A1A',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                    borderColor: '#1A1A1A',
-                    border: '1px solid #1A1A1A'
-                }}
-                className="w-full max-w-6xl h-[90vh] rounded-lg shadow-2xl flex flex-col transform transition-all duration-300 ease-in-out scale-100 translate-y-0"
-                onClick={(e) => e.stopPropagation()}
+                className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={handleDialogBackdropClick}
             >
-                {/* Dialog Header */}
                 <div
-                    className="flex items-center justify-between p-4 border-b border-gray-800"
-                    style={{ backgroundColor: '#111111' }}
-                >
-                    <div className="flex-1 flex items-center">
-                        <h2
-                            ref={dialogTitleRef}
-                            contentEditable={(activeItem?.status !== 'published' || isEditMode)}
-                            suppressContentEditableWarning
-                            onInput={(e) => {
-                                // For learning materials in draft mode, allow editing title 
-                                // but don't propagate changes upward yet (will be handled during publish)
-                                if (activeItem?.type === 'material') {
-                                    // Title change is allowed but not propagated upward immediately
-                                    // The current title will be stored in the DOM element
-                                    // and will be sent to the API during publish
-                                } else {
-                                    // For quizzes/exams, handle as before
-                                    onDialogTitleChange(e);
-                                }
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    // Blur the element to trigger save
-                                    (e.target as HTMLElement).blur();
-                                }
-                            }}
-                            onClick={(e) => {
-                                // Prevent click from bubbling up
-                                e.stopPropagation();
-
-                                // If not editable, don't continue
-                                if ((activeItem?.status === 'published' && !isEditMode)) {
-                                    return;
-                                }
-
-                                // Set a flag to indicate the title is being edited
-                                const titleElement = e.currentTarget as HTMLElement;
-                                titleElement.dataset.editing = "true";
-
-                                // Set cursor position at the end of text
-                                const range = document.createRange();
-                                const selection = window.getSelection();
-                                const textNode = titleElement.firstChild || titleElement;
-
-                                if (textNode) {
-                                    const textLength = textNode.textContent?.length || 0;
-                                    range.setStart(textNode, textLength);
-                                    range.setEnd(textNode, textLength);
-                                    selection?.removeAllRanges();
-                                    selection?.addRange(range);
-                                }
-                            }}
-                            className="text-2xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none cursor-text"
-                            data-placeholder={activeItem?.type === 'material' ? 'New Learning Material' : activeItem?.type === 'quiz' ? 'New Quiz' : 'New Exam'}
-                        >
-                            {activeItem?.title}
-                        </h2>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        {/* Preview Mode Toggle for Quizzes/Exams */}
-                        {(activeItem?.type === 'quiz' || activeItem?.type === 'exam') && hasQuizQuestions && (
-                            <button
-                                onClick={toggleQuizPreviewMode}
-                                className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-blue-500 hover:bg-[#222222] focus:border-blue-500 active:border-blue-500 rounded-full transition-colors cursor-pointer"
-                                aria-label={quizPreviewMode ? "Edit mode" : "Preview mode"}
-                            >
-                                {quizPreviewMode ? (
-                                    <>
-                                        <Edit2 size={16} className="mr-2" />
-                                        Editor
-                                    </>
-                                ) : (
-                                    <>
-                                        <Eye size={16} className="mr-2" />
-                                        Preview
-                                    </>
-                                )}
-                            </button>
-                        )}
-
-                        {activeItem?.status === 'draft' && hasQuizQuestions && (
-                            <button
-                                onClick={() => onSetShowPublishConfirmation(true)}
-                                className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
-                                aria-label="Publish item"
-                            >
-                                <Sparkles size={16} className="mr-2" />
-                                Publish
-                            </button>
-                        )}
-                        {activeItem?.status === 'published' && isEditMode ? (
-                            <>
-                                <button
-                                    onClick={() => {
-                                        if (activeItem?.type === 'material') {
-                                            // For learning materials, trigger the handleSave function 
-                                            // in the LearningMaterialEditor component
-                                            const saveButton = document.getElementById('save-learning-material');
-                                            if (saveButton) {
-                                                saveButton.click();
-                                            }
-                                        } else {
-                                            // For other item types, use the original save function
-                                            onSaveItem();
-                                        }
-                                    }}
-                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
-                                    aria-label="Save changes"
-                                >
-                                    <Check size={16} className="mr-2" />
-                                    Save
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (activeItem?.type === 'material') {
-                                            // For learning materials, trigger the handleCancel function 
-                                            // in the LearningMaterialEditor component
-                                            const cancelButton = document.getElementById('cancel-learning-material');
-                                            if (cancelButton) {
-                                                cancelButton.click();
-                                            }
-                                        }
-                                        // Always call the parent's cancel function
-                                        onCancelEditMode();
-                                    }}
-                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-gray-500 hover:bg-[#222222] focus:border-gray-500 active:border-gray-500 rounded-full transition-colors cursor-pointer"
-                                    aria-label="Cancel editing"
-                                >
-                                    <X size={16} className="mr-2" />
-                                    Cancel
-                                </button>
-                            </>
-                        ) : activeItem?.status === 'published' && !isEditMode && (
-                            <button
-                                onClick={onEnableEditMode}
-                                className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-violet-600 hover:bg-[#222222] focus:border-violet-600 active:border-violet-600 rounded-full transition-colors cursor-pointer"
-                                aria-label="Edit item"
-                            >
-                                <Pencil size={16} className="mr-2" />
-                                Edit
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Close button */}
-                    <button
-                        onClick={onClose}
-                        className="ml-2 p-2 text-gray-400 hover:text-white rounded-full hover:bg-[#333333] transition-colors cursor-pointer"
-                        aria-label="Close dialog"
-                    >
-                        <X size={20} />
-                    </button>
-                </div>
-
-                {/* Dialog Content */}
-                <div
-                    className="flex-1 overflow-y-auto p-6 dialog-content-editor"
-                    onClick={(e) => {
-                        // Ensure the click event doesn't bubble up
-                        e.stopPropagation();
-
-                        // Only focus the editor if in editable mode
-                        if (activeItem?.status !== 'published' || isEditMode) {
-                            // Focus the editor
-                            focusEditor();
-                        }
+                    ref={dialogContentRef}
+                    style={{
+                        backgroundColor: '#1A1A1A',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        borderColor: '#1A1A1A',
+                        border: '1px solid #1A1A1A'
                     }}
+                    className="w-full max-w-6xl h-[90vh] rounded-lg shadow-2xl flex flex-col transform transition-all duration-300 ease-in-out scale-100 translate-y-0"
+                    onClick={(e) => e.stopPropagation()}
                 >
-                    {activeItem?.type === 'material' ? (
-                        <DynamicLearningMaterialEditor
-                            key={`material-${activeItem.id}-${isEditMode}`}
-                            readOnly={activeItem.status === 'published' && !isEditMode}
-                            showPublishConfirmation={showPublishConfirmation}
-                            onPublishConfirm={onPublishConfirm}
-                            onPublishCancel={onPublishCancel}
-                            taskId={activeItem.id}
-                            isEditMode={isEditMode}
-                            onPublishSuccess={(updatedData?: TaskData) => {
-                                // Handle publish success
-                                if (updatedData) {
-                                    // Properly update the UI state first
-                                    // This will transform the publish button to edit button
-                                    if (activeItem && updatedData.status === 'published') {
-                                        activeItem.status = 'published';
-                                        activeItem.title = updatedData.title;
-
-                                        if (updatedData.blocks) {
-                                            // @ts-ignore - types may not perfectly match
-                                            activeItem.content = updatedData.blocks;
-                                        }
+                    {/* Dialog Header */}
+                    <div
+                        className="flex items-center justify-between p-4 border-b border-gray-800"
+                        style={{ backgroundColor: '#111111' }}
+                    >
+                        <div className="flex-1 flex items-center">
+                            <h2
+                                ref={dialogTitleRef}
+                                contentEditable={(activeItem?.status !== 'published' || isEditMode)}
+                                suppressContentEditableWarning
+                                onInput={(e) => {
+                                    // For learning materials in draft mode, allow editing title 
+                                    // but don't propagate changes upward yet (will be handled during publish)
+                                    if (activeItem?.type === 'material') {
+                                        // Title change is allowed but not propagated upward immediately
+                                        // The current title will be stored in the DOM element
+                                        // and will be sent to the API during publish
+                                    } else {
+                                        // For quizzes/exams, handle as before
+                                        onDialogTitleChange(e);
                                     }
-
-                                    // Update will be handled by the parent component
-                                    onPublishConfirm();
-                                }
-                                // Hide the publish confirmation dialog
-                                onSetShowPublishConfirmation(false);
-                            }}
-                            onSaveSuccess={(updatedData?: TaskData) => {
-                                // Handle save success - similar to publish success but without status change
-                                if (updatedData) {
-                                    // Update the activeItem with new title and content
-                                    if (activeItem) {
-                                        activeItem.title = updatedData.title;
-
-                                        if (updatedData.blocks) {
-                                            // @ts-ignore - types may not perfectly match
-                                            activeItem.content = updatedData.blocks;
-                                        }
-                                    }
-
-                                    // Call the parent's save function
-                                    onSaveItem();
-                                }
-                            }}
-                        />
-                    ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (
-                        isLoadingTaskDetails ? (
-                            <div className="flex items-center justify-center h-full w-full">
-                                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
-                            </div>
-                        ) : (
-                            <DynamicQuizEditor
-                                key={`quiz-${activeItem.id}-${isEditMode}-${hasFetchedData}`}
-                                initialQuestions={
-                                    // For published quizzes, use fetched data
-                                    activeItem.status === 'published' ?
-                                        (localQuestions.length > 0 ? localQuestions : (activeItem?.questions || [])) :
-                                        // For draft quizzes, always start with either the local state or empty
-                                        (activeItem.status === 'draft' ? (localQuestions || []) : (activeItem?.questions || []))
-                                }
-                                onChange={(questions) => {
-                                    // Update both local state and activeItem
-                                    setLocalQuestions(questions);
-                                    if (activeItem) {
-                                        activeItem.questions = questions;
-                                    }
-                                    onQuizContentChange(questions);
                                 }}
-                                isPreviewMode={quizPreviewMode}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        // Blur the element to trigger save
+                                        (e.target as HTMLElement).blur();
+                                    }
+                                }}
+                                onClick={(e) => {
+                                    // Prevent click from bubbling up
+                                    e.stopPropagation();
+
+                                    // If not editable, don't continue
+                                    if ((activeItem?.status === 'published' && !isEditMode)) {
+                                        return;
+                                    }
+
+                                    // Set a flag to indicate the title is being edited
+                                    const titleElement = e.currentTarget as HTMLElement;
+                                    titleElement.dataset.editing = "true";
+
+                                    // Set cursor position at the end of text
+                                    const range = document.createRange();
+                                    const selection = window.getSelection();
+                                    const textNode = titleElement.firstChild || titleElement;
+
+                                    if (textNode) {
+                                        const textLength = textNode.textContent?.length || 0;
+                                        range.setStart(textNode, textLength);
+                                        range.setEnd(textNode, textLength);
+                                        selection?.removeAllRanges();
+                                        selection?.addRange(range);
+                                    }
+                                }}
+                                className="text-2xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none cursor-text"
+                                data-placeholder={activeItem?.type === 'material' ? 'New Learning Material' : activeItem?.type === 'quiz' ? 'New Quiz' : 'New Exam'}
+                            >
+                                {activeItem?.title}
+                            </h2>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            {/* Preview Mode Toggle for Quizzes/Exams */}
+                            {(activeItem?.type === 'quiz' || activeItem?.type === 'exam') && hasQuizQuestions && (
+                                <button
+                                    onClick={toggleQuizPreviewMode}
+                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-blue-500 hover:bg-[#222222] focus:border-blue-500 active:border-blue-500 rounded-full transition-colors cursor-pointer"
+                                    aria-label={quizPreviewMode ? "Edit mode" : "Preview mode"}
+                                >
+                                    {quizPreviewMode ? (
+                                        <>
+                                            <Edit2 size={16} className="mr-2" />
+                                            Editor
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Eye size={16} className="mr-2" />
+                                            Preview
+                                        </>
+                                    )}
+                                </button>
+                            )}
+
+                            {activeItem?.status === 'draft' && hasQuizQuestions && (
+                                <button
+                                    onClick={() => onSetShowPublishConfirmation(true)}
+                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                    aria-label="Publish item"
+                                >
+                                    <Sparkles size={16} className="mr-2" />
+                                    Publish
+                                </button>
+                            )}
+                            {activeItem?.status === 'published' && isEditMode ? (
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            if (activeItem?.type === 'material') {
+                                                // For learning materials, trigger the handleSave function 
+                                                // in the LearningMaterialEditor component
+                                                const saveButton = document.getElementById('save-learning-material');
+                                                if (saveButton) {
+                                                    saveButton.click();
+                                                }
+                                            } else {
+                                                // For other item types, use the original save function
+                                                onSaveItem();
+                                            }
+                                        }}
+                                        className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                        aria-label="Save changes"
+                                    >
+                                        <Check size={16} className="mr-2" />
+                                        Save
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (activeItem?.type === 'material') {
+                                                // For learning materials, trigger the handleCancel function 
+                                                // in the LearningMaterialEditor component
+                                                const cancelButton = document.getElementById('cancel-learning-material');
+                                                if (cancelButton) {
+                                                    cancelButton.click();
+                                                }
+                                            }
+                                            // Always call the parent's cancel function
+                                            onCancelEditMode();
+                                        }}
+                                        className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-gray-500 hover:bg-[#222222] focus:border-gray-500 active:border-gray-500 rounded-full transition-colors cursor-pointer"
+                                        aria-label="Cancel editing"
+                                    >
+                                        <X size={16} className="mr-2" />
+                                        Cancel
+                                    </button>
+                                </>
+                            ) : activeItem?.status === 'published' && !isEditMode && (
+                                <button
+                                    onClick={onEnableEditMode}
+                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-violet-600 hover:bg-[#222222] focus:border-violet-600 active:border-violet-600 rounded-full transition-colors cursor-pointer"
+                                    aria-label="Edit item"
+                                >
+                                    <Pencil size={16} className="mr-2" />
+                                    Edit
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Close button */}
+                        <button
+                            onClick={() => {
+                                // Reset publish confirmation status before closing
+                                if (showPublishConfirmation) {
+                                    onSetShowPublishConfirmation(false);
+                                }
+                                onClose();
+                            }}
+                            className="ml-2 p-2 text-gray-400 hover:text-white rounded-full hover:bg-[#333333] transition-colors cursor-pointer"
+                            aria-label="Close dialog"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    {/* Dialog Content */}
+                    <div
+                        className="flex-1 overflow-y-auto p-6 dialog-content-editor"
+                        onClick={(e) => {
+                            // Ensure the click event doesn't bubble up
+                            e.stopPropagation();
+
+                            // Only focus the editor if in editable mode
+                            if (activeItem?.status !== 'published' || isEditMode) {
+                                // Focus the editor
+                                focusEditor();
+                            }
+                        }}
+                    >
+                        {activeItem?.type === 'material' ? (
+                            <DynamicLearningMaterialEditor
+                                key={`material-${activeItem.id}-${isEditMode}`}
                                 readOnly={activeItem.status === 'published' && !isEditMode}
+                                showPublishConfirmation={showPublishConfirmation}
+                                onPublishConfirm={onPublishConfirm}
+                                onPublishCancel={onPublishCancel}
+                                taskId={activeItem.id}
+                                isEditMode={isEditMode}
+                                onPublishSuccess={(updatedData?: TaskData) => {
+                                    // Handle publish success
+                                    if (updatedData) {
+                                        // Properly update the UI state first
+                                        // This will transform the publish button to edit button
+                                        if (activeItem && updatedData.status === 'published') {
+                                            activeItem.status = 'published';
+                                            activeItem.title = updatedData.title;
+
+                                            if (updatedData.blocks) {
+                                                // @ts-ignore - types may not perfectly match
+                                                activeItem.content = updatedData.blocks;
+                                            }
+                                        }
+
+                                        // Update will be handled by the parent component
+                                        onPublishConfirm();
+                                    }
+                                    // Hide the publish confirmation dialog
+                                    onSetShowPublishConfirmation(false);
+                                }}
+                                onSaveSuccess={(updatedData?: TaskData) => {
+                                    // Handle save success - similar to publish success but without status change
+                                    if (updatedData) {
+                                        // Update the activeItem with new title and content
+                                        if (activeItem) {
+                                            activeItem.title = updatedData.title;
+
+                                            if (updatedData.blocks) {
+                                                // @ts-ignore - types may not perfectly match
+                                                activeItem.content = updatedData.blocks;
+                                            }
+                                        }
+
+                                        // Call the parent's save function
+                                        onSaveItem();
+                                    }
+                                }}
                             />
-                        )
-                    ) : null}
+                        ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (
+                            isLoadingTaskDetails ? (
+                                <div className="flex items-center justify-center h-full w-full">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                                </div>
+                            ) : (
+                                <DynamicQuizEditor
+                                    key={`quiz-${activeItem.id}-${isEditMode}-${hasFetchedData}`}
+                                    initialQuestions={
+                                        // For published quizzes, use fetched data
+                                        activeItem.status === 'published' ?
+                                            (localQuestions.length > 0 ? localQuestions : (activeItem?.questions || [])) :
+                                            // For draft quizzes, always start with either the local state or empty
+                                            (activeItem.status === 'draft' ? (localQuestions || []) : (activeItem?.questions || []))
+                                    }
+                                    onChange={(questions) => {
+                                        // Update both local state and activeItem
+                                        setLocalQuestions(questions);
+                                        if (activeItem) {
+                                            activeItem.questions = questions;
+                                        }
+                                        onQuizContentChange(questions);
+                                    }}
+                                    isPreviewMode={quizPreviewMode}
+                                    readOnly={activeItem.status === 'published' && !isEditMode}
+                                    showPublishConfirmation={showPublishConfirmation}
+                                    onPublishConfirm={onPublishConfirm}
+                                    onPublishCancel={onPublishCancel}
+                                />
+                            )
+                        ) : null}
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

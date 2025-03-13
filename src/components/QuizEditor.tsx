@@ -34,6 +34,9 @@ interface QuizEditorProps {
     className?: string;
     isPreviewMode?: boolean;
     readOnly?: boolean;
+    showPublishConfirmation?: boolean;
+    onPublishConfirm?: () => void;
+    onPublishCancel?: () => void;
 }
 
 // Default configuration for new questions
@@ -50,6 +53,9 @@ export default function QuizEditor({
     className = "",
     isPreviewMode = false,
     readOnly = false,
+    showPublishConfirmation = false,
+    onPublishConfirm,
+    onPublishCancel,
 }: QuizEditorProps) {
     // Initialize questions state
     const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
@@ -268,6 +274,47 @@ export default function QuizEditor({
                             >
                                 <Trash2 size={16} className="mr-2" />
                                 Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Publish Confirmation Dialog */}
+            {showPublishConfirmation && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    onClick={(e) => {
+                        e.stopPropagation(); // Prevent closing the parent dialog
+                        onPublishCancel?.(); // Only cancel the publish confirmation
+                    }}
+                >
+                    <div
+                        className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl border border-gray-800"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-6">
+                            <h2 className="text-xl font-light text-white mb-4">Ready to publish?</h2>
+                            <p className="text-gray-300">After publishing, you won't be able to add or remove questions, but you can still edit existing ones</p>
+                        </div>
+                        <div className="flex justify-end gap-4 p-6 border-t border-gray-800">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent event bubbling
+                                    onPublishCancel?.();
+                                }}
+                                className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent event bubbling
+                                    onPublishConfirm?.();
+                                }}
+                                className="px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-full hover:bg-green-700 transition-colors focus:outline-none cursor-pointer"
+                            >
+                                Publish Now
                             </button>
                         </div>
                     </div>

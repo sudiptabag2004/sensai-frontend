@@ -405,8 +405,17 @@ export default function LearningMaterialEditor({
 
             {/* Publish Confirmation Dialog */}
             {showPublishConfirmation && (
-                <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl border border-gray-800">
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    onClick={(e) => {
+                        e.stopPropagation(); // Prevent closing the parent dialog
+                        handleCancelPublish(); // Only cancel the publish confirmation
+                    }}
+                >
+                    <div
+                        className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl border border-gray-800"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="p-6">
                             <h2 className="text-xl font-light text-white mb-4">Ready to publish?</h2>
                             <p className="text-gray-300">Make sure your content is complete and reviewed for errors before publishing</p>
@@ -416,14 +425,20 @@ export default function LearningMaterialEditor({
                         </div>
                         <div className="flex justify-end gap-4 p-6 border-t border-gray-800">
                             <button
-                                onClick={handleCancelPublish}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent event bubbling
+                                    handleCancelPublish();
+                                }}
                                 className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
                                 disabled={isPublishing}
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={handleConfirmPublish}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent event bubbling
+                                    handleConfirmPublish();
+                                }}
                                 className={`px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-full hover:bg-green-700 transition-colors focus:outline-none cursor-pointer ${isPublishing ? 'opacity-70' : ''}`}
                                 disabled={isPublishing}
                             >
