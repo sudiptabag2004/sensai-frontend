@@ -1,3 +1,5 @@
+"use client";
+
 import { useRef, useEffect, useState } from "react";
 import { Sparkles, Check, X, Pencil, Eye, Edit2 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -11,16 +13,40 @@ interface TaskData {
     status: string;
 }
 
+// Define the API response question interface
+interface APIQuestionResponse {
+    id: number;
+    blocks: any[];
+    answer?: string;
+    type: string;
+    input_type: string;
+    response_type: string;
+}
+
 // Dynamically import the editor components
 const DynamicLearningMaterialEditor = dynamic(
     () => import("./LearningMaterialEditor"),
-    { ssr: false }
+    {
+        ssr: false,
+        loading: () => (
+            <div className="flex items-center justify-center h-full w-full">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+            </div>
+        )
+    }
 );
 
 // Dynamically import the QuizEditor component
 const DynamicQuizEditor = dynamic(
     () => import("./QuizEditor"),
-    { ssr: false }
+    {
+        ssr: false,
+        loading: () => (
+            <div className="flex items-center justify-center h-full w-full">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+            </div>
+        )
+    }
 );
 
 // Define props interface for the component
@@ -71,9 +97,94 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     // State to track preview mode for quizzes
     const [quizPreviewMode, setQuizPreviewMode] = useState(false);
 
+    // State to track loading state for task details
+    const [isLoadingTaskDetails, setIsLoadingTaskDetails] = useState(false);
+
+    // Local state to store fetched questions
+    const [localQuestions, setLocalQuestions] = useState<QuizQuestion[]>([]);
+
+    // Track if we've already fetched the data to prevent infinite loops
+    const [hasFetchedData, setHasFetchedData] = useState(false);
+
+    // Fetch task details for published quizzes
+    useEffect(() => {
+        const fetchTaskDetails = async () => {
+            // Only fetch if we haven't already and the item is a published quiz/exam
+            if (isOpen &&
+                activeItem &&
+                (activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+                activeItem.status === 'published' &&
+                activeItem.id &&
+                !hasFetchedData) {
+
+                setIsLoadingTaskDetails(true);
+
+                try {
+                    const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}`);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch task details');
+                    }
+
+                    const data = await response.json();
+
+                    // Update the questions with the fetched data
+                    if (data && data.questions && data.questions.length > 0) {
+                        const updatedQuestions = data.questions.map((question: APIQuestionResponse) => ({
+                            id: String(question.id),
+                            content: question.blocks || [],
+                            config: {
+                                inputType: question.input_type || 'text',
+                                responseStyle: question.response_type === 'chat' ? 'coach' : 'evaluator',
+                                evaluationCriteria: [],
+                                correctAnswer: question.answer || ''
+                            }
+                        }));
+
+                        // Update local state instead of modifying activeItem directly
+                        setLocalQuestions(updatedQuestions);
+
+                        // Only update the activeItem once
+                        activeItem.questions = updatedQuestions;
+
+                        // Notify parent component about the update
+                        if (onQuizContentChange) {
+                            onQuizContentChange(updatedQuestions);
+                        }
+
+                        // Mark that we've fetched the data
+                        setHasFetchedData(true);
+                    }
+                } catch (error) {
+                    console.error('Error fetching task details:', error);
+                } finally {
+                    setIsLoadingTaskDetails(false);
+                }
+            }
+        };
+
+        fetchTaskDetails();
+    }, [isOpen, activeItem?.id, activeItem?.type, activeItem?.status, hasFetchedData, onQuizContentChange]);
+
+    // Reset state when dialog closes
+    useEffect(() => {
+        if (!isOpen) {
+            setHasFetchedData(false);
+            setLocalQuestions([]);
+        }
+    }, [isOpen]);
+
+    // Reset questions for draft quizzes/exams when dialog opens
+    useEffect(() => {
+        if (isOpen && activeItem && (activeItem.type === 'quiz' || activeItem.type === 'exam') && activeItem.status === 'draft') {
+            // Clear questions from activeItem
+            activeItem.questions = [];
+            setLocalQuestions([]);
+        }
+    }, [isOpen, activeItem]);
+
     // Check if the quiz has questions
     const hasQuizQuestions = activeItem?.type === 'quiz' || activeItem?.type === 'exam'
-        ? (activeItem?.questions && activeItem.questions.length > 0)
+        ? (localQuestions.length > 0 || (activeItem?.questions && activeItem.questions.length > 0))
         : true; // Always true for non-quiz items
 
     // Handle backdrop click to close dialog
@@ -243,7 +354,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                         ) : activeItem?.status === 'published' && !isEditMode && (
                             <button
                                 onClick={onEnableEditMode}
-                                className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-blue-500 hover:bg-[#222222] focus:border-blue-500 active:border-blue-500 rounded-full transition-colors cursor-pointer"
+                                className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-violet-600 hover:bg-[#222222] focus:border-violet-600 active:border-violet-600 rounded-full transition-colors cursor-pointer"
                                 aria-label="Edit item"
                             >
                                 <Pencil size={16} className="mr-2" />
@@ -269,6 +380,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                 >
                     {activeItem?.type === 'material' ? (
                         <DynamicLearningMaterialEditor
+                            key={`material-${activeItem.id}-${isEditMode}`}
                             readOnly={activeItem.status === 'published' && !isEditMode}
                             showPublishConfirmation={showPublishConfirmation}
                             onPublishConfirm={onPublishConfirm}
@@ -315,17 +427,26 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                             }}
                         />
                     ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (
-                        <DynamicQuizEditor
-                            initialQuestions={activeItem.status === 'draft' ? [] : (activeItem?.questions || [])}
-                            onChange={(questions) => {
-                                // Update the activeItem with the new questions
-                                if (activeItem) {
-                                    activeItem.questions = questions;
-                                }
-                                onQuizContentChange(questions);
-                            }}
-                            isPreviewMode={quizPreviewMode}
-                        />
+                        isLoadingTaskDetails ? (
+                            <div className="flex items-center justify-center h-full w-full">
+                                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                            </div>
+                        ) : (
+                            <DynamicQuizEditor
+                                key={`quiz-${activeItem.id}-${isEditMode}-${hasFetchedData}`}
+                                initialQuestions={localQuestions.length > 0 ? localQuestions : (activeItem?.questions || [])}
+                                onChange={(questions) => {
+                                    // Update both local state and activeItem
+                                    setLocalQuestions(questions);
+                                    if (activeItem) {
+                                        activeItem.questions = questions;
+                                    }
+                                    onQuizContentChange(questions);
+                                }}
+                                isPreviewMode={quizPreviewMode}
+                                readOnly={activeItem.status === 'published' && !isEditMode}
+                            />
+                        )
                     ) : null}
                 </div>
             </div>

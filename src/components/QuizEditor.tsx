@@ -279,7 +279,7 @@ export default function QuizEditor({
                 <div className="flex justify-between items-center mb-4 px-2 py-3">
                     {/* Left: Add Question Button */}
                     <div className="flex-1">
-                        <button
+                        {!readOnly && <button
                             onClick={addQuestion}
                             className="flex items-center px-4 py-2 text-sm text-black bg-white hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
                             disabled={readOnly}
@@ -289,7 +289,7 @@ export default function QuizEditor({
                                 <Plus size={12} className="text-black" />
                             </div>
                             Add Question
-                        </button>
+                        </button>}
                     </div>
 
                     {/* Middle: Navigation Controls */}
@@ -317,7 +317,7 @@ export default function QuizEditor({
                         </button>
                     </div>
 
-                    {/* Right: Delete Button */}
+                    {/* Right: Delete Button - Hide for published quizzes (readOnly mode) */}
                     <div className="flex-1 flex justify-end">
                         {!readOnly && (
                             <button

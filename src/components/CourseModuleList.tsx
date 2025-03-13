@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ChevronUp, ChevronDown, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Clipboard } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Clipboard, Check } from "lucide-react";
 import { Module, ModuleItem } from "@/types/course";
 import { QuizQuestion } from "@/components/QuizEditor"; // Import needed types directly
 import CourseItemDialog from "@/components/CourseItemDialog";
@@ -475,11 +475,9 @@ export default function CourseModuleList({
                                                             }`}
                                                         aria-label={completedItems[item.id] ? "Mark as incomplete" : "Mark as completed"}
                                                     >
-                                                        {completedItems[item.id] && (
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                                                                <polyline points="20 6 9 17 4 12"></polyline>
-                                                            </svg>
-                                                        )}
+                                                        {completedItems[item.id] ? (
+                                                            <Check size={12} className="text-white" />
+                                                        ) : null}
                                                     </button>
                                                 </div>
                                             )}
