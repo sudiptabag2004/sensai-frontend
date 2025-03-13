@@ -91,9 +91,6 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     onQuizContentChange,
     focusEditor,
 }) => {
-    // Bail early if dialog isn't open or there's no active item
-    if (!isOpen || !activeItem) return null;
-
     // State to track preview mode for quizzes
     const [quizPreviewMode, setQuizPreviewMode] = useState(false);
 
@@ -105,6 +102,31 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
 
     // Track if we've already fetched the data to prevent infinite loops
     const [hasFetchedData, setHasFetchedData] = useState(false);
+
+    // Reset questions for draft quizzes/exams immediately when dialog opens
+    // This useEffect runs before all others with the highest priority
+    useEffect(() => {
+        if (isOpen && activeItem &&
+            (activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+            activeItem.status === 'draft') {
+
+            console.log('Resetting draft quiz questions');
+
+            // Clear questions from activeItem - this must happen before any render
+            if (activeItem) {
+                // Make sure to set to an empty array, not undefined or null
+                activeItem.questions = [];
+            }
+
+            // Also reset local state
+            setLocalQuestions([]);
+
+            // Update parent component via callback
+            if (onQuizContentChange) {
+                onQuizContentChange([]);
+            }
+        }
+    }, [isOpen]); // Only depend on isOpen to ensure this runs whenever dialog opens
 
     // Fetch task details for published quizzes
     useEffect(() => {
@@ -144,7 +166,9 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                         setLocalQuestions(updatedQuestions);
 
                         // Only update the activeItem once
-                        activeItem.questions = updatedQuestions;
+                        if (activeItem) {
+                            activeItem.questions = updatedQuestions;
+                        }
 
                         // Notify parent component about the update
                         if (onQuizContentChange) {
@@ -173,14 +197,8 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
         }
     }, [isOpen]);
 
-    // Reset questions for draft quizzes/exams when dialog opens
-    useEffect(() => {
-        if (isOpen && activeItem && (activeItem.type === 'quiz' || activeItem.type === 'exam') && activeItem.status === 'draft') {
-            // Clear questions from activeItem
-            activeItem.questions = [];
-            setLocalQuestions([]);
-        }
-    }, [isOpen, activeItem]);
+    // Bail early if dialog isn't open or there's no active item
+    if (!isOpen || !activeItem) return null;
 
     // Check if the quiz has questions
     const hasQuizQuestions = activeItem?.type === 'quiz' || activeItem?.type === 'exam'
@@ -433,8 +451,14 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                             </div>
                         ) : (
                             <DynamicQuizEditor
-                                key={`quiz-${activeItem.id}-${isEditMode}-${hasFetchedData}`}
-                                initialQuestions={localQuestions.length > 0 ? localQuestions : (activeItem?.questions || [])}
+                                key={`quiz-${activeItem.id}-${isEditMode}-${hasFetchedData}-${activeItem.status === 'draft' ? Date.now() : ''}`}
+                                initialQuestions={
+                                    // For published quizzes, use fetched data
+                                    activeItem.status === 'published' ?
+                                        (localQuestions.length > 0 ? localQuestions : (activeItem?.questions || [])) :
+                                        // For draft quizzes, always start with either the local state or empty
+                                        (activeItem.status === 'draft' ? (localQuestions || []) : (activeItem?.questions || []))
+                                }
                                 onChange={(questions) => {
                                     // Update both local state and activeItem
                                     setLocalQuestions(questions);

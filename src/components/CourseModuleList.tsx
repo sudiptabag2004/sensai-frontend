@@ -124,6 +124,9 @@ export default function CourseModuleList({
     // Track completed items
     const [completedItems, setCompletedItems] = useState<Record<string, boolean>>({});
 
+    // State to track deletion in progress
+    const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+
     // Function to toggle item completion
     const toggleItemCompletion = (itemId: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -208,6 +211,36 @@ export default function CourseModuleList({
                 ...prev,
                 [moduleId]: !prev[moduleId]
             }));
+        }
+    };
+
+    // Function to handle task deletion with API call
+    const handleDeleteTask = async (moduleId: string, itemId: string) => {
+        try {
+            setDeletingTaskId(itemId);
+
+            // Make the API call to delete the task
+            const response = await fetch(`http://localhost:8001/tasks/${itemId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to delete task: ${response.statusText}`);
+            }
+
+            // If the API call was successful, update the UI
+            if (onDeleteItem) {
+                onDeleteItem(moduleId, itemId);
+            }
+
+        } catch (error) {
+            console.error('Error deleting task:', error);
+            // You could add a toast notification here for the error
+        } finally {
+            setDeletingTaskId(null);
         }
     };
 
@@ -453,13 +486,18 @@ export default function CourseModuleList({
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if (onDeleteItem) {
-                                                                onDeleteItem(module.id, item.id);
+                                                                handleDeleteTask(module.id, item.id);
                                                             }
                                                         }}
                                                         className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
                                                         aria-label="Delete item"
+                                                        disabled={deletingTaskId === item.id}
                                                     >
-                                                        <Trash size={16} />
+                                                        {deletingTaskId === item.id ? (
+                                                            <div className="animate-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                                                        ) : (
+                                                            <Trash size={16} />
+                                                        )}
                                                     </button>
                                                 </div>
                                             )}
