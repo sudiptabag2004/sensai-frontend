@@ -316,7 +316,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                         />
                     ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (
                         <DynamicQuizEditor
-                            initialQuestions={(activeItem)?.questions || []}
+                            initialQuestions={activeItem.status === 'draft' ? [] : (activeItem?.questions || [])}
                             onChange={(questions) => {
                                 // Update the activeItem with the new questions
                                 if (activeItem) {

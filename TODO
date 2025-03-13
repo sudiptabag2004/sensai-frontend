@@ -28,7 +28,9 @@ ordering tasks
 delete tasks with confirmation
 ordering modules
 delete modules with confirmation
+
 adding quiz
+- questions not deletable after publish
 
 
 ordering milestones
