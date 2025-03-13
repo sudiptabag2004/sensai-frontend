@@ -4,7 +4,7 @@ import "@blocknote/core/fonts/inter.css";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 
 // Add custom styles for dark mode
@@ -16,6 +16,7 @@ interface BlockNoteEditorProps {
     isDarkMode?: boolean;
     className?: string;
     readOnly?: boolean;
+    onEditorReady?: (editor: any) => void;
 }
 
 // Uploads a file and returns the URL to the uploaded file
@@ -46,8 +47,15 @@ export default function BlockNoteEditor({
     isDarkMode = true, // Default to dark mode
     className = "",
     readOnly = false,
+    onEditorReady,
 }: BlockNoteEditorProps) {
     const editorContainerRef = useRef<HTMLDivElement>(null);
+    // Track if we're currently updating the editor content
+    const isUpdatingContent = useRef(false);
+    // Store the last content to avoid unnecessary updates
+    const lastContent = useRef<any[]>([]);
+    // Store the editor instance in a ref
+    const editorRef = useRef<any>(null);
 
     // Remove the advanced blocks from the schema
     // Extract only the blocks we don't want
@@ -65,20 +73,57 @@ export default function BlockNoteEditor({
         schema, // Use our custom schema with limited blocks
     });
 
-    // Handle content changes
+    // Store the editor instance in a ref for later use
     useEffect(() => {
-        if (onChange) {
+        if (editor) {
+            editorRef.current = editor;
+        }
+    }, [editor]);
+
+    // Provide the editor instance to the parent component if onEditorReady is provided
+    useEffect(() => {
+        if (onEditorReady && editor) {
+            onEditorReady(editor);
+        }
+    }, [editor, onEditorReady]);
+
+    // Update editor content when initialContent changes
+    useEffect(() => {
+        if (editor && initialContent && initialContent.length > 0) {
+            // Set flag to prevent triggering onChange during programmatic update
+            isUpdatingContent.current = true;
+
+            try {
+                // Only replace blocks if the content has actually changed
+                const currentContentStr = JSON.stringify(editor.document);
+                const newContentStr = JSON.stringify(initialContent);
+
+                if (currentContentStr !== newContentStr) {
+                    editor.replaceBlocks(editor.document, initialContent);
+                    lastContent.current = initialContent;
+                }
+            } catch (error) {
+                console.error("Error updating editor content:", error);
+            } finally {
+                // Reset flag after update
+                isUpdatingContent.current = false;
+            }
+        }
+    }, [editor, initialContent]);
+
+    // Handle content changes with debouncing to avoid rapid state updates
+    useEffect(() => {
+        if (onChange && editor) {
             const handleChange = () => {
-                onChange(editor.document);
+                // Prevent handling changes if we're currently updating content
+                if (isUpdatingContent.current) return;
+
+                const currentContent = editor.document;
+                onChange(currentContent);
             };
 
             // Add change listener
             editor.onEditorContentChange(handleChange);
-
-            // Return cleanup function
-            return () => {
-                // We can't remove the listener directly
-            };
         }
     }, [editor, onChange]);
 
@@ -114,20 +159,6 @@ export default function BlockNoteEditor({
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
-
-    // Update editor content when initialContent changes
-    useEffect(() => {
-        if (editor && initialContent && initialContent.length > 0) {
-            // Optionally use setTimeout to delay update until editor is fully ready
-            setTimeout(() => {
-                try {
-                    editor.replaceBlocks(editor.document, initialContent);
-                } catch (error) {
-                    console.error("Error updating editor content:", error);
-                }
-            }, 0);
-        }
-    }, [editor, initialContent]);
 
     return (
         <div

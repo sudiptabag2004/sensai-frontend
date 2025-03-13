@@ -3,7 +3,7 @@
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap } from "lucide-react";
 
 // Add custom styles for dark mode
@@ -63,25 +63,66 @@ export default function QuizEditor({
     // State for delete confirmation
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    // Handle content change for the current question
-    const handleQuestionContentChange = (content: any[]) => {
+    // Reference to the current BlockNote editor instance
+    const editorRef = useRef<any>(null);
+
+    // Use ref to track the last edit to prevent unnecessary updates
+    const lastContentUpdateRef = useRef<string>("");
+
+    // Function to set the editor reference
+    const setEditorInstance = useCallback((editor: any) => {
+        editorRef.current = editor;
+    }, []);
+
+    // Function to open the slash menu
+    const openSlashMenu = useCallback(() => {
+        if (editorRef.current && !isPreviewMode && !readOnly) {
+            // Use setTimeout to ensure the editor is fully initialized
+            setTimeout(() => {
+                try {
+                    editorRef.current.openSuggestionMenu("/");
+                } catch (error) {
+                    console.error("Failed to open suggestion menu:", error);
+                }
+            }, 100);
+        }
+    }, [isPreviewMode, readOnly]);
+
+    // Memoize the current question content and config to prevent unnecessary re-renders
+    const currentQuestion = useMemo(() =>
+        questions[currentQuestionIndex] || { content: [], config: defaultQuestionConfig },
+        [questions, currentQuestionIndex]);
+
+    const currentQuestionContent = useMemo(() =>
+        currentQuestion.content || [],
+        [currentQuestion]);
+
+    const currentQuestionConfig = useMemo(() =>
+        currentQuestion.config || defaultQuestionConfig,
+        [currentQuestion]);
+
+    // Handle content change for the current question - use useCallback to memoize
+    const handleQuestionContentChange = useCallback((content: any[]) => {
         if (questions.length === 0) return;
 
+        // Simply update the content without all the complexity
         const updatedQuestions = [...questions];
         updatedQuestions[currentQuestionIndex] = {
             ...updatedQuestions[currentQuestionIndex],
             content
         };
 
+        // Update state
         setQuestions(updatedQuestions);
 
+        // Call onChange callback if provided
         if (onChange) {
             onChange(updatedQuestions);
         }
-    };
+    }, [questions, currentQuestionIndex, onChange]);
 
     // Handle configuration change for the current question
-    const handleConfigChange = (configUpdate: Partial<QuizQuestionConfig>) => {
+    const handleConfigChange = useCallback((configUpdate: Partial<QuizQuestionConfig>) => {
         if (questions.length === 0) return;
 
         const updatedQuestions = [...questions];
@@ -98,10 +139,10 @@ export default function QuizEditor({
         if (onChange) {
             onChange(updatedQuestions);
         }
-    };
+    }, [questions, currentQuestionIndex, onChange]);
 
     // Add a new question
-    const addQuestion = () => {
+    const addQuestion = useCallback(() => {
         const newQuestion = {
             id: `question-${Date.now()}`,
             content: [],
@@ -111,6 +152,9 @@ export default function QuizEditor({
         const updatedQuestions = [...questions, newQuestion];
         setQuestions(updatedQuestions);
         setCurrentQuestionIndex(updatedQuestions.length - 1);
+
+        // Reset last content update ref
+        lastContentUpdateRef.current = "";
 
         // Trigger animation
         setNewQuestionAdded(true);
@@ -123,24 +167,31 @@ export default function QuizEditor({
         if (onChange) {
             onChange(updatedQuestions);
         }
-    };
+
+        // Open slash menu after adding a new question with a slightly longer delay
+        setTimeout(openSlashMenu, 300);
+    }, [questions, onChange, openSlashMenu]);
 
     // Navigate to previous question
-    const goToPreviousQuestion = () => {
+    const goToPreviousQuestion = useCallback(() => {
         if (currentQuestionIndex > 0) {
+            // Reset last content update ref when navigating to a different question
+            lastContentUpdateRef.current = "";
             setCurrentQuestionIndex(currentQuestionIndex - 1);
         }
-    };
+    }, [currentQuestionIndex]);
 
     // Navigate to next question
-    const goToNextQuestion = () => {
+    const goToNextQuestion = useCallback(() => {
         if (currentQuestionIndex < questions.length - 1) {
+            // Reset last content update ref when navigating to a different question
+            lastContentUpdateRef.current = "";
             setCurrentQuestionIndex(currentQuestionIndex + 1);
         }
-    };
+    }, [currentQuestionIndex, questions.length]);
 
     // Delete current question
-    const deleteQuestion = () => {
+    const deleteQuestion = useCallback(() => {
         if (questions.length <= 1) {
             // If only one question, just clear the questions array
             setQuestions([]);
@@ -168,11 +219,46 @@ export default function QuizEditor({
 
         // Hide confirmation dialog
         setShowDeleteConfirm(false);
-    };
 
-    // Get the current question's content and config
-    const currentQuestionContent = questions[currentQuestionIndex]?.content || [];
-    const currentQuestionConfig = questions[currentQuestionIndex]?.config || defaultQuestionConfig;
+        // Reset last content update ref when deleting a question
+        lastContentUpdateRef.current = "";
+    }, [questions, currentQuestionIndex, onChange]);
+
+    // Effect to initialize lastContentUpdateRef when changing questions
+    useEffect(() => {
+        if (questions.length > 0) {
+            lastContentUpdateRef.current = JSON.stringify(currentQuestionContent);
+        }
+    }, [currentQuestionIndex, questions.length, currentQuestionContent]);
+
+    // Effect to open slash menu when navigating to an empty question
+    useEffect(() => {
+        if (
+            questions.length > 0 &&
+            (!currentQuestionContent || currentQuestionContent.length === 0 ||
+                (currentQuestionContent.length === 1 && (!currentQuestionContent[0].content || currentQuestionContent[0].content.length === 0))) &&
+            !isPreviewMode &&
+            !readOnly &&
+            editorRef.current
+        ) {
+            openSlashMenu();
+        }
+    }, [currentQuestionIndex, questions, currentQuestionContent, isPreviewMode, readOnly, openSlashMenu]);
+
+    // Effect to open slash menu on initial load if the current question is empty
+    useEffect(() => {
+        if (
+            questions.length > 0 &&
+            (!currentQuestionContent || currentQuestionContent.length === 0 ||
+                (currentQuestionContent.length === 1 && (!currentQuestionContent[0].content || currentQuestionContent[0].content.length === 0))) &&
+            !isPreviewMode &&
+            !readOnly
+        ) {
+            // Use a timeout to ensure the editor is fully initialized
+            const timer = setTimeout(openSlashMenu, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [questions.length, currentQuestionContent, isPreviewMode, readOnly, openSlashMenu]);
 
     // Placeholder component for empty quiz
     const EmptyQuizPlaceholder = () => (
@@ -375,12 +461,16 @@ export default function QuizEditor({
                         ) : (
                             <div className="w-full">
                                 <div className="editor-container h-full">
+                                    {/* Critical change: Use a stable key that never changes
+                                        to ensure the editor instance remains stable */}
                                     <BlockNoteEditor
-                                        key={`question-editor-${currentQuestionIndex}`}
+                                        key="quiz-editor-stable"
                                         initialContent={currentQuestionContent}
                                         onChange={handleQuestionContentChange}
                                         isDarkMode={isDarkMode}
                                         readOnly={readOnly}
+                                        onEditorReady={setEditorInstance}
+                                        className="quiz-editor"
                                     />
                                 </div>
                             </div>

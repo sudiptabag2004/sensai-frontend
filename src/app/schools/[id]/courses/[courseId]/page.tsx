@@ -1795,8 +1795,8 @@ export default function CreateCourse() {
 
                     {/* Display cohorts assigned to this course */}
                     {!isLoadingCourseCohorts && courseCohorts.length > 0 && (
-                        <div>
-                            <h2 className="text-sm font-light text-gray-600 dark:text-gray-400 mb-3">Cohorts</h2>
+                        <div className="mt-10">
+                            <h2 className="text-sm font-light text-gray-600 dark:text-gray-400 mb-3 ">Cohorts</h2>
                             <div className="flex flex-wrap gap-3">
                                 {courseCohorts.map((cohort: { id: number; name: string }) => (
                                     <div

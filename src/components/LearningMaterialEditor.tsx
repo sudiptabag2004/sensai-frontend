@@ -77,8 +77,30 @@ export default function LearningMaterialEditor({
     const [isLoading, setIsLoading] = useState(false);
     const [editorContent, setEditorContent] = useState<any[]>([]);
 
+    // Reference to the editor instance
+    const editorRef = useRef<any>(null);
+
     // Add a ref to store the original data for reverting on cancel
     const originalDataRef = useRef<TaskData | null>(null);
+
+    // Function to set the editor reference
+    const setEditorInstance = (editor: any) => {
+        editorRef.current = editor;
+    };
+
+    // Function to open the slash menu
+    const openSlashMenu = () => {
+        if (editorRef.current && !readOnly) {
+            // Use setTimeout to ensure the editor is fully initialized
+            setTimeout(() => {
+                try {
+                    editorRef.current.openSuggestionMenu("/");
+                } catch (error) {
+                    console.error("Failed to open suggestion menu:", error);
+                }
+            }, 100);
+        }
+    };
 
     // Remove the advanced blocks from the schema
     // Extract only the blocks we don't want
@@ -98,9 +120,12 @@ export default function LearningMaterialEditor({
 
     // Handle content changes from the editor
     const handleEditorChange = (content: any[]) => {
-        setEditorContent(content);
-        if (onChange && !isPublishing) {
-            onChange(content);
+        // Avoid unnecessary state updates if content hasn't changed
+        if (JSON.stringify(content) !== JSON.stringify(editorContent)) {
+            setEditorContent(content);
+            if (onChange && !isPublishing) {
+                onChange(content);
+            }
         }
     };
 
@@ -357,6 +382,21 @@ export default function LearningMaterialEditor({
         }
     }, [taskData?.blocks, onChange]);
 
+    // Effect to open slash menu on initial load if content is empty
+    useEffect(() => {
+        if (
+            (!taskData?.blocks || taskData.blocks.length === 0 ||
+                (taskData.blocks.length === 1 && (!taskData.blocks[0].content || taskData.blocks[0].content.length === 0))) &&
+            !readOnly &&
+            !isLoading &&
+            editorRef.current
+        ) {
+            // Use a timeout to ensure the editor is fully initialized
+            const timer = setTimeout(openSlashMenu, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [taskData, readOnly, isLoading]);
+
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center">
@@ -376,6 +416,7 @@ export default function LearningMaterialEditor({
                 isDarkMode={isDarkMode}
                 readOnly={readOnly}
                 className="dark-editor"
+                onEditorReady={setEditorInstance}
             />
 
             {/* Add refs for the save and cancel functions to be called externally */}
