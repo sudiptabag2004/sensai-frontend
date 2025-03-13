@@ -289,56 +289,78 @@ export default function QuizEditor({
             {/* Content area with animation when a new question is added */}
             <div className={`flex flex-1 gap-4 ${newQuestionAdded ? 'animate-new-question' : ''}`}>
                 {isPreviewMode ? (
-                    <div className="preview-mode flex-grow overflow-auto p-6">
-                        <div className="max-w-3xl mx-auto bg-[#2A2A2A] p-6 rounded-lg shadow-lg">
-                            <div className="mb-6 flex items-center justify-start">
-                                <div className="question-number-circle bg-[#3A3A3A] text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
-                                    {currentQuestionIndex + 1}
-                                </div>
-                                <h2 className="text-xl font-medium text-white ml-3">Question {currentQuestionIndex + 1}</h2>
-                            </div>
-                            <div className="question-content mb-6">
-                                {/* Custom content display for preview mode */}
-                                <div className="preview-content">
-                                    {/* Simple content display for now */}
-                                    {currentQuestionContent.length > 0 ? (
-                                        <div className="text-white">
-                                            {/* Placeholder for content display */}
-                                            <p>Question content would be displayed here</p>
+                    <div className="w-full h-full">
+                        <div className="flex h-full bg-[#111111] rounded-md overflow-hidden">
+                            {/* Left side - Question */}
+                            <div className="w-1/2 p-8 border-r border-[#222222] flex flex-col bg-[#1A1A1A]">
+                                {/* Navigation controls at the top of left side - only show if more than one question */}
+                                {questions.length > 1 && (
+                                    <div className="flex items-center justify-between w-full mb-6">
+                                        <div className="w-10 h-10">
+                                            {currentQuestionIndex > 0 && (
+                                                <button
+                                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[#222222] text-white hover:bg-[#333333] cursor-pointer"
+                                                    onClick={goToPreviousQuestion}
+                                                >
+                                                    <ChevronLeft size={18} />
+                                                </button>
+                                            )}
                                         </div>
-                                    ) : (
-                                        <div className="text-gray-400 italic">
-                                            <p>No content added to this question yet.</p>
+
+                                        <div className="bg-[#222222] px-3 py-1 rounded-full text-white text-sm">
+                                            {currentQuestionIndex + 1}/{questions.length}
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="response-area">
-                                <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-2">Your Response</h3>
-                                {/* Placeholder for response input field */}
-                                {currentQuestionConfig.inputType === 'text' && (
-                                    <div className="bg-[#1E1E1E] border border-[#3A3A3A] p-4 rounded-md min-h-[150px] text-white">
-                                        <p className="text-gray-500 italic">Enter your answer here...</p>
-                                    </div>
-                                )}
-                                {currentQuestionConfig.inputType === 'code' && (
-                                    <div className="bg-[#1E1E1E] border border-[#3A3A3A] p-4 rounded-md min-h-[150px] font-mono text-white">
-                                        <p className="text-gray-500 italic">// Write your code here...</p>
-                                    </div>
-                                )}
-                                {currentQuestionConfig.inputType === 'audio' && (
-                                    <div className="bg-[#1E1E1E] border border-[#3A3A3A] p-4 rounded-md flex items-center justify-center h-[100px] text-white">
-                                        <div className="flex flex-col items-center">
-                                            <AudioLines size={24} className="text-gray-400 mb-2" />
-                                            <p className="text-gray-500 italic">Click to record audio response</p>
+
+                                        <div className="w-10 h-10">
+                                            {currentQuestionIndex < questions.length - 1 && (
+                                                <button
+                                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[#222222] text-white hover:bg-[#333333] cursor-pointer"
+                                                    onClick={goToNextQuestion}
+                                                >
+                                                    <ChevronRight size={18} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 )}
 
-                                <div className="flex justify-end mt-4">
-                                    <button className="bg-[#016037] text-white font-medium py-2 px-4 rounded-md flex items-center">
-                                        <Zap size={16} className="mr-2" />
-                                        Submit Answer
+                                <div className={`flex-1 ${questions.length > 1 ? 'mt-4' : 'mt-6'}`}>
+                                    {/* Use editor with negative margin to offset unwanted space */}
+                                    <div className="ml-[-60px]"> {/* Increased negative margin to align with navigation arrow */}
+                                        <BlockNoteEditor
+                                            key={`question-preview-${currentQuestionIndex}`}
+                                            initialContent={currentQuestionContent}
+                                            onChange={() => { }} // Read-only in preview mode
+                                            isDarkMode={true}
+                                            readOnly={true}
+                                            className="!bg-transparent"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right side - Answer */}
+                            <div className="w-1/2 p-8 flex flex-col">
+                                <div className="flex-1 flex flex-col justify-center items-center text-center mb-8">
+                                    <div className="w-16 h-16 mb-4 text-gray-400">
+                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                                            <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-gray-400 text-lg">Type your answer to begin the conversation</p>
+                                </div>
+
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Type your answer here..."
+                                        className="w-full bg-[#1A1A1A] border border-[#333333] rounded-md p-4 pr-12 text-white focus:outline-none focus:border-blue-500"
+                                    />
+                                    <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
                                     </button>
                                 </div>
                             </div>
