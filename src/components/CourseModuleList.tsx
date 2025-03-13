@@ -61,6 +61,8 @@ interface CourseModuleListProps {
     onDeleteModule?: (moduleId: string) => void;
     onEditModuleTitle?: (moduleId: string) => void;
     expandedModules?: Record<string, boolean>; // For learner view
+    saveModuleTitle?: (moduleId: string) => void; // Function to save module title
+    cancelModuleEditing?: (moduleId: string) => void; // Function to cancel module title editing
 
     // Dialog-related props
     isDialogOpen?: boolean;
@@ -96,6 +98,8 @@ export default function CourseModuleList({
     onDeleteModule,
     onEditModuleTitle,
     expandedModules = {},
+    saveModuleTitle = () => { }, // Default empty function
+    cancelModuleEditing = () => { }, // Default empty function
 
     // Dialog-related props
     isDialogOpen = false,
@@ -266,7 +270,7 @@ export default function CourseModuleList({
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    // Handle save module title
+                                                    saveModuleTitle(module.id);
                                                 }}
                                                 className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
                                                 aria-label="Save module title"
@@ -281,7 +285,7 @@ export default function CourseModuleList({
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    // Handle cancel module title edit
+                                                    cancelModuleEditing(module.id);
                                                 }}
                                                 className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
                                                 aria-label="Cancel editing"

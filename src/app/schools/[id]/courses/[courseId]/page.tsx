@@ -1788,6 +1788,8 @@ export default function CreateCourse() {
                             handleDialogTitleChange={handleDialogTitleChange}
                             handleQuizContentChange={handleQuizContentChange}
                             setShowPublishConfirmation={setShowPublishConfirmation}
+                            saveModuleTitle={saveModuleTitle}
+                            cancelModuleEditing={cancelModuleEditing}
                         />
                     </div>
 
@@ -1814,32 +1816,6 @@ export default function CreateCourse() {
                             </div>
                         </div>
                     )}
-                </div>
-            )}
-
-            {/* Show publish confirmation dialog */}
-            {showPublishConfirmation && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                    <div className="bg-[#111] p-6 rounded-lg shadow-xl max-w-md w-full">
-                        <h3 className="text-xl font-light text-white mb-4">Publish this item?</h3>
-                        <p className="text-gray-300 mb-6">
-                            Are you sure you want to publish this item? Published items will be visible to your learners.
-                        </p>
-                        <div className="flex justify-end space-x-3">
-                            <button
-                                className="px-4 py-2 text-sm text-white bg-transparent border border-gray-600 hover:bg-gray-800 rounded-md transition-colors cursor-pointer"
-                                onClick={handleCancelPublish}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors cursor-pointer"
-                                onClick={handleConfirmPublish}
-                            >
-                                Publish
-                            </button>
-                        </div>
-                    </div>
                 </div>
             )}
         </div>

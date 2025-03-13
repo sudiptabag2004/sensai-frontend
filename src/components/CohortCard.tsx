@@ -36,11 +36,6 @@ export default function CohortCard({ cohort, schoolId }: CohortCardProps) {
                         {cohort.description}
                     </p>
                 )}
-                <div className="flex items-center text-sm text-gray-400">
-                    <span>{cohort.courseCount} courses</span>
-                    <span className="mx-2">•</span>
-                    <span>{cohort.memberCount} learners</span>
-                </div>
             </div>
         </Link>
     );

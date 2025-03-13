@@ -68,9 +68,6 @@ export default function CourseCard({ course }: CourseCardProps) {
                         {course.description}
                     </p>
                 )}
-                <div className="text-sm text-gray-400">
-                    {course.moduleCount} modules
-                </div>
             </div>
         </Link>
     );

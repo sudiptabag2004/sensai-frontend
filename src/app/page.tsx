@@ -149,7 +149,7 @@ export default function Home() {
         <Header showCreateCourseButton={hasAnyCourses || (hasSchool ?? false)} />
 
         {/* Main content */}
-        <main className="max-w-5xl mx-auto pt-6 px-8">
+        <main className="max-w-6xl mx-auto pt-6 px-8">
           {/* Loading state */}
           {isLoading && (
             <div className="flex justify-center items-center py-12">
