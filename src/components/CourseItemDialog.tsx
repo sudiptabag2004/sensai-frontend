@@ -288,20 +288,31 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                     const titleElement = e.currentTarget as HTMLElement;
                                     titleElement.dataset.editing = "true";
 
-                                    // Set cursor position at the end of text
-                                    const range = document.createRange();
-                                    const selection = window.getSelection();
-                                    const textNode = titleElement.firstChild || titleElement;
+                                    // Only set cursor at the end on first click (not on double-click)
+                                    // This allows double-click to select text as expected
+                                    if (!titleElement.dataset.clicked) {
+                                        titleElement.dataset.clicked = "true";
 
-                                    if (textNode) {
-                                        const textLength = textNode.textContent?.length || 0;
-                                        range.setStart(textNode, textLength);
-                                        range.setEnd(textNode, textLength);
-                                        selection?.removeAllRanges();
-                                        selection?.addRange(range);
+                                        // Set cursor position at the end of text
+                                        const range = document.createRange();
+                                        const selection = window.getSelection();
+                                        const textNode = titleElement.firstChild || titleElement;
+
+                                        if (textNode) {
+                                            const textLength = textNode.textContent?.length || 0;
+                                            range.setStart(textNode, textLength);
+                                            range.setEnd(textNode, textLength);
+                                            selection?.removeAllRanges();
+                                            selection?.addRange(range);
+                                        }
+
+                                        // Reset the clicked flag after a short delay
+                                        setTimeout(() => {
+                                            titleElement.dataset.clicked = "";
+                                        }, 300);
                                     }
                                 }}
-                                className="text-2xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none cursor-text"
+                                className={`text-2xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none cursor-text ${(activeItem?.status !== 'published' || isEditMode) ? 'w-full min-w-[300px] mr-4' : ''}`}
                                 data-placeholder={activeItem?.type === 'material' ? 'New Learning Material' : activeItem?.type === 'quiz' ? 'New Quiz' : 'New Exam'}
                             >
                                 {activeItem?.title}

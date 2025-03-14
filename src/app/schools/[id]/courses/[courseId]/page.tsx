@@ -1212,20 +1212,32 @@ export default function CreateCourse() {
                         ...module,
                         items: module.items.map(item => {
                             if (item.id === activeItem.id) {
-                                // Create updated item based on type
-                                const updatedItem = {
-                                    ...item,
-                                    title: activeItem.title,
-                                };
-
-                                // Add type-specific properties
-                                if (activeItem.type === 'material') {
-                                    updatedItem.content = activeItem.content;
-                                } else if (activeItem.type === 'quiz' || activeItem.type === 'exam') {
-                                    updatedItem.questions = (activeItem as Quiz | Exam).questions;
+                                // Create updated items based on type with proper type assertions
+                                if (item.type === 'material' && activeItem.type === 'material') {
+                                    return {
+                                        ...item,
+                                        title: activeItem.title,
+                                        content: activeItem.content
+                                    };
+                                } else if (item.type === 'quiz' && activeItem.type === 'quiz') {
+                                    return {
+                                        ...item,
+                                        title: activeItem.title,
+                                        questions: activeItem.questions
+                                    };
+                                } else if (item.type === 'exam' && activeItem.type === 'exam') {
+                                    return {
+                                        ...item,
+                                        title: activeItem.title,
+                                        questions: activeItem.questions
+                                    };
                                 }
 
-                                return updatedItem;
+                                // Default case - just update the title
+                                return {
+                                    ...item,
+                                    title: activeItem.title
+                                };
                             }
                             return item;
                         })
