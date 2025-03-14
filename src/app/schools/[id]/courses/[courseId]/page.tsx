@@ -1204,68 +1204,36 @@ export default function CreateCourse() {
     const saveItem = async () => {
         if (!activeItem || !activeModuleId) return;
 
-        // For learning materials, changes are already handled in the LearningMaterialEditor
-        if (activeItem.type === 'material') {
-            // The title and content updates have already been applied to the activeItem
-            // by the CourseItemDialog's onSaveSuccess callback
+        // Update the modules state to reflect any changes in the UI
+        setModules(prevModules =>
+            prevModules.map(module => {
+                if (module.id === activeModuleId) {
+                    return {
+                        ...module,
+                        items: module.items.map(item => {
+                            if (item.id === activeItem.id) {
+                                // Create updated item based on type
+                                const updatedItem = {
+                                    ...item,
+                                    title: activeItem.title,
+                                };
 
-            // Now we need to update the modules state to reflect the changes in the UI
-            setModules(prevModules =>
-                prevModules.map(module => {
-                    if (module.id === activeModuleId) {
-                        return {
-                            ...module,
-                            items: module.items.map(item => {
-                                if (item.id === activeItem.id) {
-                                    return {
-                                        ...item,
-                                        title: activeItem.title,
-                                        content: activeItem.content
-                                    };
+                                // Add type-specific properties
+                                if (activeItem.type === 'material') {
+                                    updatedItem.content = activeItem.content;
+                                } else if (activeItem.type === 'quiz' || activeItem.type === 'exam') {
+                                    updatedItem.questions = (activeItem as Quiz | Exam).questions;
                                 }
-                                return item;
-                            })
-                        };
-                    }
-                    return module;
-                })
-            );
 
-            // Exit edit mode
-            setIsEditMode(false);
-            return;
-        }
-
-        // For quizzes and exams, save operation is handled by QuizEditor component
-        if (activeItem.type === 'quiz' || activeItem.type === 'exam') {
-            // Update the modules state to reflect any changes in the UI
-            setModules(prevModules =>
-                prevModules.map(module => {
-                    if (module.id === activeModuleId) {
-                        return {
-                            ...module,
-                            items: module.items.map(item => {
-                                if (item.id === activeItem.id) {
-                                    return {
-                                        ...item,
-                                        title: activeItem.title,
-                                        questions: activeItem.type === 'quiz' || activeItem.type === 'exam'
-                                            ? (activeItem as Quiz | Exam).questions
-                                            : []
-                                    };
-                                }
-                                return item;
-                            })
-                        };
-                    }
-                    return module;
-                })
-            );
-
-            // Exit edit mode without making an API call
-            setIsEditMode(false);
-            return;
-        }
+                                return updatedItem;
+                            }
+                            return item;
+                        })
+                    };
+                }
+                return module;
+            })
+        );
 
         // Exit edit mode
         setIsEditMode(false);
