@@ -37,7 +37,7 @@ export interface QuizQuestion {
     config: QuizQuestionConfig;
 }
 
-interface QuizEditorProps {
+export interface QuizEditorProps {
     initialQuestions?: QuizQuestion[];
     onChange?: (questions: QuizQuestion[]) => void;
     isDarkMode?: boolean;
@@ -52,6 +52,7 @@ interface QuizEditorProps {
     onPublishCancel?: () => void;
     isEditMode?: boolean;
     onSaveSuccess?: (updatedData?: any) => void;
+    taskType?: 'quiz' | 'exam';
 }
 
 // Default configuration for new questions
@@ -105,6 +106,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     onPublishCancel,
     isEditMode = false,
     onSaveSuccess,
+    taskType = 'quiz',
 }, ref) => {
     // Initialize questions state
     const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
@@ -451,8 +453,8 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                     coding_languages: null,
                     generation_model: null,
                     type: "objective",
-                    max_attempts: null,
-                    is_feedback_shown: true
+                    max_attempts: taskType === 'exam' ? 1 : null,
+                    is_feedback_shown: taskType === 'exam' ? false : true
                 };
             });
 

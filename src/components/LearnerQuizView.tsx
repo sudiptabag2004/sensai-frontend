@@ -57,6 +57,7 @@ interface LearnerQuizViewProps {
     className?: string;
     readOnly?: boolean;
     showCorrectAnswers?: boolean;
+    taskType?: 'quiz' | 'exam';
 }
 
 export default function LearnerQuizView({
@@ -66,6 +67,7 @@ export default function LearnerQuizView({
     className = "",
     readOnly = false,
     showCorrectAnswers = false,
+    taskType = 'quiz',
 }: LearnerQuizViewProps) {
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -254,7 +256,9 @@ export default function LearnerQuizView({
         setTimeout(() => {
             const aiResponse: ChatMessage = {
                 id: `ai-${Date.now()}`,
-                content: generateMockAiResponse(userMessage.content),
+                content: taskType === 'exam'
+                    ? "Thank you for your submission. We will review it shortly"
+                    : generateMockAiResponse(userMessage.content),
                 sender: 'ai',
                 timestamp: new Date()
             };
@@ -262,7 +266,7 @@ export default function LearnerQuizView({
             setChatHistory(prev => [...prev, aiResponse]);
             setIsAiResponding(false);
         }, 2000);
-    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, generateMockAiResponse]);
+    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, generateMockAiResponse, taskType]);
 
     // Update the handleSubmitAnswerRef when handleSubmitAnswer changes
     useEffect(() => {

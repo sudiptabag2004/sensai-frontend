@@ -352,6 +352,18 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                 </button>
                             )}
 
+                            {/* Publish button for exams */}
+                            {activeItem?.status === 'draft' && hasQuizQuestions && activeItem?.type === 'exam' && (
+                                <button
+                                    onClick={() => onSetShowPublishConfirmation(true)}
+                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                    aria-label="Publish exam"
+                                >
+                                    <Sparkles size={16} className="mr-2" />
+                                    Publish
+                                </button>
+                            )}
+
                             {/* Publish button for learning materials */}
                             {activeItem?.status === 'draft' && activeItem?.type === 'material' && (
                                 <button
@@ -371,7 +383,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                             if (activeItem?.type === 'material') {
                                                 // Use the ref to call save directly
                                                 learningMaterialEditorRef.current?.save();
-                                            } else if (activeItem?.type === 'quiz') {
+                                            } else if (activeItem?.type === 'quiz' || activeItem?.type === 'exam') {
                                                 // Use the ref to call save directly
                                                 quizEditorRef.current?.save();
                                             } else {
@@ -390,7 +402,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                             if (activeItem?.type === 'material') {
                                                 // Use the ref to call cancel directly
                                                 learningMaterialEditorRef.current?.cancel();
-                                            } else if (activeItem?.type === 'quiz') {
+                                            } else if (activeItem?.type === 'quiz' || activeItem?.type === 'exam') {
                                                 // Use the ref to call cancel directly
                                                 quizEditorRef.current?.cancel();
                                             }
@@ -523,6 +535,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                     onPublish={onPublishConfirm}
                                     taskId={activeItem.id}
                                     status={activeItem.status}
+                                    taskType={activeItem.type as 'quiz' | 'exam'}
                                     showPublishConfirmation={showPublishConfirmation}
                                     onPublishCancel={onPublishCancel}
                                     onSaveSuccess={(updatedData) => {

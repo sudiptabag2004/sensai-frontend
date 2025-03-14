@@ -431,6 +431,7 @@ export default function LearnerCourseView({
                                                     readOnly={true}
                                                     isPreviewMode={true}
                                                     taskId={activeItem.id}
+                                                    taskType={activeItem.type as 'quiz' | 'exam'}
                                                 />
                                             </>
                                         )}
