@@ -363,23 +363,25 @@ export default function LearnerCourseView({
                                     </h2>
                                 </div>
                                 <div className="flex items-center space-x-3">
-                                    {completedTasks[activeItem?.id] ? (
-                                        <button
-                                            className="flex items-center px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-full transition-colors cursor-default"
-                                            disabled
-                                        >
-                                            <CheckCircle size={16} className="mr-2" />
-                                            Completed
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={markTaskComplete}
-                                            className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
-                                            aria-label="Mark complete"
-                                        >
-                                            <CheckCircle size={16} className="mr-2" />
-                                            Mark Complete
-                                        </button>
+                                    {activeItem?.type === 'material' && (
+                                        completedTasks[activeItem?.id] ? (
+                                            <button
+                                                className="flex items-center px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-full transition-colors cursor-default"
+                                                disabled
+                                            >
+                                                <CheckCircle size={16} className="mr-2" />
+                                                Completed
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={markTaskComplete}
+                                                className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                                aria-label="Mark complete"
+                                            >
+                                                <CheckCircle size={16} className="mr-2" />
+                                                Mark Complete
+                                            </button>
+                                        )
                                     )}
                                     <button
                                         onClick={closeDialog}
@@ -401,10 +403,12 @@ export default function LearnerCourseView({
                                 ) : (
                                     <>
                                         {activeItem?.type === 'material' && (
-                                            <DynamicLearningMaterialEditor
-                                                taskId={activeItem.id}
-                                                readOnly={true}
-                                            />
+                                            <div className="pt-6">
+                                                <DynamicLearningMaterialEditor
+                                                    taskId={activeItem.id}
+                                                    readOnly={true}
+                                                />
+                                            </div>
                                         )}
                                         {(activeItem?.type === 'quiz' || activeItem?.type === 'exam') && (
                                             <DynamicQuizEditor

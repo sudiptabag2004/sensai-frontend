@@ -4,7 +4,7 @@ import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap, Sparkles, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap, Sparkles, Check, HelpCircle } from "lucide-react";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteSchema } from "@blocknote/core";
 
@@ -642,6 +642,17 @@ export default function QuizEditor({
                             <div className="w-full flex">
                                 {/* Question Editor - 80% width */}
                                 <div className="w-3/5 pr-4">
+                                    <div className="flex flex-col ml-12 mb-2">
+                                        <div className="mb-2 flex items-center">
+                                            <HelpCircle size={16} className="text-blue-500 mr-2" />
+                                            <h3 className="text-white text-sm font-light">Question</h3>
+                                        </div>
+                                        {status !== 'published' && (
+                                            <p className="text-gray-400 text-xs">
+                                                This will be used for automatic grading and feedback.
+                                            </p>
+                                        )}
+                                    </div>
                                     <div className="editor-container h-full">
                                         <BlockNoteEditor
                                             key={`quiz-editor-question-${currentQuestionIndex}`}
@@ -658,13 +669,15 @@ export default function QuizEditor({
                                 {/* Correct Answer Section - 20% width */}
                                 <div className="w-2/5 pl-4">
                                     <div className="h-full flex flex-col">
-                                        <div className="mb-3 flex items-center">
+                                        <div className="mb-2 flex items-center">
                                             <Check size={16} className="text-green-500 mr-2" />
                                             <h3 className="text-white text-sm font-light">Correct Answer</h3>
                                         </div>
-                                        <p className="text-gray-400 text-xs mb-4">
-                                            Provide the correct answer for this question. This will be used for automatic grading and feedback.
-                                        </p>
+                                        {status !== 'published' && (
+                                            <p className="text-gray-400 text-xs">
+                                                This will be used for automatic grading and feedback.
+                                            </p>
+                                        )}
                                         <div
                                             className="flex-1 bg-[#1A1A1A] rounded-md overflow-hidden"
                                             // Add click handler to prevent event propagation

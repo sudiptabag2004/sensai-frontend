@@ -254,7 +254,7 @@ export default function LearnerQuizView({
                             </div>
 
                             <div className="bg-[#222222] px-3 py-1 rounded-full text-white text-sm">
-                                {currentQuestionIndex + 1}/{questions.length}
+                                Question {currentQuestionIndex + 1} / {questions.length}
                             </div>
 
                             <div className="w-10 h-10">
