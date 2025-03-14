@@ -416,7 +416,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                         Cancel
                                     </button>
                                 </>
-                            ) : activeItem?.status === 'published' && !isEditMode && (
+                            ) : activeItem?.status === 'published' && !isEditMode && !quizPreviewMode && (
                                 <button
                                     onClick={onEnableEditMode}
                                     className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-violet-600 hover:bg-[#222222] focus:border-violet-600 active:border-violet-600 rounded-full transition-colors cursor-pointer"

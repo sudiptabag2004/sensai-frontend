@@ -167,6 +167,8 @@ export default function LearnerQuizView({
             setCurrentAnswer(""); // Reset answer when changing questions
             // Clear chat history when changing questions
             setChatHistory([]);
+            // Reset exam response submitted state
+            setExamResponseSubmitted(false);
         }
     }, [currentQuestionIndex]);
 
@@ -177,6 +179,8 @@ export default function LearnerQuizView({
             setCurrentAnswer(""); // Reset answer when changing questions
             // Clear chat history when changing questions
             setChatHistory([]);
+            // Reset exam response submitted state
+            setExamResponseSubmitted(false);
         }
     }, [currentQuestionIndex, validQuestions.length]);
 
@@ -252,6 +256,13 @@ export default function LearnerQuizView({
             onSubmitAnswer(validQuestions[currentQuestionIndex].id, userMessage.content);
         }
 
+        // If this is an exam, mark that a response has been submitted
+        if (taskType === 'exam') {
+            setExamResponseSubmitted(true);
+        }
+
+        console.log(taskType)
+
         // Simulate AI response after 2 seconds
         setTimeout(() => {
             const aiResponse: ChatMessage = {
@@ -292,6 +303,9 @@ export default function LearnerQuizView({
             }
         });
     });
+
+    // State to track if an exam response has been submitted
+    const [examResponseSubmitted, setExamResponseSubmitted] = useState(false);
 
     return (
         <div className={`w-full h-full ${className}`}>
@@ -369,9 +383,7 @@ export default function LearnerQuizView({
                                             className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[80%] rounded-2xl px-4 py-2 ${message.sender === 'user'
-                                                    ? 'bg-[#333333] text-white'
-                                                    : 'bg-[#1A1A1A] text-white'
+                                                className={`max-w-[80%] rounded-2xl px-4 py-2 ${message.sender === 'user' ? 'bg-[#333333] text-white' : 'bg-[#1A1A1A] text-white'
                                                     }`}
                                             >
                                                 <p className="text-sm">{message.content}</p>
@@ -394,48 +406,51 @@ export default function LearnerQuizView({
                         )}
                     </div>
 
-                    {/* Input area - same for both states */}
-                    <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            placeholder="Type your answer here"
-                            className="flex-1 bg-transparent border-none px-6 py-4 text-white focus:outline-none"
-                            value={currentAnswer}
-                            onChange={handleInputChange}
-                            onKeyPress={handleKeyPress}
-                            onClick={(e) => {
-                                // Force focus on the input element
-                                if (inputRef.current) {
-                                    inputRef.current.focus();
-                                }
-                            }}
-                            onFocus={() => {
-                                // Ensure the cursor is at the end of the text
-                                if (inputRef.current) {
-                                    const length = inputRef.current.value.length;
-                                    inputRef.current.setSelectionRange(length, length);
-                                }
-                            }}
-                            autoFocus={!readOnly}
-                            disabled={false} // Never disable the input field
-                        />
-                        <button
-                            className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
-                            onClick={handleSubmitAnswer}
-                            disabled={!currentAnswer.trim() || isSubmitting || isAiResponding}
-                            aria-label="Submit answer"
-                            type="button"
-                        >
-                            {isSubmitting ? (
-                                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            )}
-                        </button>
-                    </div>
+                    {/* Input area or message for exam */}
+                    {!(taskType === 'exam' && examResponseSubmitted) && (
+                        /* Input area - same for both states */
+                        <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                placeholder="Type your answer here"
+                                className="flex-1 bg-transparent border-none px-6 py-4 text-white focus:outline-none"
+                                value={currentAnswer}
+                                onChange={handleInputChange}
+                                onKeyPress={handleKeyPress}
+                                onClick={(e) => {
+                                    // Force focus on the input element
+                                    if (inputRef.current) {
+                                        inputRef.current.focus();
+                                    }
+                                }}
+                                onFocus={() => {
+                                    // Ensure the cursor is at the end of the text
+                                    if (inputRef.current) {
+                                        const length = inputRef.current.value.length;
+                                        inputRef.current.setSelectionRange(length, length);
+                                    }
+                                }}
+                                autoFocus={!readOnly}
+                                disabled={false} // Never disable the input field
+                            />
+                            <button
+                                className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
+                                onClick={handleSubmitAnswer}
+                                disabled={!currentAnswer.trim() || isSubmitting || isAiResponding}
+                                aria-label="Submit answer"
+                                type="button"
+                            >
+                                {isSubmitting ? (
+                                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                )}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -647,9 +647,10 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 readOnly={readOnly}
                 className="w-full h-full"
                 onSubmitAnswer={handlePreviewSubmitAnswer}
+                taskType={taskType}
             />
         );
-    }, [questions, isDarkMode, readOnly, handlePreviewSubmitAnswer]);
+    }, [questions, isDarkMode, readOnly, handlePreviewSubmitAnswer, taskType]);
 
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
