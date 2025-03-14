@@ -31,6 +31,20 @@ delete modules with confirmation
 
 adding quiz
 - questions not deletable after publish
+- send correct answer from input given by user.
+- editing quiz - name + existing questions
+- learner view
+- exam
+- ai integration
+- support for showing completion and netflix style wait for 5 seconds or autoatically go to next question
+- ballons and more acknowledgements
+
+
+Cohort page for learner
+Cohort page should have leaderboard/streaks
+Learner seeing courses in the home page and cohorts in the home page
+when clicking on course (that is part of some cohort) - takes to learner course view
+learner courseview should have breadcrumbs like Cohort > Course Name so that when they click on Cohort, they go back to the cohort page
 
 code block - unable to switch langauge
 show code block as option for correct answer too

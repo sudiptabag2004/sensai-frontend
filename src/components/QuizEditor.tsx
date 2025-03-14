@@ -416,33 +416,66 @@ export default function QuizEditor({
     // Memoize the onSubmitAnswer callback to prevent it from being recreated on each render
     const handlePreviewSubmitAnswer = useCallback((questionId: string, answer: string) => {
         console.log(`Answer submitted for question ${questionId}: ${answer}`);
-        // You can add additional preview mode functionality here
-    }, []);
+
+        // Find the question with the matching ID
+        const questionIndex = questions.findIndex(q => q.id === questionId);
+        if (questionIndex !== -1) {
+            const question = questions[questionIndex];
+
+            // Log whether the answer is correct (for debugging purposes)
+            const isCorrect = question.config.correctAnswer &&
+                answer.trim().toLowerCase() === question.config.correctAnswer.trim().toLowerCase();
+
+            console.log(`Answer is ${isCorrect ? 'correct' : 'incorrect'}`);
+            console.log(`Correct answer: ${question.config.correctAnswer || "Not provided"}`);
+
+            // No alerts or immediate feedback - the LearnerQuizView component will handle the UI
+        }
+    }, [questions]);
+
+    // Memoize the LearnerQuizView component to prevent unnecessary re-renders
+    const MemoizedLearnerQuizView = useMemo(() => (
+        <LearnerQuizView
+            questions={questions}
+            isDarkMode={isDarkMode}
+            readOnly={false}
+            className="w-full h-full"
+            onSubmitAnswer={handlePreviewSubmitAnswer}
+        />
+    ), [questions, isDarkMode, handlePreviewSubmitAnswer]);
 
     return (
         <div className="flex flex-col h-full relative">
             {/* Delete confirmation modal */}
             {showDeleteConfirm && !isPreviewMode && (
                 <div
-                    className="absolute inset-0 backdrop-blur-sm z-10 flex items-center justify-center"
+                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                     onClick={() => setShowDeleteConfirm(false)}
                 >
                     <div
-                        className="bg-[#333333] p-6 rounded-lg shadow-lg max-w-md w-full"
+                        className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl border border-gray-800"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <h3 className="text-white text-lg font-normal mb-4">Delete Question</h3>
-                        <p className="text-gray-300 mb-6">Are you sure you want to delete this question? This action cannot be undone.</p>
-                        <div className="flex justify-end space-x-3">
+                        <div className="p-6">
+                            <h2 className="text-xl font-light text-white mb-4">Delete Question</h2>
+                            <p className="text-gray-300">Are you sure you want to delete this question? This action cannot be undone.</p>
+                        </div>
+                        <div className="flex justify-end gap-4 p-6 border-t border-gray-800">
                             <button
-                                onClick={() => setShowDeleteConfirm(false)}
-                                className="px-6 py-2 bg-[#474747] text-white hover:bg-[#525252] rounded-md cursor-pointer"
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent event bubbling
+                                    setShowDeleteConfirm(false);
+                                }}
+                                className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={deleteQuestion}
-                                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md flex items-center cursor-pointer"
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent event bubbling
+                                    deleteQuestion();
+                                }}
+                                className="px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-full hover:bg-red-700 transition-colors focus:outline-none cursor-pointer flex items-center"
                             >
                                 <Trash2 size={16} className="mr-2" />
                                 Delete
@@ -565,13 +598,7 @@ export default function QuizEditor({
             {/* Content area with animation when a new question is added */}
             <div className={`flex flex-1 gap-4 ${newQuestionAdded ? 'animate-new-question' : ''}`}>
                 {isPreviewMode ? (
-                    <LearnerQuizView
-                        questions={questions}
-                        isDarkMode={isDarkMode}
-                        readOnly={false}
-                        className="w-full h-full"
-                        onSubmitAnswer={handlePreviewSubmitAnswer}
-                    />
+                    MemoizedLearnerQuizView
                 ) : (
                     <>
                         {questions.length === 0 ? (
