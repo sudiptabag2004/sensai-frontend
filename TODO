@@ -39,6 +39,7 @@ adding quiz
 - support for showing completion and netflix style wait for 5 seconds or autoatically go to next question
 - ballons and more acknowledgements
 
+errors for invalid input - question empty, correct answer empty, other fields empty etc.
 
 Cohort page for learner
 Cohort page should have leaderboard/streaks

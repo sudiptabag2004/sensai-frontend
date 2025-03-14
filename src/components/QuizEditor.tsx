@@ -53,6 +53,35 @@ const defaultQuestionConfig: QuizQuestionConfig = {
     evaluationCriteria: []
 };
 
+// Helper function to extract text from all blocks in a BlockNote document
+const extractTextFromBlocks = (blocks: any[]): string => {
+    if (!blocks || blocks.length === 0) return "";
+
+    return blocks.map(block => {
+        // Handle different block types
+        if (block.type === "paragraph") {
+            // For paragraph blocks, extract text content
+            return block.content ? block.content.map((item: any) =>
+                typeof item === 'string' ? item : (item.text || "")
+            ).join("") : "";
+        } else if (block.type === "heading") {
+            // For heading blocks, extract text content
+            return block.content ? block.content.map((item: any) =>
+                typeof item === 'string' ? item : (item.text || "")
+            ).join("") : "";
+        } else if (block.type === "bulletListItem" || block.type === "numberedListItem") {
+            // For list items, extract text content
+            return block.content ? block.content.map((item: any) =>
+                typeof item === 'string' ? item : (item.text || "")
+            ).join("") : "";
+        } else if (block.text) {
+            // Fallback for blocks with direct text property
+            return block.text;
+        }
+        return "";
+    }).join("\n").trim();
+};
+
 export default function QuizEditor({
     initialQuestions = [],
     onChange,
@@ -186,18 +215,14 @@ export default function QuizEditor({
     const handleCorrectAnswerContentChange = useCallback((content: any[]) => {
         if (questions.length === 0 || !content || content.length === 0) return;
 
-        // Try to extract text from the first block
+        // Extract text from all blocks in the content
         let textContent = "";
         try {
-            // Get the first block's text content if available
             if (correctAnswerEditorRef.current) {
                 const blocks = correctAnswerEditorRef.current.document;
                 if (blocks && blocks.length > 0) {
-                    const firstBlock = blocks[0];
-                    if (firstBlock) {
-                        // Use the editor's API to get text
-                        textContent = correctAnswerEditorRef.current.getTextCursorPosition(firstBlock.id).block.text || "";
-                    }
+                    // Use the helper function to extract text from all blocks
+                    textContent = extractTextFromBlocks(blocks);
                 }
             }
         } catch (e) {
@@ -346,17 +371,25 @@ export default function QuizEditor({
             const currentTitle = dialogTitleElement?.textContent || '';
 
             // Format questions for the API
-            const formattedQuestions = questions.map(question => ({
-                blocks: question.content,
-                answer: question.config.correctAnswer || "",
-                input_type: "text",
-                response_type: "chat",
-                coding_languages: null,
-                generation_model: null,
-                type: "objective",
-                max_attempts: null,
-                is_feedback_shown: true
-            }));
+            const formattedQuestions = questions.map(question => {
+                // Get the correct answer text from the question config
+                // This should already contain the extracted text from all blocks
+                const correctAnswerText = question.config.correctAnswer || "";
+
+                console.log(`Question ${question.id} - Correct answer: "${correctAnswerText}"`);
+
+                return {
+                    blocks: question.content,
+                    answer: correctAnswerText,
+                    input_type: "text",
+                    response_type: "chat",
+                    coding_languages: null,
+                    generation_model: null,
+                    type: "objective",
+                    max_attempts: null,
+                    is_feedback_shown: true
+                };
+            });
 
             console.log("Publishing quiz with title:", currentTitle);
             console.log("Formatted questions:", formattedQuestions);

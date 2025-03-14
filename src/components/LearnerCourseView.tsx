@@ -431,16 +431,6 @@ export default function LearnerCourseView({
                                     Previous
                                 </button>
 
-                                <div className="text-sm text-gray-400">
-                                    {activeModuleId && (
-                                        <>
-                                            {(filteredModules.find(m => m.id === activeModuleId)?.items.findIndex(item => item.id === activeItem?.id) ?? 0) + 1}
-                                            {" / "}
-                                            {filteredModules.find(m => m.id === activeModuleId)?.items.length ?? 0}
-                                        </>
-                                    )}
-                                </div>
-
                                 <button
                                     onClick={goToNextTask}
                                     disabled={isLastTask()}
