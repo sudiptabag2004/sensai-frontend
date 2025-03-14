@@ -180,14 +180,16 @@ export default function LearnerQuizView({
         return chatHistories[currentQuestionId] || [];
     }, [chatHistories, currentQuestionIndex, validQuestions]);
 
+    // State to track which exam questions have had responses submitted
+    const [submittedQuestionIds, setSubmittedQuestionIds] = useState<Record<string, boolean>>({});
+
     // Navigate to previous question
     const goToPreviousQuestion = useCallback(() => {
         if (currentQuestionIndex > 0) {
             const newIndex = currentQuestionIndex - 1;
             setCurrentQuestionIndex(newIndex);
             setCurrentAnswer(""); // Reset answer when changing questions
-            // Reset exam response submitted state
-            setExamResponseSubmitted(false);
+            // No need to reset submission status as we're tracking per question
 
             // Notify parent component about question change
             if (onQuestionChange && validQuestions[newIndex]) {
@@ -202,8 +204,7 @@ export default function LearnerQuizView({
             const newIndex = currentQuestionIndex + 1;
             setCurrentQuestionIndex(newIndex);
             setCurrentAnswer(""); // Reset answer when changing questions
-            // Reset exam response submitted state
-            setExamResponseSubmitted(false);
+            // No need to reset submission status as we're tracking per question
 
             // Notify parent component about question change
             if (onQuestionChange && validQuestions[newIndex]) {
@@ -288,7 +289,11 @@ export default function LearnerQuizView({
 
         // If this is an exam, immediately show the response without delay
         if (taskType === 'exam') {
-            setExamResponseSubmitted(true);
+            // Mark this specific question as submitted
+            setSubmittedQuestionIds(prev => ({
+                ...prev,
+                [currentQuestionId]: true
+            }));
 
             // Add AI response immediately without setting isAiResponding
             const aiResponse: ChatMessage = {
@@ -348,9 +353,6 @@ export default function LearnerQuizView({
             }
         });
     });
-
-    // State to track if an exam response has been submitted
-    const [examResponseSubmitted, setExamResponseSubmitted] = useState(false);
 
     return (
         <div className={`w-full h-full ${className}`}>
@@ -452,7 +454,7 @@ export default function LearnerQuizView({
                     </div>
 
                     {/* Input area or message for exam */}
-                    {!(taskType === 'exam' && examResponseSubmitted) && (
+                    {!(taskType === 'exam' && submittedQuestionIds[validQuestions[currentQuestionIndex]?.id]) && (
                         /* Input area - same for both states */
                         <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
                             <input
