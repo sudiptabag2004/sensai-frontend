@@ -565,14 +565,13 @@ export default function QuizEditor({
                                 {questions.length > 1 && (
                                     <div className="flex items-center justify-between w-full mb-6">
                                         <div className="w-10 h-10">
-                                            {currentQuestionIndex > 0 && (
-                                                <button
-                                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[#222222] text-white hover:bg-[#333333] cursor-pointer"
-                                                    onClick={goToPreviousQuestion}
-                                                >
-                                                    <ChevronLeft size={18} />
-                                                </button>
-                                            )}
+                                            <button
+                                                className={`w-10 h-10 rounded-full flex items-center justify-center bg-[#222222] text-white ${currentQuestionIndex > 0 ? 'hover:bg-[#333333] cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                                                onClick={goToPreviousQuestion}
+                                                disabled={currentQuestionIndex <= 0}
+                                            >
+                                                <ChevronLeft size={18} />
+                                            </button>
                                         </div>
 
                                         <div className="bg-[#222222] px-3 py-1 rounded-full text-white text-sm">
@@ -580,14 +579,13 @@ export default function QuizEditor({
                                         </div>
 
                                         <div className="w-10 h-10">
-                                            {currentQuestionIndex < questions.length - 1 && (
-                                                <button
-                                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[#222222] text-white hover:bg-[#333333] cursor-pointer"
-                                                    onClick={goToNextQuestion}
-                                                >
-                                                    <ChevronRight size={18} />
-                                                </button>
-                                            )}
+                                            <button
+                                                className={`w-10 h-10 rounded-full flex items-center justify-center bg-[#222222] text-white ${currentQuestionIndex < questions.length - 1 ? 'hover:bg-[#333333] cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                                                onClick={goToNextQuestion}
+                                                disabled={currentQuestionIndex >= questions.length - 1}
+                                            >
+                                                <ChevronRight size={18} />
+                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -614,7 +612,7 @@ export default function QuizEditor({
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            placeholder="Type your answer here..."
+                                            placeholder="Type your answer here"
                                             className="w-full bg-[#1A1A1A] border border-[#333333] rounded-md p-4 pr-12 text-white focus:outline-none focus:border-blue-500"
                                             disabled={true}
                                         />
@@ -641,7 +639,7 @@ export default function QuizEditor({
                                 <div className="w-3/5 pr-4">
                                     <div className="editor-container h-full">
                                         <BlockNoteEditor
-                                            key="quiz-editor-stable"
+                                            key={`quiz-editor-question-${currentQuestionIndex}`}
                                             initialContent={currentQuestionContent}
                                             onChange={handleQuestionContentChange}
                                             isDarkMode={isDarkMode}
