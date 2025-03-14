@@ -4,7 +4,7 @@ import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap, Sparkles } from "lucide-react";
 
 // Add custom styles for dark mode
 import "./editor-styles.css";
@@ -34,8 +34,11 @@ interface QuizEditorProps {
     className?: string;
     isPreviewMode?: boolean;
     readOnly?: boolean;
+    onPublish?: () => void;
+    taskId?: string;
+    status?: string;
+    onPublishSuccess?: (updatedData?: any) => void;
     showPublishConfirmation?: boolean;
-    onPublishConfirm?: () => void;
     onPublishCancel?: () => void;
 }
 
@@ -53,8 +56,11 @@ export default function QuizEditor({
     className = "",
     isPreviewMode = false,
     readOnly = false,
+    onPublish,
+    taskId,
+    status = 'draft',
+    onPublishSuccess,
     showPublishConfirmation = false,
-    onPublishConfirm,
     onPublishCancel,
 }: QuizEditorProps) {
     // Initialize questions state
@@ -68,6 +74,12 @@ export default function QuizEditor({
 
     // State for delete confirmation
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    // State for tracking publishing status
+    const [isPublishing, setIsPublishing] = useState(false);
+
+    // State for tracking publishing errors
+    const [publishError, setPublishError] = useState<string | null>(null);
 
     // Reference to the current BlockNote editor instance
     const editorRef = useRef<any>(null);
@@ -247,6 +259,102 @@ export default function QuizEditor({
         </div>
     );
 
+    // Handle publish confirmation
+    const handleShowPublishConfirmation = () => {
+        if (onPublish) {
+            onPublish();
+        }
+    };
+
+    const handleCancelPublish = () => {
+        if (onPublishCancel) {
+            onPublishCancel();
+        }
+    };
+
+    const handleConfirmPublish = async () => {
+        if (!taskId) {
+            console.error("Cannot publish: taskId is not provided");
+            setPublishError("Cannot publish: Task ID is missing");
+            return;
+        }
+
+        setIsPublishing(true);
+        setPublishError(null);
+
+        try {
+            // Get the current title from the dialog - it may have been edited
+            const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
+            const currentTitle = dialogTitleElement?.textContent || '';
+
+            // Format questions for the API
+            const formattedQuestions = questions.map(question => ({
+                blocks: question.content,
+                answer: "some answer",
+                input_type: "text",
+                response_type: "chat",
+                coding_languages: null,
+                generation_model: null,
+                type: "objective",
+                max_attempts: null,
+                is_feedback_shown: true
+            }));
+
+            console.log("Publishing quiz with title:", currentTitle);
+            console.log("Formatted questions:", formattedQuestions);
+
+            // Make POST request to publish the quiz
+            const response = await fetch(`http://localhost:8001/tasks/${taskId}/quiz`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: currentTitle,
+                    questions: formattedQuestions
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to publish quiz: ${response.status}`);
+            }
+
+            // Get the updated task data from the response
+            const updatedTaskData = await response.json();
+            console.log("API response:", updatedTaskData);
+
+            // Ensure the status is set to 'published'
+            const publishedTaskData = {
+                ...updatedTaskData,
+                status: 'published',
+                title: currentTitle,
+                id: taskId // Ensure the ID is included for proper updating in the module list
+            };
+
+            console.log("Quiz published successfully", publishedTaskData);
+
+            // Set publishing to false to avoid state updates during callbacks
+            setIsPublishing(false);
+
+            // Call the original onPublish callback if provided
+            if (onPublish) {
+                onPublish();
+            }
+
+            // Call the onPublishSuccess callback if provided
+            if (onPublishSuccess) {
+                // Use setTimeout to break the current render cycle
+                setTimeout(() => {
+                    onPublishSuccess(publishedTaskData);
+                }, 0);
+            }
+        } catch (error) {
+            console.error("Error publishing quiz:", error);
+            setPublishError(error instanceof Error ? error.message : "Failed to publish quiz");
+            setIsPublishing(false);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full relative">
             {/* Delete confirmation modal */}
@@ -280,13 +388,13 @@ export default function QuizEditor({
                 </div>
             )}
 
-            {/* Publish Confirmation Dialog */}
+            {/* Publish Confirmation Dialog - Now controlled by parent */}
             {showPublishConfirmation && (
                 <div
                     className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                     onClick={(e) => {
                         e.stopPropagation(); // Prevent closing the parent dialog
-                        onPublishCancel?.(); // Only cancel the publish confirmation
+                        handleCancelPublish(); // Only cancel the publish confirmation
                     }}
                 >
                     <div
@@ -296,25 +404,35 @@ export default function QuizEditor({
                         <div className="p-6">
                             <h2 className="text-xl font-light text-white mb-4">Ready to publish?</h2>
                             <p className="text-gray-300">After publishing, you won't be able to add or remove questions, but you can still edit existing ones</p>
+                            {publishError && (
+                                <p className="mt-4 text-red-400 text-sm">{publishError}</p>
+                            )}
                         </div>
                         <div className="flex justify-end gap-4 p-6 border-t border-gray-800">
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation(); // Prevent event bubbling
-                                    onPublishCancel?.();
+                                    handleCancelPublish();
                                 }}
                                 className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                                disabled={isPublishing}
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation(); // Prevent event bubbling
-                                    onPublishConfirm?.();
+                                    handleConfirmPublish();
                                 }}
-                                className="px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-full hover:bg-green-700 transition-colors focus:outline-none cursor-pointer"
+                                className={`px-6 py-2 bg-green-700 text-white text-sm font-medium rounded-full hover:bg-green-800 transition-colors focus:outline-none cursor-pointer ${isPublishing ? 'opacity-70' : ''}`}
+                                disabled={isPublishing}
                             >
-                                Publish Now
+                                {isPublishing ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                        <span>Publish Now</span>
+                                    </div>
+                                ) : 'Publish Now'}
                             </button>
                         </div>
                     </div>
@@ -364,8 +482,8 @@ export default function QuizEditor({
                         </button>
                     </div>
 
-                    {/* Right: Delete Button - Hide for published quizzes (readOnly mode) */}
-                    <div className="flex-1 flex justify-end">
+                    {/* Right: Delete Button and Publish Button */}
+                    <div className="flex-1 flex justify-end items-center space-x-3">
                         {!readOnly && (
                             <button
                                 onClick={() => setShowDeleteConfirm(true)}

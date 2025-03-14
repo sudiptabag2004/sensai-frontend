@@ -322,7 +322,20 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                 </button>
                             )}
 
-                            {activeItem?.status === 'draft' && hasQuizQuestions && (
+                            {/* Publish button for quizzes */}
+                            {activeItem?.status === 'draft' && hasQuizQuestions && activeItem?.type === 'quiz' && (
+                                <button
+                                    onClick={() => onSetShowPublishConfirmation(true)}
+                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                    aria-label="Publish quiz"
+                                >
+                                    <Sparkles size={16} className="mr-2" />
+                                    Publish
+                                </button>
+                            )}
+
+                            {/* Publish button for learning materials */}
+                            {activeItem?.status === 'draft' && activeItem?.type === 'material' && (
                                 <button
                                     onClick={() => onSetShowPublishConfirmation(true)}
                                     className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
@@ -332,6 +345,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                     Publish
                                 </button>
                             )}
+
                             {activeItem?.status === 'published' && isEditMode ? (
                                 <>
                                     <button
@@ -489,9 +503,38 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                     }}
                                     isPreviewMode={quizPreviewMode}
                                     readOnly={activeItem.status === 'published' && !isEditMode}
+                                    onPublish={onPublishConfirm}
+                                    taskId={activeItem.id}
+                                    status={activeItem.status}
                                     showPublishConfirmation={showPublishConfirmation}
-                                    onPublishConfirm={onPublishConfirm}
                                     onPublishCancel={onPublishCancel}
+                                    onPublishSuccess={(updatedData) => {
+                                        // Handle publish success
+                                        if (updatedData) {
+                                            console.log("Received updated data in CourseItemDialog:", updatedData);
+
+                                            // Properly update the UI state first
+                                            // This will transform the publish button to edit button
+                                            if (activeItem && updatedData.status === 'published') {
+                                                activeItem.status = 'published';
+                                                activeItem.title = updatedData.title;
+
+                                                if (updatedData.questions) {
+                                                    activeItem.questions = updatedData.questions;
+                                                }
+                                            }
+
+                                            // Update will be handled by the parent component
+                                            // Pass the updated data to the parent component
+                                            onPublishConfirm();
+
+                                            // Log the updated state for debugging
+                                            console.log("Quiz published successfully, updated activeItem:", activeItem);
+                                        }
+
+                                        // Hide the publish confirmation dialog
+                                        onSetShowPublishConfirmation(false);
+                                    }}
                                 />
                             )
                         ) : null}

@@ -208,24 +208,6 @@ export default function LearningMaterialEditor({
             const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
             const currentTitle = dialogTitleElement?.textContent || taskData?.title || "";
 
-            // First, update the title if it has changed
-            if (currentTitle !== taskData?.title) {
-                const titleResponse = await fetch(`http://localhost:8001/tasks/${taskId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        title: currentTitle
-                    }),
-                });
-
-                if (!titleResponse.ok) {
-                    console.warn(`Warning: Failed to update title: ${titleResponse.status}`);
-                    // Continue with publishing even if title update fails
-                }
-            }
-
             // Use the current editor content
             const currentContent = editorContent.length > 0 ? editorContent : (taskData?.blocks || []);
 
@@ -439,7 +421,7 @@ export default function LearningMaterialEditor({
                                     e.stopPropagation(); // Prevent event bubbling
                                     handleConfirmPublish();
                                 }}
-                                className={`px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-full hover:bg-green-700 transition-colors focus:outline-none cursor-pointer ${isPublishing ? 'opacity-70' : ''}`}
+                                className={`px-6 py-2 bg-green-700 text-white text-sm font-medium rounded-full hover:bg-green-800 transition-colors focus:outline-none cursor-pointer ${isPublishing ? 'opacity-70' : ''}`}
                                 disabled={isPublishing}
                             >
                                 {isPublishing ? (

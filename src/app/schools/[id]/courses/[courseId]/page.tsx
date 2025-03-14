@@ -965,17 +965,49 @@ export default function CreateCourse() {
 
     // Add a new function to handle the actual publishing after confirmation
     const handleConfirmPublish = async () => {
-        // For learning materials, the API call is now handled in the LearningMaterialEditor component
-        // The LearningMaterialEditor has already handled the API call
-        // We still need to update the modules list to reflect the status change
-        // Don't update the title here - it will be included in the publishedTaskData from onPublishSuccess
+        if (!activeItem || !activeModuleId) {
+            console.error("Cannot publish: activeItem or activeModuleId is missing");
+            setShowPublishConfirmation(false);
+            return;
+        }
 
-        // The update will happen in CourseItemDialog's onPublishSuccess callback
-        // which will update the activeItem with the appropriate title
+        console.log("handleConfirmPublish called with activeItem:", activeItem);
+
+        // For learning materials and quizzes, the API call is now handled in their respective components
+        // We need to update the modules list to reflect the status change
+        // The title update is handled in the CourseItemDialog's onPublishSuccess callback
+
+        // Update the module item in the modules list with the updated status and title
+        updateModuleItemStatusAndTitle(activeModuleId, activeItem.id, 'published', activeItem.title);
+
+        console.log("Module item updated with status 'published' and title:", activeItem.title);
 
         // Hide the confirmation dialog
         setShowPublishConfirmation(false);
-        return;
+    };
+
+    // Add a function to update a module item's status and title
+    const updateModuleItemStatusAndTitle = (moduleId: string, itemId: string, status: string, title: string) => {
+        setModules(prevModules =>
+            prevModules.map(module => {
+                if (module.id === moduleId) {
+                    return {
+                        ...module,
+                        items: module.items.map(item => {
+                            if (item.id === itemId) {
+                                return {
+                                    ...item,
+                                    status,
+                                    title
+                                };
+                            }
+                            return item;
+                        })
+                    };
+                }
+                return module;
+            })
+        );
     };
 
     // Add a function to handle canceling the publish action
