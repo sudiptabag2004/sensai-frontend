@@ -13,6 +13,8 @@ import "./editor-styles.css";
 
 // Import the BlockNoteEditor component
 import BlockNoteEditor from "./BlockNoteEditor";
+// Import the LearnerQuizView component
+import LearnerQuizView from "./LearnerQuizView";
 
 export interface QuizQuestionConfig {
     inputType: 'text' | 'code' | 'audio';
@@ -557,76 +559,12 @@ export default function QuizEditor({
             {/* Content area with animation when a new question is added */}
             <div className={`flex flex-1 gap-4 ${newQuestionAdded ? 'animate-new-question' : ''}`}>
                 {isPreviewMode ? (
-                    <div className="w-full h-full">
-                        <div className="flex h-full bg-[#111111] rounded-md overflow-hidden">
-                            {/* Left side - Question (80%) */}
-                            <div className="w-1/2 p-8 border-r border-[#222222] flex flex-col bg-[#1A1A1A]">
-                                {/* Navigation controls at the top of left side - only show if more than one question */}
-                                {questions.length > 1 && (
-                                    <div className="flex items-center justify-between w-full mb-6">
-                                        <div className="w-10 h-10">
-                                            <button
-                                                className={`w-10 h-10 rounded-full flex items-center justify-center bg-[#222222] text-white ${currentQuestionIndex > 0 ? 'hover:bg-[#333333] cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
-                                                onClick={goToPreviousQuestion}
-                                                disabled={currentQuestionIndex <= 0}
-                                            >
-                                                <ChevronLeft size={18} />
-                                            </button>
-                                        </div>
-
-                                        <div className="bg-[#222222] px-3 py-1 rounded-full text-white text-sm">
-                                            {currentQuestionIndex + 1}/{questions.length}
-                                        </div>
-
-                                        <div className="w-10 h-10">
-                                            <button
-                                                className={`w-10 h-10 rounded-full flex items-center justify-center bg-[#222222] text-white ${currentQuestionIndex < questions.length - 1 ? 'hover:bg-[#333333] cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
-                                                onClick={goToNextQuestion}
-                                                disabled={currentQuestionIndex >= questions.length - 1}
-                                            >
-                                                <ChevronRight size={18} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className={`flex-1 ${questions.length > 1 ? 'mt-4' : 'mt-6'}`}>
-                                    {/* Use editor with negative margin to offset unwanted space */}
-                                    <div className="ml-[-60px]"> {/* Increased negative margin to align with navigation arrow */}
-                                        <BlockNoteEditor
-                                            key={`question-preview-${currentQuestionIndex}`}
-                                            initialContent={currentQuestionContent}
-                                            onChange={() => { }} // Read-only in preview mode
-                                            isDarkMode={true}
-                                            readOnly={true}
-                                            className="!bg-transparent"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Right side - Answer (20%) */}
-                            <div className="w-1/2 p-6 flex flex-col">
-
-                                <div className="flex-1 flex flex-col justify-end">
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="Type your answer here"
-                                            className="w-full bg-[#1A1A1A] border border-[#333333] rounded-md p-4 pr-12 text-white focus:outline-none focus:border-blue-500"
-                                            disabled={true}
-                                        />
-                                        <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white" disabled={true}>
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <LearnerQuizView
+                        questions={questions}
+                        isDarkMode={isDarkMode}
+                        readOnly={true}
+                        className="w-full h-full"
+                    />
                 ) : (
                     <>
                         {questions.length === 0 ? (
