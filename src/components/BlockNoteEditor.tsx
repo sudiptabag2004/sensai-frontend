@@ -142,10 +142,17 @@ export default function BlockNoteEditor({
     useEffect(() => {
         if (editor && editorRef.current) {
             // Add a focus method to the editor ref
-            editorRef.current.focus = () => {
+            // Use a different name for the method to avoid potential name conflicts
+            editorRef.current.focusEditor = () => {
                 try {
-                    // Focus the editor
-                    editor.focus();
+                    // Check if we're already focused to prevent recursion
+                    const activeElement = document.activeElement;
+                    const editorElement = editorContainerRef.current?.querySelector('[contenteditable="true"]');
+
+                    // Only focus if we're not already focused
+                    if (editorElement && activeElement !== editorElement) {
+                        editor.focus();
+                    }
                 } catch (err) {
                     console.error("Error focusing editor:", err);
                 }

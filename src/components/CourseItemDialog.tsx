@@ -97,6 +97,13 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     // State to track loading state for task details
     const [isLoadingTaskDetails, setIsLoadingTaskDetails] = useState(false);
 
+    // Reset quiz preview mode when dialog is closed
+    useEffect(() => {
+        if (!isOpen) {
+            setQuizPreviewMode(false);
+        }
+    }, [isOpen]);
+
     // Local state to store fetched questions
     const [localQuestions, setLocalQuestions] = useState<QuizQuestion[]>([]);
 

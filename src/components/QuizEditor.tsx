@@ -562,8 +562,12 @@ export default function QuizEditor({
                     <LearnerQuizView
                         questions={questions}
                         isDarkMode={isDarkMode}
-                        readOnly={true}
+                        readOnly={false}
                         className="w-full h-full"
+                        onSubmitAnswer={(questionId, answer) => {
+                            console.log(`Answer submitted for question ${questionId}: ${answer}`);
+                            // You can add additional preview mode functionality here
+                        }}
                     />
                 ) : (
                     <>
@@ -607,7 +611,7 @@ export default function QuizEditor({
                                                 if (correctAnswerEditorRef.current) {
                                                     try {
                                                         // Try to focus the editor
-                                                        correctAnswerEditorRef.current.focus();
+                                                        correctAnswerEditorRef.current.focusEditor();
                                                     } catch (err) {
                                                         console.error("Error focusing correct answer editor:", err);
                                                     }
