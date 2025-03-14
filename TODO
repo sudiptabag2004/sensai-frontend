@@ -59,6 +59,12 @@ deleting milestones
 adding scorecards and attaching scorecards to questions
 (do this after v1 is built with everything using only objective questions in exam and quiz mode)
 
+input type audio - can have objective answer?
+When to use STT vs when to use native audio input for analysis?
+- for objective tasks - STT?
+- for subjective tasks - native audio input?
+or what comes with text - can do stt and show text
+or what comes with input type audio - directly do raw audio
 
 pending
 

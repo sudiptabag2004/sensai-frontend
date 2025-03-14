@@ -4,6 +4,8 @@ import { useRef, useEffect, useState } from "react";
 import { Sparkles, Check, X, Pencil, Eye, Edit2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { QuizQuestion } from "./QuizEditor";
+import type { LearningMaterialEditorHandle } from "./LearningMaterialEditor";
+import type { QuizEditorHandle } from "./QuizEditor";
 
 // Import TaskData from types
 interface TaskData {
@@ -91,11 +93,21 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     onQuizContentChange,
     focusEditor,
 }) => {
+    // Add refs for the editor components - moved to top with other hooks
+    const learningMaterialEditorRef = useRef<LearningMaterialEditorHandle>(null);
+    const quizEditorRef = useRef<QuizEditorHandle>(null);
+
     // State to track preview mode for quizzes
     const [quizPreviewMode, setQuizPreviewMode] = useState(false);
 
     // State to track loading state for task details
     const [isLoadingTaskDetails, setIsLoadingTaskDetails] = useState(false);
+
+    // Local state to store fetched questions
+    const [localQuestions, setLocalQuestions] = useState<QuizQuestion[]>([]);
+
+    // Track if we've already fetched the data to prevent infinite loops
+    const [hasFetchedData, setHasFetchedData] = useState(false);
 
     // Reset quiz preview mode when dialog is closed
     useEffect(() => {
@@ -103,12 +115,6 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
             setQuizPreviewMode(false);
         }
     }, [isOpen]);
-
-    // Local state to store fetched questions
-    const [localQuestions, setLocalQuestions] = useState<QuizQuestion[]>([]);
-
-    // Track if we've already fetched the data to prevent infinite loops
-    const [hasFetchedData, setHasFetchedData] = useState(false);
 
     // Reset questions for draft quizzes/exams immediately when dialog opens
     // This useEffect runs before all others with the highest priority
@@ -358,12 +364,11 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                     <button
                                         onClick={() => {
                                             if (activeItem?.type === 'material') {
-                                                // For learning materials, trigger the handleSave function 
-                                                // in the LearningMaterialEditor component
-                                                const saveButton = document.getElementById('save-learning-material');
-                                                if (saveButton) {
-                                                    saveButton.click();
-                                                }
+                                                // Use the ref to call save directly
+                                                learningMaterialEditorRef.current?.save();
+                                            } else if (activeItem?.type === 'quiz') {
+                                                // Use the ref to call save directly
+                                                quizEditorRef.current?.save();
                                             } else {
                                                 // For other item types, use the original save function
                                                 onSaveItem();
@@ -378,12 +383,11 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                     <button
                                         onClick={() => {
                                             if (activeItem?.type === 'material') {
-                                                // For learning materials, trigger the handleCancel function 
-                                                // in the LearningMaterialEditor component
-                                                const cancelButton = document.getElementById('cancel-learning-material');
-                                                if (cancelButton) {
-                                                    cancelButton.click();
-                                                }
+                                                // Use the ref to call cancel directly
+                                                learningMaterialEditorRef.current?.cancel();
+                                            } else if (activeItem?.type === 'quiz') {
+                                                // Use the ref to call cancel directly
+                                                quizEditorRef.current?.cancel();
                                             }
                                             // Always call the parent's cancel function
                                             onCancelEditMode();
@@ -439,6 +443,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                     >
                         {activeItem?.type === 'material' ? (
                             <DynamicLearningMaterialEditor
+                                ref={learningMaterialEditorRef}
                                 key={`material-${activeItem.id}-${isEditMode}`}
                                 readOnly={activeItem.status === 'published' && !isEditMode}
                                 showPublishConfirmation={showPublishConfirmation}
@@ -492,7 +497,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                 </div>
                             ) : (
                                 <DynamicQuizEditor
-                                    key={`quiz-${activeItem.id}-${isEditMode}-${hasFetchedData}`}
+                                    ref={quizEditorRef}
                                     initialQuestions={
                                         // For published quizzes, use fetched data
                                         activeItem.status === 'published' ?

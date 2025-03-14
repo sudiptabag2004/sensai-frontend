@@ -3,7 +3,7 @@
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
 import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap, Sparkles, Check, HelpCircle } from "lucide-react";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteSchema } from "@blocknote/core";
@@ -15,6 +15,12 @@ import "./editor-styles.css";
 import BlockNoteEditor from "./BlockNoteEditor";
 // Import the LearnerQuizView component
 import LearnerQuizView from "./LearnerQuizView";
+
+// Define the editor handle with methods that can be called by parent components
+export interface QuizEditorHandle {
+    save: () => Promise<void>;
+    cancel: () => void;
+}
 
 export interface QuizQuestionConfig {
     inputType: 'text' | 'code' | 'audio';
@@ -44,6 +50,8 @@ interface QuizEditorProps {
     onPublishSuccess?: (updatedData?: any) => void;
     showPublishConfirmation?: boolean;
     onPublishCancel?: () => void;
+    isEditMode?: boolean;
+    onSaveSuccess?: (updatedData?: any) => void;
 }
 
 // Default configuration for new questions
@@ -82,7 +90,7 @@ const extractTextFromBlocks = (blocks: any[]): string => {
     }).join("\n").trim();
 };
 
-export default function QuizEditor({
+const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     initialQuestions = [],
     onChange,
     isDarkMode = true,
@@ -95,9 +103,13 @@ export default function QuizEditor({
     onPublishSuccess,
     showPublishConfirmation = false,
     onPublishCancel,
-}: QuizEditorProps) {
+    isEditMode = false,
+    onSaveSuccess,
+}, ref) => {
     // Initialize questions state
     const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
+    // Store the original data for cancel functionality
+    const originalQuestionsRef = useRef<QuizQuestion[]>([]);
 
     // Update questions when initialQuestions prop changes
     useEffect(() => {
@@ -131,6 +143,8 @@ export default function QuizEditor({
         });
 
         setQuestions(formattedQuestions);
+        // Store the original questions for cancel operation
+        originalQuestionsRef.current = JSON.parse(JSON.stringify(formattedQuestions));
     }, [initialQuestions]);
 
     // Current question index
@@ -482,6 +496,89 @@ export default function QuizEditor({
         }
     };
 
+    // Handle save for edit mode
+    const handleSave = async () => {
+        if (!taskId) {
+            console.error("Cannot save: taskId is not provided");
+            return;
+        }
+
+        try {
+            // Get the current title from the dialog - it may have been edited
+            const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
+            const currentTitle = dialogTitleElement?.textContent || '';
+
+            // Format questions for the API
+            const formattedQuestions = questions.map(question => {
+                const correctAnswerText = question.config.correctAnswer || "";
+
+                return {
+                    id: question.id,
+                    blocks: question.content,
+                    answer: correctAnswerText,
+                };
+            });
+
+            // Make PUT request to update the quiz content, keeping the same status
+            const response = await fetch(`http://localhost:8001/tasks/${taskId}/quiz`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: currentTitle,
+                    questions: formattedQuestions
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to save quiz: ${response.status}`);
+            }
+
+            // Get the updated task data from the response
+            const updatedTaskData = await response.json();
+
+            // Create updated data with the current title
+            const updatedData = {
+                ...updatedTaskData,
+                title: currentTitle,
+                id: taskId
+            };
+
+            console.log("Quiz saved successfully", updatedData);
+
+            // Call the onSaveSuccess callback if provided
+            if (onSaveSuccess) {
+                setTimeout(() => {
+                    onSaveSuccess(updatedData);
+                }, 0);
+            }
+        } catch (error) {
+            console.error("Error saving quiz:", error);
+        }
+    };
+
+    // Handle cancel in edit mode - revert to original data
+    const handleCancel = () => {
+        if (originalQuestionsRef.current.length === 0) return;
+
+        // Restore the original questions
+        setQuestions(JSON.parse(JSON.stringify(originalQuestionsRef.current)));
+
+        // Return the original title to the dialog header if needed
+        const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
+        if (dialogTitleElement) {
+            // Here you would set the original title if you were storing it
+            // For now, this is a placeholder
+        }
+    };
+
+    // Expose methods via the forwarded ref
+    useImperativeHandle(ref, () => ({
+        save: handleSave,
+        cancel: handleCancel
+    }));
+
     // Memoize the onSubmitAnswer callback to prevent it from being recreated on each render
     const handlePreviewSubmitAnswer = useCallback((questionId: string, answer: string) => {
         // Find the question with the matching ID
@@ -511,7 +608,7 @@ export default function QuizEditor({
     }, [questions, isDarkMode, readOnly, handlePreviewSubmitAnswer]);
 
     return (
-        <div className="flex flex-col h-full relative">
+        <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
             {/* Delete confirmation modal */}
             {showDeleteConfirm && !isPreviewMode && (
                 <div
@@ -758,4 +855,9 @@ export default function QuizEditor({
             </div>
         </div>
     );
-} 
+});
+
+// Add display name for better debugging
+QuizEditor.displayName = 'QuizEditor';
+
+export default QuizEditor; 

@@ -4,7 +4,7 @@ import "@blocknote/core/fonts/inter.css";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 
 // Add custom styles for dark mode
@@ -12,6 +12,12 @@ import "./editor-styles.css";
 
 // Import the BlockNoteEditor component
 import BlockNoteEditor from "./BlockNoteEditor";
+
+// Define the editor handle with methods that can be called by parent components
+export interface LearningMaterialEditorHandle {
+    save: () => Promise<void>;
+    cancel: () => void;
+}
 
 interface LearningMaterialEditorProps {
     onChange?: (content: any[]) => void;
@@ -57,7 +63,8 @@ async function uploadFile(file: File) {
     }
 }
 
-export default function LearningMaterialEditor({
+// Use forwardRef to pass the ref from parent to this component
+const LearningMaterialEditor = forwardRef<LearningMaterialEditorHandle, LearningMaterialEditorProps>(({
     onChange,
     isDarkMode = true, // Default to dark mode
     className = "",
@@ -69,7 +76,7 @@ export default function LearningMaterialEditor({
     onPublishSuccess,
     onSaveSuccess,
     isEditMode = false,
-}: LearningMaterialEditorProps) {
+}, ref) => {
     const editorContainerRef = useRef<HTMLDivElement>(null);
     const [isPublishing, setIsPublishing] = useState(false);
     const [publishError, setPublishError] = useState<string | null>(null);
@@ -285,23 +292,6 @@ export default function LearningMaterialEditor({
             const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
             const currentTitle = dialogTitleElement?.textContent || taskData?.title || "";
 
-            // First, update the title if it has changed
-            if (currentTitle !== taskData?.title) {
-                const titleResponse = await fetch(`http://localhost:8001/tasks/${taskId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        title: currentTitle
-                    }),
-                });
-
-                if (!titleResponse.ok) {
-                    console.warn(`Warning: Failed to update title: ${titleResponse.status}`);
-                }
-            }
-
             // Use the current editor content
             const currentContent = editorContent.length > 0 ? editorContent : (taskData?.blocks || []);
 
@@ -355,6 +345,12 @@ export default function LearningMaterialEditor({
         }
     }, [taskData?.blocks, onChange]);
 
+    // Expose methods via the forwarded ref
+    useImperativeHandle(ref, () => ({
+        save: handleSave,
+        cancel: handleCancel
+    }));
+
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center">
@@ -376,14 +372,6 @@ export default function LearningMaterialEditor({
                 className="dark-editor"
                 onEditorReady={setEditorInstance}
             />
-
-            {/* Add refs for the save and cancel functions to be called externally */}
-            {isEditMode && (
-                <>
-                    <div style={{ display: 'none' }} id="save-learning-material" onClick={handleSave} />
-                    <div style={{ display: 'none' }} id="cancel-learning-material" onClick={handleCancel} />
-                </>
-            )}
 
             {/* Publish Confirmation Dialog */}
             {showPublishConfirmation && (
@@ -437,4 +425,9 @@ export default function LearningMaterialEditor({
             )}
         </div>
     );
-}
+});
+
+// Add display name for better debugging
+LearningMaterialEditor.displayName = 'LearningMaterialEditor';
+
+export default LearningMaterialEditor;
