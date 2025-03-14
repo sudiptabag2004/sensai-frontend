@@ -664,6 +664,16 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         cancel: handleCancel
     }));
 
+    // Update current question index when the question changes in preview mode
+    useEffect(() => {
+        if (isPreviewMode && activeQuestionId && questions.length > 0) {
+            const index = questions.findIndex(q => q.id === activeQuestionId);
+            if (index !== -1 && index !== currentQuestionIndex) {
+                setCurrentQuestionIndex(index);
+            }
+        }
+    }, [activeQuestionId, isPreviewMode, questions, currentQuestionIndex]);
+
     // Memoize the LearnerQuizView component to prevent unnecessary re-renders
     const MemoizedLearnerQuizView = useMemo(() => {
         return (
@@ -675,7 +685,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 onSubmitAnswer={onSubmitAnswer}
                 taskType={taskType}
                 currentQuestionId={activeQuestionId}
-                onQuestionChange={onQuestionChange}
+                onQuestionChange={setActiveQuestionId}
             />
         );
     }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, onQuestionChange]);
