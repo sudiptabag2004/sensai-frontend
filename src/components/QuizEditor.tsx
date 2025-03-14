@@ -662,7 +662,26 @@ export default function QuizEditor({
                                         <p className="text-gray-400 text-xs mb-4">
                                             Provide the correct answer for this question. This will be used for automatic grading and feedback.
                                         </p>
-                                        <div className="flex-1 bg-[#1A1A1A] rounded-md overflow-hidden">
+                                        <div
+                                            className="flex-1 bg-[#1A1A1A] rounded-md overflow-hidden"
+                                            // Add click handler to prevent event propagation
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                // Ensure the correct answer editor keeps focus
+                                                if (correctAnswerEditorRef.current) {
+                                                    try {
+                                                        // Try to focus the editor
+                                                        correctAnswerEditorRef.current.focus();
+                                                    } catch (err) {
+                                                        console.error("Error focusing correct answer editor:", err);
+                                                    }
+                                                }
+                                            }}
+                                            // Prevent mousedown from bubbling up which can cause focus issues
+                                            onMouseDown={(e) => {
+                                                e.stopPropagation();
+                                            }}
+                                        >
                                             <BlockNoteEditor
                                                 key={`correct-answer-editor-${currentQuestionIndex}`}
                                                 initialContent={currentQuestionConfig.correctAnswer ? [

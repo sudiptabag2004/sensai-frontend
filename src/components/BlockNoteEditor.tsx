@@ -138,43 +138,33 @@ export default function BlockNoteEditor({
         }
     }, [editor, onChange]);
 
-    // This effect prevents the editor from losing focus
+    // Add a method to focus the editor
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            // Only handle if editor has focus and click is outside editor
-            const target = event.target as Node;
-            if (document.activeElement &&
-                editorContainerRef.current &&
-                editorContainerRef.current.contains(document.activeElement) &&
-                !editorContainerRef.current.contains(target)) {
-
-                // Check if it's an intentional click on an input element
-                if (target instanceof Element) {
-                    const isFormElement =
-                        target.tagName === 'INPUT' ||
-                        target.tagName === 'TEXTAREA' ||
-                        target.tagName === 'SELECT' ||
-                        target.hasAttribute('contenteditable');
-
-                    // If clicking on a form element, don't prevent focus change
-                    if (isFormElement) {
-                        return;
-                    }
+        if (editor && editorRef.current) {
+            // Add a focus method to the editor ref
+            editorRef.current.focus = () => {
+                try {
+                    // Focus the editor
+                    editor.focus();
+                } catch (err) {
+                    console.error("Error focusing editor:", err);
                 }
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
+            };
+        }
+    }, [editor]);
 
     return (
         <div
             ref={editorContainerRef}
             className={`h-full dark-editor-container ${className}`}
+            // Add click handler to prevent event propagation
+            onClick={(e) => {
+                e.stopPropagation();
+            }}
+            // Prevent mousedown from bubbling up which can cause focus issues
+            onMouseDown={(e) => {
+                e.stopPropagation();
+            }}
         >
             <BlockNoteView
                 editor={editor}

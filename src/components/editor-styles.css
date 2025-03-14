@@ -472,6 +472,20 @@ div[role="dialog"]>div {
     --bn-colors-primary-text: #ffffff !important;
     --bn-colors-border: #444444 !important;
     --bn-colors-shadow: rgba(0, 0, 0, 0.3) !important;
+    /* Add z-index to ensure it stays on top when focused */
+    z-index: 5 !important;
+    position: relative !important;
+}
+
+/* Improve focus handling for the correct answer editor */
+.correct-answer-editor .ProseMirror:focus {
+    outline: none !important;
+    z-index: 10 !important;
+}
+
+/* Ensure the correct answer editor is isolated from other editors */
+.correct-answer-editor .bn-container {
+    isolation: isolate !important;
 }
 
 /* Hide all UI elements in the correct answer editor */
@@ -502,13 +516,6 @@ div[role="dialog"]>div {
 .correct-answer-editor [data-placeholder]::before {
     content: "Enter the correct answer here..." !important;
     color: rgba(255, 255, 255, 0.4) !important;
-}
-
-/* Remove any borders or outlines when focused */
-.correct-answer-editor .ProseMirror:focus {
-    outline: none !important;
-    box-shadow: none !important;
-    border-color: #3b82f6 !important;
 }
 
 /* Ensure the editor takes up the full height of its container */
