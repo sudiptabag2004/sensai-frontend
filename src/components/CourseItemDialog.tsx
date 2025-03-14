@@ -263,16 +263,10 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                 contentEditable={(activeItem?.status !== 'published' || isEditMode)}
                                 suppressContentEditableWarning
                                 onInput={(e) => {
-                                    // For learning materials in draft mode, allow editing title 
-                                    // but don't propagate changes upward yet (will be handled during publish)
-                                    if (activeItem?.type === 'material') {
-                                        // Title change is allowed but not propagated upward immediately
-                                        // The current title will be stored in the DOM element
-                                        // and will be sent to the API during publish
-                                    } else {
-                                        // For quizzes/exams, handle as before
-                                        onDialogTitleChange(e);
-                                    }
+                                    // For both learning materials and quizzes/exams, allow editing title 
+                                    // but don't propagate changes upward yet (will be handled during save)
+                                    // The current title will be stored in the DOM element
+                                    // and will be sent to the API during save/publish
                                 }}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -520,6 +514,24 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                     status={activeItem.status}
                                     showPublishConfirmation={showPublishConfirmation}
                                     onPublishCancel={onPublishCancel}
+                                    onSaveSuccess={(updatedData) => {
+                                        // Handle save success
+                                        if (updatedData) {
+                                            console.log("Received updated data in CourseItemDialog after save:", updatedData);
+
+                                            // Update the activeItem with the updated title and questions
+                                            if (activeItem) {
+                                                activeItem.title = updatedData.title;
+
+                                                if (updatedData.questions) {
+                                                    activeItem.questions = updatedData.questions;
+                                                }
+                                            }
+
+                                            // Call onSaveItem to exit edit mode
+                                            onSaveItem();
+                                        }
+                                    }}
                                     onPublishSuccess={(updatedData) => {
                                         // Handle publish success
                                         if (updatedData) {

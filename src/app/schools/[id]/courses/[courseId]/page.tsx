@@ -1236,27 +1236,35 @@ export default function CreateCourse() {
             return;
         }
 
-        // For quizzes and exams, save the content to the API
+        // For quizzes and exams, save operation is handled by QuizEditor component
         if (activeItem.type === 'quiz' || activeItem.type === 'exam') {
-            try {
-                const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}/quiz`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        questions: (activeItem as Quiz | Exam).questions
-                    }),
-                });
+            // Update the modules state to reflect any changes in the UI
+            setModules(prevModules =>
+                prevModules.map(module => {
+                    if (module.id === activeModuleId) {
+                        return {
+                            ...module,
+                            items: module.items.map(item => {
+                                if (item.id === activeItem.id) {
+                                    return {
+                                        ...item,
+                                        title: activeItem.title,
+                                        questions: activeItem.type === 'quiz' || activeItem.type === 'exam'
+                                            ? (activeItem as Quiz | Exam).questions
+                                            : []
+                                    };
+                                }
+                                return item;
+                            })
+                        };
+                    }
+                    return module;
+                })
+            );
 
-                if (!response.ok) {
-                    throw new Error(`Failed to save ${activeItem.type}: ${response.status}`);
-                }
-
-                console.log(`${activeItem.type} saved successfully`);
-            } catch (error) {
-                console.error(`Error saving ${activeItem.type}:`, error);
-            }
+            // Exit edit mode without making an API call
+            setIsEditMode(false);
+            return;
         }
 
         // Exit edit mode
