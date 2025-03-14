@@ -1,7 +1,7 @@
 "use client";
 
 import "@blocknote/core/fonts/inter.css";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import BlockNoteEditor from "./BlockNoteEditor";
 
@@ -43,6 +43,16 @@ export default function LearnerQuizView({
     // Current answer input
     const [currentAnswer, setCurrentAnswer] = useState("");
 
+    // Reference to the input element to maintain focus
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Effect to focus the input when the component mounts or question changes
+    useEffect(() => {
+        if (inputRef.current && !readOnly) {
+            inputRef.current.focus();
+        }
+    }, [currentQuestionIndex, readOnly]);
+
     // Navigate to previous question
     const goToPreviousQuestion = useCallback(() => {
         if (currentQuestionIndex > 0) {
@@ -65,6 +75,12 @@ export default function LearnerQuizView({
             onSubmitAnswer(questions[currentQuestionIndex].id, currentAnswer);
         }
     }, [onSubmitAnswer, questions, currentQuestionIndex, currentAnswer]);
+
+    // Handle input change with focus preservation
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setCurrentAnswer(e.target.value);
+        // No need to manually focus here as we're not losing focus anymore
+    }, []);
 
     // Get current question content
     const currentQuestionContent = questions[currentQuestionIndex]?.content || [];
@@ -129,11 +145,12 @@ export default function LearnerQuizView({
                     <div className="flex-1 flex flex-col justify-end">
                         <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
                             <input
+                                ref={inputRef}
                                 type="text"
                                 placeholder="Type your answer here"
                                 className="flex-1 bg-transparent border-none px-6 py-4 text-white focus:outline-none"
                                 value={currentAnswer}
-                                onChange={(e) => setCurrentAnswer(e.target.value)}
+                                onChange={handleInputChange}
                                 disabled={readOnly}
                             />
                             <button

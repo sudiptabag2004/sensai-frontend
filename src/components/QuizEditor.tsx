@@ -413,6 +413,12 @@ export default function QuizEditor({
         }
     };
 
+    // Memoize the onSubmitAnswer callback to prevent it from being recreated on each render
+    const handlePreviewSubmitAnswer = useCallback((questionId: string, answer: string) => {
+        console.log(`Answer submitted for question ${questionId}: ${answer}`);
+        // You can add additional preview mode functionality here
+    }, []);
+
     return (
         <div className="flex flex-col h-full relative">
             {/* Delete confirmation modal */}
@@ -564,10 +570,7 @@ export default function QuizEditor({
                         isDarkMode={isDarkMode}
                         readOnly={false}
                         className="w-full h-full"
-                        onSubmitAnswer={(questionId, answer) => {
-                            console.log(`Answer submitted for question ${questionId}: ${answer}`);
-                            // You can add additional preview mode functionality here
-                        }}
+                        onSubmitAnswer={handlePreviewSubmitAnswer}
                     />
                 ) : (
                     <>
