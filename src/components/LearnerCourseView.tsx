@@ -392,7 +392,7 @@ export default function LearnerCourseView({
 
                             {/* Dialog Content */}
                             <div
-                                className="flex-1 overflow-y-auto p-6 dialog-content-editor"
+                                className="flex-1 overflow-y-auto p-0 dialog-content-editor"
                             >
                                 {isLoading ? (
                                     <div className="flex items-center justify-center h-full">
