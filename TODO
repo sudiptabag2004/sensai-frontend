@@ -36,7 +36,7 @@ adding quiz
 - learner view
 - exam
 - ai integration
-- support for showing completion and netflix style wait for 5 seconds or autoatically go to next question
+- support for showing completion and netflix style wait for 5 seconds or autoatically go to next question if all questions done, move to next quiz if it exists or back to course page
 - ballons and more acknowledgements
 
 errors for invalid input - question empty, correct answer empty, other fields empty etc.

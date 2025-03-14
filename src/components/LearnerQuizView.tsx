@@ -116,6 +116,9 @@ export default function LearnerQuizView({
     // Store the current answer in a ref to avoid re-renders
     const currentAnswerRef = useRef(currentAnswer);
 
+    // Store the handleSubmitAnswer function in a ref to avoid circular dependencies
+    const handleSubmitAnswerRef = useRef<() => void>(() => { });
+
     // Update the ref when the state changes
     useEffect(() => {
         currentAnswerRef.current = currentAnswer;
@@ -191,63 +194,71 @@ export default function LearnerQuizView({
     // Handle key press in the input field
     const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && currentAnswerRef.current.trim() && !readOnly) {
-            handleSubmitAnswer();
+            handleSubmitAnswerRef.current();
         }
-    }, [readOnly]); // Only depend on readOnly, not on currentAnswer
+    }, [readOnly]); // Only depend on readOnly
 
     // Handle answer submission
     const handleSubmitAnswer = useCallback(() => {
-        if (validQuestions[currentQuestionIndex]) {
-            // Set submitting state to true
-            setIsSubmitting(true);
+        // Add a check to ensure we have valid questions and a valid index
+        if (!validQuestions || validQuestions.length === 0 || currentQuestionIndex >= validQuestions.length) {
+            return;
+        }
 
-            // Get the current answer from the ref
-            const answer = currentAnswerRef.current;
+        // Set submitting state to true
+        setIsSubmitting(true);
 
-            // Add user message to chat history
-            const userMessage: ChatMessage = {
-                id: `user-${Date.now()}`,
-                content: answer,
-                sender: 'user',
+        // Get the current answer from the ref
+        const answer = currentAnswerRef.current;
+
+        // Add user message to chat history
+        const userMessage: ChatMessage = {
+            id: `user-${Date.now()}`,
+            content: answer,
+            sender: 'user',
+            timestamp: new Date()
+        };
+
+        setChatHistory(prev => [...prev, userMessage]);
+
+        // Clear the input field after submission
+        setCurrentAnswer("");
+        currentAnswerRef.current = "";
+
+        // Focus the input field again
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+
+        // Reset submitting state
+        setIsSubmitting(false);
+
+        // Set AI responding state
+        setIsAiResponding(true);
+
+        // Call the onSubmitAnswer callback if provided
+        if (onSubmitAnswer) {
+            onSubmitAnswer(validQuestions[currentQuestionIndex].id, userMessage.content);
+        }
+
+        // Simulate AI response after 2 seconds
+        setTimeout(() => {
+            const aiResponse: ChatMessage = {
+                id: `ai-${Date.now()}`,
+                content: generateMockAiResponse(userMessage.content),
+                sender: 'ai',
                 timestamp: new Date()
             };
 
-            setChatHistory(prev => [...prev, userMessage]);
-
-            // Clear the input field after submission
-            setCurrentAnswer("");
-            currentAnswerRef.current = "";
-
-            // Focus the input field again
-            if (inputRef.current) {
-                inputRef.current.focus();
-            }
-
-            // Reset submitting state
-            setIsSubmitting(false);
-
-            // Set AI responding state
-            setIsAiResponding(true);
-
-            // Call the onSubmitAnswer callback if provided
-            if (onSubmitAnswer) {
-                onSubmitAnswer(validQuestions[currentQuestionIndex].id, userMessage.content);
-            }
-
-            // Simulate AI response after 2 seconds
-            setTimeout(() => {
-                const aiResponse: ChatMessage = {
-                    id: `ai-${Date.now()}`,
-                    content: generateMockAiResponse(userMessage.content),
-                    sender: 'ai',
-                    timestamp: new Date()
-                };
-
-                setChatHistory(prev => [...prev, aiResponse]);
-                setIsAiResponding(false);
-            }, 2000);
-        }
+            setChatHistory(prev => [...prev, aiResponse]);
+            setIsAiResponding(false);
+        }, 2000);
     }, [validQuestions, currentQuestionIndex, onSubmitAnswer, generateMockAiResponse]);
+
+    // Update the handleSubmitAnswerRef when handleSubmitAnswer changes
+    useEffect(() => {
+        handleSubmitAnswerRef.current = handleSubmitAnswer;
+    }, [handleSubmitAnswer]);
 
     // Get current question content
     const currentQuestionContent = validQuestions[currentQuestionIndex]?.content || [];
@@ -378,12 +389,14 @@ export default function LearnerQuizView({
                                     inputRef.current.focus();
                                 }
                             }}
-                            disabled={readOnly && isAiResponding}
+                            disabled={readOnly}
                         />
                         <button
                             className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
-                            onClick={handleSubmitAnswer}
+                            onClick={() => handleSubmitAnswerRef.current()}
                             disabled={readOnly || !currentAnswer.trim() || isSubmitting || isAiResponding}
+                            aria-label="Submit answer"
+                            type="button"
                         >
                             {isSubmitting ? (
                                 <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
