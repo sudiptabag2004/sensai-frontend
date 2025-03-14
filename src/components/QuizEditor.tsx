@@ -55,6 +55,7 @@ export interface QuizEditorProps {
     taskType?: 'quiz' | 'exam';
     currentQuestionId?: string;
     onQuestionChange?: (questionId: string) => void;
+    onSubmitAnswer?: (questionId: string, answer: string) => void;
 }
 
 // Default configuration for new questions
@@ -111,6 +112,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     taskType = 'quiz',
     currentQuestionId,
     onQuestionChange,
+    onSubmitAnswer,
 }, ref) => {
     // Initialize questions state
     const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
@@ -662,39 +664,6 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         cancel: handleCancel
     }));
 
-    // Memoize the onSubmitAnswer callback to prevent it from being recreated on each render
-    const handlePreviewSubmitAnswer = useCallback((questionId: string, answer: string) => {
-        // Find the question with the matching ID
-        const questionIndex = questions.findIndex(q => q.id === questionId);
-        if (questionIndex !== -1) {
-            const question = questions[questionIndex];
-
-            // Check if the answer is correct (for internal use)
-            const isCorrect = question.config.correctAnswer &&
-                answer.trim().toLowerCase() === question.config.correctAnswer.trim().toLowerCase();
-
-            // No alerts or immediate feedback - the LearnerQuizView component will handle the UI
-        }
-    }, [questions]);
-
-    // Handler for question changes from preview mode
-    const handlePreviewQuestionChange = useCallback((questionId: string) => {
-        // Find the index of the question with the matching ID
-        const questionIndex = questions.findIndex(q => q.id === questionId);
-        if (questionIndex !== -1) {
-            // Update the current question index to sync editor and preview
-            setCurrentQuestionIndex(questionIndex);
-
-            // Reset last content update ref when changing questions
-            lastContentUpdateRef.current = "";
-
-            // Call the parent's onQuestionChange if it exists
-            if (onQuestionChange) {
-                onQuestionChange(questionId);
-            }
-        }
-    }, [questions, onQuestionChange]);
-
     // Memoize the LearnerQuizView component to prevent unnecessary re-renders
     const MemoizedLearnerQuizView = useMemo(() => {
         return (
@@ -703,13 +672,13 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 isDarkMode={isDarkMode}
                 readOnly={readOnly}
                 className="w-full h-full"
-                onSubmitAnswer={handlePreviewSubmitAnswer}
+                onSubmitAnswer={onSubmitAnswer}
                 taskType={taskType}
                 currentQuestionId={activeQuestionId}
-                onQuestionChange={handlePreviewQuestionChange}
+                onQuestionChange={onQuestionChange}
             />
         );
-    }, [questions, isDarkMode, readOnly, handlePreviewSubmitAnswer, taskType, activeQuestionId, handlePreviewQuestionChange]);
+    }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, onQuestionChange]);
 
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>

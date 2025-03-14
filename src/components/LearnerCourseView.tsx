@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Header } from "@/components/layout/header";
 import Link from "next/link";
 import { ModuleItem, Module } from "@/types/course";
@@ -38,6 +38,8 @@ export default function LearnerCourseView({
     const [isLoading, setIsLoading] = useState(false);
     // Track completed tasks
     const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
+    // Track completed questions within quizzes/exams
+    const [completedQuestions, setCompletedQuestions] = useState<Record<string, boolean>>({});
     const dialogTitleRef = useRef<HTMLHeadingElement>(null);
     const dialogContentRef = useRef<HTMLDivElement>(null);
 
@@ -111,6 +113,29 @@ export default function LearnerCourseView({
                 } else if (formattedQuestions.length > 0) {
                     setActiveQuestionId(formattedQuestions[0].id);
                 }
+
+                // ADDED: For exams, we'll auto-mark questions as completed when they're viewed
+                if (item.type === 'exam') {
+                    if (formattedQuestions.length <= 1) {
+                        // If this is a single-question exam, mark the entire exam as complete
+                        setCompletedTasks(prev => ({
+                            ...prev,
+                            [itemId]: true
+                        }));
+                    } else if (questionId) {
+                        // If a specific question ID is provided, mark that question as complete
+                        setCompletedQuestions(prev => ({
+                            ...prev,
+                            [questionId]: true
+                        }));
+                    } else if (formattedQuestions.length > 0) {
+                        // Otherwise mark the first question as complete
+                        setCompletedQuestions(prev => ({
+                            ...prev,
+                            [formattedQuestions[0].id]: true
+                        }));
+                    }
+                }
             } else {
                 updatedItem = item;
             }
@@ -134,6 +159,29 @@ export default function LearnerCourseView({
                 if ((item.type === 'quiz' || item.type === 'exam') &&
                     item.questions && item.questions.length > 0) {
                     setActiveQuestionId(questionId || item.questions[0].id);
+
+                    // ADDED: For exams, we'll auto-mark questions as completed when they're viewed
+                    if (item.type === 'exam') {
+                        if (item.questions.length <= 1) {
+                            // If this is a single-question exam, mark the entire exam as complete
+                            setCompletedTasks(prev => ({
+                                ...prev,
+                                [item.id]: true
+                            }));
+                        } else if (questionId) {
+                            // If a specific question ID is provided, mark that question as complete
+                            setCompletedQuestions(prev => ({
+                                ...prev,
+                                [questionId]: true
+                            }));
+                        } else if (item.questions.length > 0) {
+                            // Otherwise mark the first question as complete
+                            setCompletedQuestions(prev => ({
+                                ...prev,
+                                [item.questions[0].id]: true
+                            }));
+                        }
+                    }
                 }
             }
         } finally {
@@ -153,6 +201,40 @@ export default function LearnerCourseView({
         setActiveModuleId(null);
         setActiveQuestionId(null);
     };
+
+    // Function to handle quiz/exam answer submission
+    const handleQuizAnswerSubmit = useCallback((questionId: string, answer: string) => {
+        // Mark the question as completed
+        setCompletedQuestions(prev => ({
+            ...prev,
+            [questionId]: true
+        }));
+
+        // Check if all questions in the current quiz/exam are now completed
+        if (activeItem?.type === 'quiz' || activeItem?.type === 'exam') {
+            const allQuestions = activeItem.questions || [];
+
+            // If this is a single question quiz, mark the entire task as complete
+            if (allQuestions.length <= 1) {
+                setCompletedTasks(prev => ({
+                    ...prev,
+                    [activeItem.id]: true
+                }));
+            } else {
+                // For multi-question quiz/exam, check if all questions are now completed
+                const areAllQuestionsCompleted = allQuestions.every(
+                    (q: any) => completedQuestions[q.id] || q.id === questionId
+                );
+
+                if (areAllQuestionsCompleted) {
+                    setCompletedTasks(prev => ({
+                        ...prev,
+                        [activeItem.id]: true
+                    }));
+                }
+            }
+        }
+    }, [activeItem, completedQuestions]);
 
     // Function to mark task as completed (placeholder for now)
     const markTaskComplete = async () => {
@@ -509,11 +591,19 @@ export default function LearnerCourseView({
                                                             key={question.id}
                                                             className={`px-4 py-2 cursor-pointer flex items-center ${question.id === activeQuestionId
                                                                 ? "bg-[#222222] border-l-2 border-green-500"
-                                                                : "hover:bg-[#1A1A1A] border-l-2 border-transparent"
+                                                                : completedQuestions[question.id]
+                                                                    ? "border-l-2 border-green-500 text-green-500"
+                                                                    : "hover:bg-[#1A1A1A] border-l-2 border-transparent"
                                                                 }`}
                                                             onClick={() => activateQuestion(question.id)}
                                                         >
-                                                            <div className="flex-1 text-sm text-gray-300 truncate">
+                                                            <div className={`flex items-center mr-2 ${completedQuestions[question.id] ? "text-green-500" : "text-gray-400"}`}>
+                                                                {completedQuestions[question.id]
+                                                                    ? <CheckCircle size={14} />
+                                                                    : <HelpCircle size={14} />
+                                                                }
+                                                            </div>
+                                                            <div className={`flex-1 text-sm ${completedQuestions[question.id] ? "text-green-500" : "text-gray-300"} truncate`}>
                                                                 Question {index + 1}
                                                             </div>
                                                         </div>
@@ -554,6 +644,18 @@ export default function LearnerCourseView({
                                     </h2>
                                 </div>
                                 <div className="flex items-center space-x-3">
+                                    {/* Show completed status for exams that have been answered */}
+                                    {(activeItem?.type === 'exam' &&
+                                        ((activeItem.questions?.length === 1 && completedTasks[activeItem.id]) ||
+                                            (activeItem.questions?.length > 1 && completedQuestions[activeQuestionId || '']))) && (
+                                            <button
+                                                className="flex items-center px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-full transition-colors cursor-default"
+                                                disabled
+                                            >
+                                                <CheckCircle size={16} className="mr-2" />
+                                                Completed
+                                            </button>
+                                        )}
                                     {activeItem?.type === 'material' && (
                                         completedTasks[activeItem?.id] ? (
                                             <button
@@ -611,6 +713,7 @@ export default function LearnerCourseView({
                                                     taskType={activeItem.type as 'quiz' | 'exam'}
                                                     currentQuestionId={activeQuestionId || undefined}
                                                     onQuestionChange={activateQuestion}
+                                                    onSubmitAnswer={handleQuizAnswerSubmit}
                                                 />
                                             </>
                                         )}

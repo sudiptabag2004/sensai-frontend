@@ -277,17 +277,16 @@ export default function LearnerQuizView({
         // Set AI responding state
         setIsAiResponding(true);
 
-        // Call the onSubmitAnswer callback if provided
-        if (onSubmitAnswer) {
-            onSubmitAnswer(validQuestions[currentQuestionIndex].id, userMessage.content);
-        }
-
         // If this is an exam, mark that a response has been submitted
         if (taskType === 'exam') {
             setExamResponseSubmitted(true);
         }
 
-        console.log(taskType)
+        // CRITICAL FIX: Call the onSubmitAnswer callback immediately to mark completion
+        // This needs to happen before the AI response simulation
+        if (onSubmitAnswer && validQuestions[currentQuestionIndex]) {
+            onSubmitAnswer(validQuestions[currentQuestionIndex].id, answer);
+        }
 
         // Simulate AI response after 2 seconds
         setTimeout(() => {
