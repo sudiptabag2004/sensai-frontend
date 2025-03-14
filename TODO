@@ -40,6 +40,7 @@ adding quiz
 - ballons and more acknowledgements
 
 errors for invalid input - question empty, correct answer empty, other fields empty etc.
+during save for task - ask for confirmation before saving.
 
 Cohort page for learner
 Cohort page should have leaderboard/streaks

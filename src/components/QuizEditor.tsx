@@ -363,16 +363,18 @@ export default function QuizEditor({
             <p className="text-gray-400 max-w-md mb-8">
                 Add questions to create an interactive quiz for your learners
             </p>
-            <button
-                onClick={addQuestion}
-                className="flex items-center px-5 py-2.5 text-sm text-black bg-white hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-                disabled={readOnly}
-            >
-                <div className="w-5 h-5 rounded-full border border-black flex items-center justify-center mr-2">
-                    <Plus size={12} className="text-black" />
-                </div>
-                Add Your First Question
-            </button>
+            {status === 'draft' && (
+                <button
+                    onClick={addQuestion}
+                    className="flex items-center px-5 py-2.5 text-sm text-black bg-white hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                    disabled={readOnly}
+                >
+                    <div className="w-5 h-5 rounded-full border border-black flex items-center justify-center mr-2">
+                        <Plus size={12} className="text-black" />
+                    </div>
+                    Add Your First Question
+                </button>
+            )}
         </div>
     );
 
@@ -605,7 +607,7 @@ export default function QuizEditor({
                 <div className="flex justify-between items-center mb-4 px-2 py-3">
                     {/* Left: Add Question Button */}
                     <div className="flex-1">
-                        {!readOnly && <button
+                        {!readOnly && status === 'draft' && <button
                             onClick={addQuestion}
                             className="flex items-center px-4 py-2 text-sm text-black bg-white hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
                             disabled={readOnly}
@@ -645,7 +647,7 @@ export default function QuizEditor({
 
                     {/* Right: Delete Button and Publish Button */}
                     <div className="flex-1 flex justify-end items-center space-x-3">
-                        {!readOnly && (
+                        {!readOnly && status === 'draft' && (
                             <button
                                 onClick={() => setShowDeleteConfirm(true)}
                                 className="flex items-center px-3 py-1.5 text-sm text-red-400 hover:text-white bg-[#3A3A3A] hover:bg-red-600 rounded-md transition-colors cursor-pointer"
@@ -700,7 +702,7 @@ export default function QuizEditor({
                                 </div>
 
                                 {/* Correct Answer Section - 20% width */}
-                                <div className="w-2/5 pl-4">
+                                <div className="w-2/5 pl-4 border-l border-[#3A3A3A]">
                                     <div className="h-full flex flex-col">
                                         <div className="mb-2 flex items-center">
                                             <Check size={16} className="text-green-500 mr-2" />
