@@ -414,9 +414,14 @@ export default function LearnerQuizView({
                     <div className="flex-1 mb-4">
                         {currentChatHistory.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full">
-                                <h2 className="text-4xl font-light text-white mb-6">Ready to test your knowledge?</h2>
+                                <h2 className="text-4xl font-light text-white mb-6">
+                                    {taskType === 'exam' ? 'Ready for a challenge?' : 'Ready to test your knowledge?'}
+                                </h2>
                                 <p className="text-gray-400 text-center max-w-md mb-8">
-                                    Think through your answer, then type it here. You will receive instant feedback and support throughout your learning journey
+                                    {taskType === 'exam'
+                                        ? 'Think through your answer, then type it here. You can attempt the question only once. Be careful and confident.'
+                                        : 'Think through your answer, then type it here. You will receive instant feedback and support throughout your journey'
+                                    }
                                 </p>
                             </div>
                         ) : (
