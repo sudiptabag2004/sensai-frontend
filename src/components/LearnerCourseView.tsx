@@ -33,6 +33,7 @@ export default function LearnerCourseView({
     const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
     const [activeItem, setActiveItem] = useState<any>(null);
     const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+    const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     // Track completed tasks
@@ -57,7 +58,7 @@ export default function LearnerCourseView({
     };
 
     // Function to open a task item and fetch its details
-    const openTaskItem = async (moduleId: string, itemId: string) => {
+    const openTaskItem = async (moduleId: string, itemId: string, questionId?: string) => {
         setIsLoading(true);
         try {
             // Find the item in the modules
@@ -103,6 +104,13 @@ export default function LearnerCourseView({
                     ...item,
                     questions: formattedQuestions
                 };
+
+                // Set active question ID if provided, otherwise set to first question
+                if (questionId) {
+                    setActiveQuestionId(questionId);
+                } else if (formattedQuestions.length > 0) {
+                    setActiveQuestionId(formattedQuestions[0].id);
+                }
             } else {
                 updatedItem = item;
             }
@@ -121,10 +129,21 @@ export default function LearnerCourseView({
                 setActiveItem(item);
                 setActiveModuleId(moduleId);
                 setIsDialogOpen(true);
+
+                // Set first question as active if it's a quiz/exam
+                if ((item.type === 'quiz' || item.type === 'exam') &&
+                    item.questions && item.questions.length > 0) {
+                    setActiveQuestionId(questionId || item.questions[0].id);
+                }
             }
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Function to activate a specific question in a quiz or exam
+    const activateQuestion = (questionId: string) => {
+        setActiveQuestionId(questionId);
     };
 
     // Function to close the dialog
@@ -132,6 +151,7 @@ export default function LearnerCourseView({
         setIsDialogOpen(false);
         setActiveItem(null);
         setActiveModuleId(null);
+        setActiveQuestionId(null);
     };
 
     // Function to mark task as completed (placeholder for now)
@@ -185,7 +205,22 @@ export default function LearnerCourseView({
     const goToNextTask = () => {
         if (!activeItem || !activeModuleId) return;
 
-        // Find the current module
+        // If this is a quiz/exam with questions and not on the last question, go to next question
+        if ((activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+            activeItem.questions &&
+            activeItem.questions.length > 1 &&
+            activeQuestionId) {
+
+            const currentIndex = activeItem.questions.findIndex((q: any) => q.id === activeQuestionId);
+            if (currentIndex < activeItem.questions.length - 1) {
+                // Go to next question
+                const nextQuestion = activeItem.questions[currentIndex + 1];
+                activateQuestion(nextQuestion.id);
+                return;
+            }
+        }
+
+        // Otherwise, go to next task in module
         const currentModule = filteredModules.find(m => m.id === activeModuleId);
         if (!currentModule) return;
 
@@ -205,7 +240,22 @@ export default function LearnerCourseView({
     const goToPreviousTask = () => {
         if (!activeItem || !activeModuleId) return;
 
-        // Find the current module
+        // If this is a quiz/exam with questions and not on the first question, go to previous question
+        if ((activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+            activeItem.questions &&
+            activeItem.questions.length > 1 &&
+            activeQuestionId) {
+
+            const currentIndex = activeItem.questions.findIndex((q: any) => q.id === activeQuestionId);
+            if (currentIndex > 0) {
+                // Go to previous question
+                const prevQuestion = activeItem.questions[currentIndex - 1];
+                activateQuestion(prevQuestion.id);
+                return;
+            }
+        }
+
+        // Otherwise, go to previous task in module
         const currentModule = filteredModules.find(m => m.id === activeModuleId);
         if (!currentModule) return;
 
@@ -225,6 +275,19 @@ export default function LearnerCourseView({
     const isFirstTask = () => {
         if (!activeItem || !activeModuleId) return false;
 
+        // If this is a quiz/exam with questions, check if we're on the first question
+        if ((activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+            activeItem.questions &&
+            activeItem.questions.length > 1 &&
+            activeQuestionId) {
+
+            const currentIndex = activeItem.questions.findIndex((q: any) => q.id === activeQuestionId);
+            if (currentIndex > 0) {
+                // Not the first question, so return false
+                return false;
+            }
+        }
+
         const currentModule = filteredModules.find(m => m.id === activeModuleId);
         if (!currentModule) return false;
 
@@ -235,6 +298,19 @@ export default function LearnerCourseView({
     // Function to check if we're at the last task in the module
     const isLastTask = () => {
         if (!activeItem || !activeModuleId) return false;
+
+        // If this is a quiz/exam with questions, check if we're on the last question
+        if ((activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+            activeItem.questions &&
+            activeItem.questions.length > 1 &&
+            activeQuestionId) {
+
+            const currentIndex = activeItem.questions.findIndex((q: any) => q.id === activeQuestionId);
+            if (currentIndex < activeItem.questions.length - 1) {
+                // Not the last question, so return false
+                return false;
+            }
+        }
 
         const currentModule = filteredModules.find(m => m.id === activeModuleId);
         if (!currentModule) return false;
@@ -256,6 +332,78 @@ export default function LearnerCourseView({
         if (dialogContentRef.current && !dialogContentRef.current.contains(e.target as Node)) {
             closeDialog();
         }
+    };
+
+    // Function to get previous task info
+    const getPreviousTaskInfo = () => {
+        if (!activeItem || !activeModuleId) return null;
+
+        // If this is a quiz/exam with questions and not on the first question, get previous question info
+        if ((activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+            activeItem.questions &&
+            activeItem.questions.length > 1 &&
+            activeQuestionId) {
+
+            const currentIndex = activeItem.questions.findIndex((q: any) => q.id === activeQuestionId);
+            if (currentIndex > 0) {
+                // Return previous question info
+                return {
+                    type: 'question',
+                    title: `Question ${currentIndex}`
+                };
+            }
+        }
+
+        // Get previous task in module
+        const currentModule = filteredModules.find(m => m.id === activeModuleId);
+        if (!currentModule) return null;
+
+        // Find the index of the current task in the module
+        const currentTaskIndex = currentModule.items.findIndex(item => item.id === activeItem.id);
+        if (currentTaskIndex <= 0) return null;
+
+        // Return previous task info
+        const previousTask = currentModule.items[currentTaskIndex - 1];
+        return {
+            type: 'task',
+            title: previousTask.title
+        };
+    };
+
+    // Function to get next task info
+    const getNextTaskInfo = () => {
+        if (!activeItem || !activeModuleId) return null;
+
+        // If this is a quiz/exam with questions and not on the last question, get next question info
+        if ((activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+            activeItem.questions &&
+            activeItem.questions.length > 1 &&
+            activeQuestionId) {
+
+            const currentIndex = activeItem.questions.findIndex((q: any) => q.id === activeQuestionId);
+            if (currentIndex < activeItem.questions.length - 1) {
+                // Return next question info
+                return {
+                    type: 'question',
+                    title: `Question ${currentIndex + 2}`
+                };
+            }
+        }
+
+        // Get next task in module
+        const currentModule = filteredModules.find(m => m.id === activeModuleId);
+        if (!currentModule) return null;
+
+        // Find the index of the current task in the module
+        const currentTaskIndex = currentModule.items.findIndex(item => item.id === activeItem.id);
+        if (currentTaskIndex === -1 || currentTaskIndex >= currentModule.items.length - 1) return null;
+
+        // Return next task info
+        const nextTask = currentModule.items[currentTaskIndex + 1];
+        return {
+            type: 'task',
+            title: nextTask.title
+        };
     };
 
     return (
@@ -320,29 +468,58 @@ export default function LearnerCourseView({
                             {/* Task List */}
                             <div className="flex-1 overflow-y-auto pt-0 pb-2">
                                 {activeModuleId && filteredModules.find(m => m.id === activeModuleId)?.items.map((item) => (
-                                    <div
-                                        key={item.id}
-                                        className={`px-4 py-2 cursor-pointer flex items-center ${item.id === activeItem.id
-                                            ? "bg-[#222222] border-l-2 border-green-500"
-                                            : completedTasks[item.id]
-                                                ? "border-l-2 border-green-500 text-green-500"
-                                                : "hover:bg-[#1A1A1A] border-l-2 border-transparent"
-                                            }`}
-                                        onClick={() => openTaskItem(activeModuleId, item.id)}
-                                    >
-                                        <div className={`flex items-center mr-2 ${completedTasks[item.id] ? "text-green-500" : "text-gray-400"}`}>
-                                            {completedTasks[item.id]
-                                                ? <CheckCircle size={14} />
-                                                : item.type === 'material'
-                                                    ? <BookOpen size={14} />
-                                                    : item.type === 'quiz'
-                                                        ? <HelpCircle size={14} />
-                                                        : <Clipboard size={14} />
-                                            }
+                                    <div key={item.id}>
+                                        <div
+                                            className={`px-4 py-2 cursor-pointer flex items-center ${item.id === activeItem.id &&
+                                                (
+                                                    (item.type !== 'quiz' && item.type !== 'exam') ||
+                                                    !activeItem?.questions ||
+                                                    activeItem.questions.length <= 1
+                                                )
+                                                ? "bg-[#222222] border-l-2 border-green-500"
+                                                : completedTasks[item.id]
+                                                    ? "border-l-2 border-green-500 text-green-500"
+                                                    : "hover:bg-[#1A1A1A] border-l-2 border-transparent"
+                                                }`}
+                                            onClick={() => openTaskItem(activeModuleId, item.id)}
+                                        >
+                                            <div className={`flex items-center mr-2 ${completedTasks[item.id] ? "text-green-500" : "text-gray-400"}`}>
+                                                {completedTasks[item.id]
+                                                    ? <CheckCircle size={14} />
+                                                    : item.type === 'material'
+                                                        ? <BookOpen size={14} />
+                                                        : item.type === 'quiz'
+                                                            ? <HelpCircle size={14} />
+                                                            : <Clipboard size={14} />
+                                                }
+                                            </div>
+                                            <div className={`flex-1 text-sm ${completedTasks[item.id] ? "text-green-500" : "text-gray-200"} truncate`}>
+                                                {item.title}
+                                            </div>
                                         </div>
-                                        <div className={`flex-1 text-sm ${completedTasks[item.id] ? "text-green-500" : "text-gray-200"} truncate`}>
-                                            {item.title}
-                                        </div>
+
+                                        {/* Show questions as expanded items for active quiz/exam */}
+                                        {(item.type === 'quiz' || item.type === 'exam') &&
+                                            item.id === activeItem?.id &&
+                                            activeItem?.questions &&
+                                            activeItem.questions.length > 1 && (
+                                                <div className="pl-8 border-l border-gray-800">
+                                                    {activeItem.questions.map((question: any, index: number) => (
+                                                        <div
+                                                            key={question.id}
+                                                            className={`px-4 py-2 cursor-pointer flex items-center ${question.id === activeQuestionId
+                                                                ? "bg-[#222222] border-l-2 border-green-500"
+                                                                : "hover:bg-[#1A1A1A] border-l-2 border-transparent"
+                                                                }`}
+                                                            onClick={() => activateQuestion(question.id)}
+                                                        >
+                                                            <div className="flex-1 text-sm text-gray-300 truncate">
+                                                                Question {index + 1}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                     </div>
                                 ))}
                             </div>
@@ -432,6 +609,8 @@ export default function LearnerCourseView({
                                                     isPreviewMode={true}
                                                     taskId={activeItem.id}
                                                     taskType={activeItem.type as 'quiz' | 'exam'}
+                                                    currentQuestionId={activeQuestionId || undefined}
+                                                    onQuestionChange={activateQuestion}
                                                 />
                                             </>
                                         )}
@@ -441,29 +620,26 @@ export default function LearnerCourseView({
 
                             {/* Navigation Footer */}
                             <div className="flex items-center justify-between p-4 border-t border-gray-800 bg-[#111111]">
-                                <button
-                                    onClick={goToPreviousTask}
-                                    disabled={isFirstTask()}
-                                    className={`flex items-center px-4 py-2 text-sm rounded-md transition-colors ${isFirstTask()
-                                        ? "text-gray-500 cursor-not-allowed"
-                                        : "text-white hover:bg-gray-800 cursor-pointer"
-                                        }`}
-                                >
-                                    <ChevronLeft size={16} className="mr-1" />
-                                    Previous
-                                </button>
+                                {!isFirstTask() && getPreviousTaskInfo() && (
+                                    <button
+                                        onClick={goToPreviousTask}
+                                        className="flex items-center px-4 py-2 text-sm rounded-md transition-colors text-white hover:bg-gray-800 cursor-pointer"
+                                    >
+                                        <ChevronLeft size={16} className="mr-1" />
+                                        {getPreviousTaskInfo()?.title}
+                                    </button>
+                                )}
+                                {isFirstTask() && <div></div>}
 
-                                <button
-                                    onClick={goToNextTask}
-                                    disabled={isLastTask()}
-                                    className={`flex items-center px-4 py-2 text-sm rounded-md transition-colors ${isLastTask()
-                                        ? "text-gray-500 cursor-not-allowed"
-                                        : "text-white hover:bg-gray-800 cursor-pointer"
-                                        }`}
-                                >
-                                    Next
-                                    <ChevronRight size={16} className="ml-1" />
-                                </button>
+                                {!isLastTask() && getNextTaskInfo() && (
+                                    <button
+                                        onClick={goToNextTask}
+                                        className="flex items-center px-4 py-2 text-sm rounded-md transition-colors text-white hover:bg-gray-800 cursor-pointer"
+                                    >
+                                        {getNextTaskInfo()?.title}
+                                        <ChevronRight size={16} className="ml-1" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

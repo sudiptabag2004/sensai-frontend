@@ -58,6 +58,8 @@ interface LearnerQuizViewProps {
     readOnly?: boolean;
     showCorrectAnswers?: boolean;
     taskType?: 'quiz' | 'exam';
+    currentQuestionId?: string;
+    onQuestionChange?: (questionId: string) => void;
 }
 
 export default function LearnerQuizView({
@@ -68,9 +70,21 @@ export default function LearnerQuizView({
     readOnly = false,
     showCorrectAnswers = false,
     taskType = 'quiz',
+    currentQuestionId,
+    onQuestionChange
 }: LearnerQuizViewProps) {
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+    // Update current question index when currentQuestionId changes
+    useEffect(() => {
+        if (currentQuestionId && questions.length > 0) {
+            const index = questions.findIndex(q => q.id === currentQuestionId);
+            if (index !== -1) {
+                setCurrentQuestionIndex(index);
+            }
+        }
+    }, [currentQuestionId, questions]);
 
     // Ensure we have valid questions
     const validQuestions = useMemo(() => {
@@ -163,26 +177,38 @@ export default function LearnerQuizView({
     // Navigate to previous question
     const goToPreviousQuestion = useCallback(() => {
         if (currentQuestionIndex > 0) {
-            setCurrentQuestionIndex(currentQuestionIndex - 1);
+            const newIndex = currentQuestionIndex - 1;
+            setCurrentQuestionIndex(newIndex);
             setCurrentAnswer(""); // Reset answer when changing questions
             // Clear chat history when changing questions
             setChatHistory([]);
             // Reset exam response submitted state
             setExamResponseSubmitted(false);
+
+            // Notify parent component about question change
+            if (onQuestionChange && validQuestions[newIndex]) {
+                onQuestionChange(validQuestions[newIndex].id);
+            }
         }
-    }, [currentQuestionIndex]);
+    }, [currentQuestionIndex, onQuestionChange, validQuestions]);
 
     // Navigate to next question
     const goToNextQuestion = useCallback(() => {
         if (currentQuestionIndex < validQuestions.length - 1) {
-            setCurrentQuestionIndex(currentQuestionIndex + 1);
+            const newIndex = currentQuestionIndex + 1;
+            setCurrentQuestionIndex(newIndex);
             setCurrentAnswer(""); // Reset answer when changing questions
             // Clear chat history when changing questions
             setChatHistory([]);
             // Reset exam response submitted state
             setExamResponseSubmitted(false);
+
+            // Notify parent component about question change
+            if (onQuestionChange && validQuestions[newIndex]) {
+                onQuestionChange(validQuestions[newIndex].id);
+            }
         }
-    }, [currentQuestionIndex, validQuestions.length]);
+    }, [currentQuestionIndex, validQuestions.length, onQuestionChange, validQuestions]);
 
     // Generate a mock AI response
     const generateMockAiResponse = useCallback((userMessage: string) => {

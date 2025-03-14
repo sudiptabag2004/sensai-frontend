@@ -53,6 +53,8 @@ export interface QuizEditorProps {
     isEditMode?: boolean;
     onSaveSuccess?: (updatedData?: any) => void;
     taskType?: 'quiz' | 'exam';
+    currentQuestionId?: string;
+    onQuestionChange?: (questionId: string) => void;
 }
 
 // Default configuration for new questions
@@ -107,6 +109,8 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     isEditMode = false,
     onSaveSuccess,
     taskType = 'quiz',
+    currentQuestionId,
+    onQuestionChange,
 }, ref) => {
     // Initialize questions state
     const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
@@ -151,6 +155,29 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+    // Internal state to track the current question ID for preview mode
+    const [activeQuestionId, setActiveQuestionId] = useState<string | undefined>(
+        currentQuestionId || (questions.length > 0 ? questions[0]?.id : undefined)
+    );
+
+    // Update current question index when currentQuestionId changes
+    useEffect(() => {
+        if (currentQuestionId && questions.length > 0) {
+            const index = questions.findIndex(q => q.id === currentQuestionId);
+            if (index !== -1) {
+                setCurrentQuestionIndex(index);
+                setActiveQuestionId(currentQuestionId);
+            }
+        }
+    }, [currentQuestionId, questions]);
+
+    // Update activeQuestionId when currentQuestionIndex changes
+    useEffect(() => {
+        if (questions.length > 0 && currentQuestionIndex >= 0 && currentQuestionIndex < questions.length) {
+            setActiveQuestionId(questions[currentQuestionIndex].id);
+        }
+    }, [currentQuestionIndex, questions]);
 
     // State to track if a new question was just added (for animation)
     const [newQuestionAdded, setNewQuestionAdded] = useState(false);
@@ -308,18 +335,30 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         if (currentQuestionIndex > 0) {
             // Reset last content update ref when navigating to a different question
             lastContentUpdateRef.current = "";
-            setCurrentQuestionIndex(currentQuestionIndex - 1);
+            const newIndex = currentQuestionIndex - 1;
+            setCurrentQuestionIndex(newIndex);
+
+            // Call the onQuestionChange callback if provided
+            if (onQuestionChange && questions[newIndex]) {
+                onQuestionChange(questions[newIndex].id);
+            }
         }
-    }, [currentQuestionIndex]);
+    }, [currentQuestionIndex, onQuestionChange, questions]);
 
     // Navigate to next question
     const goToNextQuestion = useCallback(() => {
         if (currentQuestionIndex < questions.length - 1) {
             // Reset last content update ref when navigating to a different question
             lastContentUpdateRef.current = "";
-            setCurrentQuestionIndex(currentQuestionIndex + 1);
+            const newIndex = currentQuestionIndex + 1;
+            setCurrentQuestionIndex(newIndex);
+
+            // Call the onQuestionChange callback if provided
+            if (onQuestionChange && questions[newIndex]) {
+                onQuestionChange(questions[newIndex].id);
+            }
         }
-    }, [currentQuestionIndex, questions.length]);
+    }, [currentQuestionIndex, questions.length, onQuestionChange, questions]);
 
     // Delete current question
     const deleteQuestion = useCallback(() => {
@@ -638,6 +677,24 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         }
     }, [questions]);
 
+    // Handler for question changes from preview mode
+    const handlePreviewQuestionChange = useCallback((questionId: string) => {
+        // Find the index of the question with the matching ID
+        const questionIndex = questions.findIndex(q => q.id === questionId);
+        if (questionIndex !== -1) {
+            // Update the current question index to sync editor and preview
+            setCurrentQuestionIndex(questionIndex);
+
+            // Reset last content update ref when changing questions
+            lastContentUpdateRef.current = "";
+
+            // Call the parent's onQuestionChange if it exists
+            if (onQuestionChange) {
+                onQuestionChange(questionId);
+            }
+        }
+    }, [questions, onQuestionChange]);
+
     // Memoize the LearnerQuizView component to prevent unnecessary re-renders
     const MemoizedLearnerQuizView = useMemo(() => {
         return (
@@ -648,9 +705,11 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 className="w-full h-full"
                 onSubmitAnswer={handlePreviewSubmitAnswer}
                 taskType={taskType}
+                currentQuestionId={activeQuestionId}
+                onQuestionChange={handlePreviewQuestionChange}
             />
         );
-    }, [questions, isDarkMode, readOnly, handlePreviewSubmitAnswer, taskType]);
+    }, [questions, isDarkMode, readOnly, handlePreviewSubmitAnswer, taskType, activeQuestionId, handlePreviewQuestionChange]);
 
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
