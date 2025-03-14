@@ -124,11 +124,24 @@ export default function LearnerQuizView({
         currentAnswerRef.current = currentAnswer;
     }, [currentAnswer]);
 
-    // Effect to focus the input when the component mounts or question changes
+    // Effect to focus the input when the component mounts
     useEffect(() => {
-        if (inputRef.current && !readOnly) {
+        // Focus the input field when the component mounts
+        if (inputRef.current) {
             inputRef.current.focus();
         }
+    }, []); // Empty dependency array means this runs once on mount
+
+    // Effect to focus the input when the question changes
+    useEffect(() => {
+        // Ensure the input is focused after a short delay to allow the DOM to fully render
+        const timer = setTimeout(() => {
+            if (inputRef.current && !readOnly) {
+                inputRef.current.focus();
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
     }, [currentQuestionIndex, readOnly]);
 
     // Effect to log and validate questions when they change
@@ -181,14 +194,10 @@ export default function LearnerQuizView({
     }, []);
 
     // Handle input change with focus preservation
-    // Use a stable callback that doesn't depend on currentAnswer
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
         setCurrentAnswer(newValue);
         currentAnswerRef.current = newValue;
-
-        // Remove the setTimeout which might be causing issues
-        // The React state update should handle focus properly
     }, []); // No dependencies to ensure stability
 
     // Handle key press in the input field
@@ -269,6 +278,16 @@ export default function LearnerQuizView({
         responseStyle: 'coach',
         evaluationCriteria: []
     };
+
+    // Focus the input field directly
+    useEffect(() => {
+        // Use requestAnimationFrame to ensure the DOM is fully rendered
+        requestAnimationFrame(() => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+            }
+        });
+    });
 
     return (
         <div className={`w-full h-full ${className}`}>
@@ -382,19 +401,25 @@ export default function LearnerQuizView({
                             onChange={handleInputChange}
                             onKeyPress={handleKeyPress}
                             onClick={(e) => {
-                                // Prevent any default behavior that might cause focus loss
-                                e.stopPropagation();
-                                // Ensure input is focused
+                                // Force focus on the input element
                                 if (inputRef.current) {
                                     inputRef.current.focus();
                                 }
                             }}
-                            disabled={readOnly}
+                            onFocus={() => {
+                                // Ensure the cursor is at the end of the text
+                                if (inputRef.current) {
+                                    const length = inputRef.current.value.length;
+                                    inputRef.current.setSelectionRange(length, length);
+                                }
+                            }}
+                            autoFocus={!readOnly}
+                            disabled={false} // Never disable the input field
                         />
                         <button
                             className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
-                            onClick={() => handleSubmitAnswerRef.current()}
-                            disabled={readOnly || !currentAnswer.trim() || isSubmitting || isAiResponding}
+                            onClick={handleSubmitAnswer}
+                            disabled={!currentAnswer.trim() || isSubmitting || isAiResponding}
                             aria-label="Submit answer"
                             type="button"
                         >
