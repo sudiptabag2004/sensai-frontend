@@ -282,18 +282,18 @@ export default function LearnerQuizView({
         // Reset submitting state
         setIsSubmitting(false);
 
-        // Call the onSubmitAnswer callback immediately to mark completion
-        if (onSubmitAnswer) {
-            onSubmitAnswer(currentQuestionId, answer);
-        }
-
-        // If this is an exam, immediately show the response without delay
+        // If this is an exam, mark it as completed and call onSubmitAnswer
         if (taskType === 'exam') {
             // Mark this specific question as submitted
             setSubmittedQuestionIds(prev => ({
                 ...prev,
                 [currentQuestionId]: true
             }));
+
+            // Call the onSubmitAnswer callback to mark completion (only for exam questions)
+            if (onSubmitAnswer) {
+                onSubmitAnswer(currentQuestionId, answer);
+            }
 
             // Add AI response immediately without setting isAiResponding
             const aiResponse: ChatMessage = {
@@ -308,7 +308,8 @@ export default function LearnerQuizView({
                 [currentQuestionId]: [...(prev[currentQuestionId] || []), aiResponse]
             }));
         } else {
-            // For non-exam tasks, use the original animation and delay
+            // For non-exam tasks (quizzes), use the animation and delay
+            // But don't mark them as complete
             setIsAiResponding(true);
 
             // Simulate AI response after 2 seconds
