@@ -274,34 +274,41 @@ export default function LearnerQuizView({
         // Reset submitting state
         setIsSubmitting(false);
 
-        // Set AI responding state
-        setIsAiResponding(true);
-
-        // If this is an exam, mark that a response has been submitted
-        if (taskType === 'exam') {
-            setExamResponseSubmitted(true);
-        }
-
-        // CRITICAL FIX: Call the onSubmitAnswer callback immediately to mark completion
-        // This needs to happen before the AI response simulation
+        // Call the onSubmitAnswer callback immediately to mark completion
         if (onSubmitAnswer && validQuestions[currentQuestionIndex]) {
             onSubmitAnswer(validQuestions[currentQuestionIndex].id, answer);
         }
 
-        // Simulate AI response after 2 seconds
-        setTimeout(() => {
+        // If this is an exam, immediately show the response without delay
+        if (taskType === 'exam') {
+            setExamResponseSubmitted(true);
+
+            // Add AI response immediately without setting isAiResponding
             const aiResponse: ChatMessage = {
                 id: `ai-${Date.now()}`,
-                content: taskType === 'exam'
-                    ? "Thank you for your submission. We will review it shortly"
-                    : generateMockAiResponse(userMessage.content),
+                content: "Thank you for your submission. We will review it shortly",
                 sender: 'ai',
                 timestamp: new Date()
             };
 
             setChatHistory(prev => [...prev, aiResponse]);
-            setIsAiResponding(false);
-        }, 2000);
+        } else {
+            // For non-exam tasks, use the original animation and delay
+            setIsAiResponding(true);
+
+            // Simulate AI response after 2 seconds
+            setTimeout(() => {
+                const aiResponse: ChatMessage = {
+                    id: `ai-${Date.now()}`,
+                    content: generateMockAiResponse(userMessage.content),
+                    sender: 'ai',
+                    timestamp: new Date()
+                };
+
+                setChatHistory(prev => [...prev, aiResponse]);
+                setIsAiResponding(false);
+            }, 2000);
+        }
     }, [validQuestions, currentQuestionIndex, onSubmitAnswer, generateMockAiResponse, taskType]);
 
     // Update the handleSubmitAnswerRef when handleSubmitAnswer changes

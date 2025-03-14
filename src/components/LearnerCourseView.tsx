@@ -113,29 +113,6 @@ export default function LearnerCourseView({
                 } else if (formattedQuestions.length > 0) {
                     setActiveQuestionId(formattedQuestions[0].id);
                 }
-
-                // ADDED: For exams, we'll auto-mark questions as completed when they're viewed
-                if (item.type === 'exam') {
-                    if (formattedQuestions.length <= 1) {
-                        // If this is a single-question exam, mark the entire exam as complete
-                        setCompletedTasks(prev => ({
-                            ...prev,
-                            [itemId]: true
-                        }));
-                    } else if (questionId) {
-                        // If a specific question ID is provided, mark that question as complete
-                        setCompletedQuestions(prev => ({
-                            ...prev,
-                            [questionId]: true
-                        }));
-                    } else if (formattedQuestions.length > 0) {
-                        // Otherwise mark the first question as complete
-                        setCompletedQuestions(prev => ({
-                            ...prev,
-                            [formattedQuestions[0].id]: true
-                        }));
-                    }
-                }
             } else {
                 updatedItem = item;
             }
@@ -159,29 +136,6 @@ export default function LearnerCourseView({
                 if ((item.type === 'quiz' || item.type === 'exam') &&
                     item.questions && item.questions.length > 0) {
                     setActiveQuestionId(questionId || item.questions[0].id);
-
-                    // ADDED: For exams, we'll auto-mark questions as completed when they're viewed
-                    if (item.type === 'exam') {
-                        if (item.questions.length <= 1) {
-                            // If this is a single-question exam, mark the entire exam as complete
-                            setCompletedTasks(prev => ({
-                                ...prev,
-                                [item.id]: true
-                            }));
-                        } else if (questionId) {
-                            // If a specific question ID is provided, mark that question as complete
-                            setCompletedQuestions(prev => ({
-                                ...prev,
-                                [questionId]: true
-                            }));
-                        } else if (item.questions.length > 0) {
-                            // Otherwise mark the first question as complete
-                            setCompletedQuestions(prev => ({
-                                ...prev,
-                                [item.questions[0].id]: true
-                            }));
-                        }
-                    }
                 }
             }
         } finally {
@@ -647,7 +601,7 @@ export default function LearnerCourseView({
                                     {/* Show completed status for exams that have been answered */}
                                     {(activeItem?.type === 'exam' &&
                                         ((activeItem.questions?.length === 1 && completedTasks[activeItem.id]) ||
-                                            (activeItem.questions?.length > 1 && completedQuestions[activeQuestionId || '']))) && (
+                                            (activeItem.questions?.length > 1 && activeQuestionId && completedQuestions[activeQuestionId]))) && (
                                             <button
                                                 className="flex items-center px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-full transition-colors cursor-default"
                                                 disabled
