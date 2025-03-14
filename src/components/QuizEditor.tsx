@@ -845,7 +845,13 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             <div className={`flex flex-1 gap-4 ${newQuestionAdded ? 'animate-new-question' : ''}`}>
                 {isPreviewMode ? (
                     <>
-                        {MemoizedLearnerQuizView}
+                        <div
+                            className="w-full h-full"
+                            onClick={(e) => e.stopPropagation()} // Stop events from bubbling up
+                            onMouseDown={(e) => e.stopPropagation()} // Stop mousedown events too
+                        >
+                            {MemoizedLearnerQuizView}
+                        </div>
                     </>
                 ) : (
                     <>
@@ -864,7 +870,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                         </div>
                                         {status !== 'published' && (
                                             <p className="text-gray-400 text-xs">
-                                                This will be used for automatic grading and feedback.
+                                                The content of the question with all the details that a learner needs to answer it
                                             </p>
                                         )}
                                     </div>
@@ -890,7 +896,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                         </div>
                                         {status !== 'published' && (
                                             <p className="text-gray-400 text-xs">
-                                                This will be used for automatic grading and feedback.
+                                                This will be used for automatic grading and feedback
                                             </p>
                                         )}
                                         <div

@@ -353,7 +353,7 @@ export default function LearnerQuizView({
                 inputRef.current.focus();
             }
         });
-    });
+    }, [currentQuestionIndex]); // Only re-focus when changing questions
 
     return (
         <div className={`w-full h-full ${className}`}>
@@ -471,19 +471,6 @@ export default function LearnerQuizView({
                                 value={currentAnswer}
                                 onChange={handleInputChange}
                                 onKeyPress={handleKeyPress}
-                                onClick={(e) => {
-                                    // Force focus on the input element
-                                    if (inputRef.current) {
-                                        inputRef.current.focus();
-                                    }
-                                }}
-                                onFocus={() => {
-                                    // Ensure the cursor is at the end of the text
-                                    if (inputRef.current) {
-                                        const length = inputRef.current.value.length;
-                                        inputRef.current.setSelectionRange(length, length);
-                                    }
-                                }}
                                 autoFocus={!readOnly}
                                 disabled={false} // Never disable the input field
                             />
