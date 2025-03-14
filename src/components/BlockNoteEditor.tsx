@@ -5,7 +5,7 @@ import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { useEffect, useRef, useState } from "react";
-import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
+import { BlockNoteSchema, defaultBlockSpecs, locales } from "@blocknote/core";
 
 // Add custom styles for dark mode
 import "./editor-styles.css";
@@ -16,6 +16,7 @@ interface BlockNoteEditorProps {
     isDarkMode?: boolean;
     className?: string;
     readOnly?: boolean;
+    placeholder?: string;
     onEditorReady?: (editor: any) => void;
 }
 
@@ -47,8 +48,11 @@ export default function BlockNoteEditor({
     isDarkMode = true, // Default to dark mode
     className = "",
     readOnly = false,
+    placeholder = "Enter text or type '/' for commands",
     onEditorReady,
 }: BlockNoteEditorProps) {
+    const locale = locales["en"];
+
     const editorContainerRef = useRef<HTMLDivElement>(null);
     // Track if we're currently updating the editor content
     const isUpdatingContent = useRef(false);
@@ -71,6 +75,13 @@ export default function BlockNoteEditor({
         initialContent: initialContent.length > 0 ? initialContent : undefined,
         uploadFile,
         schema, // Use our custom schema with limited blocks
+        dictionary: {
+            ...locale,
+            placeholders: {
+                ...locale.placeholders,
+                emptyDocument: placeholder,
+            },
+        },
     });
 
     // Store the editor instance in a ref for later use

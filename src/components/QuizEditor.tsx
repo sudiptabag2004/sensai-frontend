@@ -4,7 +4,9 @@ import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap, Sparkles, Check } from "lucide-react";
+import { useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteSchema } from "@blocknote/core";
 
 // Add custom styles for dark mode
 import "./editor-styles.css";
@@ -87,6 +89,9 @@ export default function QuizEditor({
     // Use ref to track the last edit to prevent unnecessary updates
     const lastContentUpdateRef = useRef<string>("");
 
+    // Reference to the correct answer editor
+    const correctAnswerEditorRef = useRef<any>(null);
+
     // Function to set the editor reference
     const setEditorInstance = useCallback((editor: any) => {
         editorRef.current = editor;
@@ -109,6 +114,11 @@ export default function QuizEditor({
     const currentQuestionConfig = useMemo(() =>
         currentQuestion.config || defaultQuestionConfig,
         [currentQuestion]);
+
+    // Function to set the correct answer editor reference
+    const setCorrectAnswerEditorInstance = useCallback((editor: any) => {
+        correctAnswerEditorRef.current = editor;
+    }, []);
 
     // Handle content change for the current question - use useCallback to memoize
     const handleQuestionContentChange = useCallback((content: any[]) => {
@@ -149,6 +159,52 @@ export default function QuizEditor({
             onChange(updatedQuestions);
         }
     }, [questions, currentQuestionIndex, onChange]);
+
+    // Handle correct answer change
+    const handleCorrectAnswerChange = useCallback((correctAnswer: string) => {
+        if (questions.length === 0) return;
+
+        const updatedQuestions = [...questions];
+        updatedQuestions[currentQuestionIndex] = {
+            ...updatedQuestions[currentQuestionIndex],
+            config: {
+                ...updatedQuestions[currentQuestionIndex].config,
+                correctAnswer
+            }
+        };
+
+        setQuestions(updatedQuestions);
+
+        if (onChange) {
+            onChange(updatedQuestions);
+        }
+    }, [questions, currentQuestionIndex, onChange]);
+
+    // Handle correct answer content change
+    const handleCorrectAnswerContentChange = useCallback((content: any[]) => {
+        if (questions.length === 0 || !content || content.length === 0) return;
+
+        // Try to extract text from the first block
+        let textContent = "";
+        try {
+            // Get the first block's text content if available
+            if (correctAnswerEditorRef.current) {
+                const blocks = correctAnswerEditorRef.current.document;
+                if (blocks && blocks.length > 0) {
+                    const firstBlock = blocks[0];
+                    if (firstBlock) {
+                        // Use the editor's API to get text
+                        textContent = correctAnswerEditorRef.current.getTextCursorPosition(firstBlock.id).block.text || "";
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Error extracting text from correct answer editor:", e);
+        }
+
+        // Update the correct answer in the question config
+        handleCorrectAnswerChange(textContent);
+    }, [questions.length, handleCorrectAnswerChange]);
 
     // Add a new question
     const addQuestion = useCallback(() => {
@@ -290,7 +346,7 @@ export default function QuizEditor({
             // Format questions for the API
             const formattedQuestions = questions.map(question => ({
                 blocks: question.content,
-                answer: "some answer",
+                answer: question.config.correctAnswer || "",
                 input_type: "text",
                 response_type: "chat",
                 coding_languages: null,
@@ -503,7 +559,7 @@ export default function QuizEditor({
                 {isPreviewMode ? (
                     <div className="w-full h-full">
                         <div className="flex h-full bg-[#111111] rounded-md overflow-hidden">
-                            {/* Left side - Question */}
+                            {/* Left side - Question (80%) */}
                             <div className="w-1/2 p-8 border-r border-[#222222] flex flex-col bg-[#1A1A1A]">
                                 {/* Navigation controls at the top of left side - only show if more than one question */}
                                 {questions.length > 1 && (
@@ -551,29 +607,24 @@ export default function QuizEditor({
                                 </div>
                             </div>
 
-                            {/* Right side - Answer */}
-                            <div className="w-1/2 p-8 flex flex-col">
-                                <div className="flex-1 flex flex-col justify-center items-center text-center mb-8">
-                                    <div className="w-16 h-16 mb-4 text-gray-400">
-                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-                                            <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                    </div>
-                                    <p className="text-gray-400 text-lg">Type your answer to begin the conversation</p>
-                                </div>
+                            {/* Right side - Answer (20%) */}
+                            <div className="w-1/2 p-6 flex flex-col">
 
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        placeholder="Type your answer here..."
-                                        className="w-full bg-[#1A1A1A] border border-[#333333] rounded-md p-4 pr-12 text-white focus:outline-none focus:border-blue-500"
-                                    />
-                                    <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                    </button>
+                                <div className="flex-1 flex flex-col justify-end">
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Type your answer here..."
+                                            className="w-full bg-[#1A1A1A] border border-[#333333] rounded-md p-4 pr-12 text-white focus:outline-none focus:border-blue-500"
+                                            disabled={true}
+                                        />
+                                        <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white" disabled={true}>
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -585,19 +636,50 @@ export default function QuizEditor({
                                 <EmptyQuizPlaceholder />
                             </div>
                         ) : (
-                            <div className="w-full">
-                                <div className="editor-container h-full">
-                                    {/* Critical change: Use a stable key that never changes
-                                        to ensure the editor instance remains stable */}
-                                    <BlockNoteEditor
-                                        key="quiz-editor-stable"
-                                        initialContent={currentQuestionContent}
-                                        onChange={handleQuestionContentChange}
-                                        isDarkMode={isDarkMode}
-                                        readOnly={readOnly}
-                                        onEditorReady={setEditorInstance}
-                                        className="quiz-editor"
-                                    />
+                            <div className="w-full flex">
+                                {/* Question Editor - 80% width */}
+                                <div className="w-3/5 pr-4">
+                                    <div className="editor-container h-full">
+                                        <BlockNoteEditor
+                                            key="quiz-editor-stable"
+                                            initialContent={currentQuestionContent}
+                                            onChange={handleQuestionContentChange}
+                                            isDarkMode={isDarkMode}
+                                            readOnly={readOnly}
+                                            onEditorReady={setEditorInstance}
+                                            className="quiz-editor"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Correct Answer Section - 20% width */}
+                                <div className="w-2/5 pl-4">
+                                    <div className="h-full flex flex-col">
+                                        <div className="mb-3 flex items-center">
+                                            <Check size={16} className="text-green-500 mr-2" />
+                                            <h3 className="text-white text-sm font-light">Correct Answer</h3>
+                                        </div>
+                                        <p className="text-gray-400 text-xs mb-4">
+                                            Provide the correct answer for this question. This will be used for automatic grading and feedback.
+                                        </p>
+                                        <div className="flex-1 bg-[#1A1A1A] rounded-md overflow-hidden">
+                                            <BlockNoteEditor
+                                                key={`correct-answer-editor-${currentQuestionIndex}`}
+                                                initialContent={currentQuestionConfig.correctAnswer ? [
+                                                    {
+                                                        type: "paragraph",
+                                                        content: currentQuestionConfig.correctAnswer
+                                                    }
+                                                ] : []}
+                                                onChange={handleCorrectAnswerContentChange}
+                                                isDarkMode={isDarkMode}
+                                                readOnly={readOnly}
+                                                onEditorReady={setCorrectAnswerEditorInstance}
+                                                className="correct-answer-editor"
+                                                placeholder="Enter the correct answer here"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}

@@ -461,3 +461,59 @@ div[role="dialog"]>div {
     margin-top: 10px;
     border: none !important;
 }
+
+/* Correct Answer Editor Styles */
+.correct-answer-editor {
+    --bn-colors-editor-background: #1A1A1A !important;
+    --bn-colors-editor-text: #ffffff !important;
+    --bn-colors-editor-placeholder: rgba(255, 255, 255, 0.4) !important;
+    --bn-colors-selection-background: rgba(35, 131, 226, 0.28) !important;
+    --bn-colors-primary: #3b82f6 !important;
+    --bn-colors-primary-text: #ffffff !important;
+    --bn-colors-border: #444444 !important;
+    --bn-colors-shadow: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Hide all UI elements in the correct answer editor */
+.correct-answer-editor .bn-container [role="toolbar"],
+.correct-answer-editor .bn-toolbar,
+.correct-answer-editor .bn-side-menu,
+.correct-answer-editor .bn-slash-menu,
+.correct-answer-editor .bn-file-panel,
+.correct-answer-editor .bn-link-toolbar {
+    display: none !important;
+}
+
+/* Make the correct answer editor more compact */
+.correct-answer-editor .ProseMirror {
+    padding: 12px !important;
+    min-height: 100px !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+}
+
+/* Remove any extra spacing in the correct answer editor */
+.correct-answer-editor [data-node-type="paragraph"] {
+    margin: 0 !important;
+    padding: 4px 0 !important;
+}
+
+/* Style the placeholder text */
+.correct-answer-editor [data-placeholder]::before {
+    content: "Enter the correct answer here..." !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Remove any borders or outlines when focused */
+.correct-answer-editor .ProseMirror:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: #3b82f6 !important;
+}
+
+/* Ensure the editor takes up the full height of its container */
+.correct-answer-editor .bn-container,
+.correct-answer-editor .bn-editor,
+.correct-answer-editor .bn-content {
+    height: 100% !important;
+}
