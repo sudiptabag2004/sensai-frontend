@@ -117,8 +117,8 @@ export default function LearnerQuizView({
     // State to track if an answer is being submitted
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // State for chat history
-    const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+    // Modify the state to track chat history per question
+    const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
 
     // State to track if AI is responding
     const [isAiResponding, setIsAiResponding] = useState(false);
@@ -172,7 +172,13 @@ export default function LearnerQuizView({
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
-    }, [chatHistory]);
+    }, [chatHistories]);
+
+    // Get the current question's chat history
+    const currentChatHistory = useMemo(() => {
+        const currentQuestionId = validQuestions[currentQuestionIndex]?.id || '';
+        return chatHistories[currentQuestionId] || [];
+    }, [chatHistories, currentQuestionIndex, validQuestions]);
 
     // Navigate to previous question
     const goToPreviousQuestion = useCallback(() => {
@@ -180,8 +186,6 @@ export default function LearnerQuizView({
             const newIndex = currentQuestionIndex - 1;
             setCurrentQuestionIndex(newIndex);
             setCurrentAnswer(""); // Reset answer when changing questions
-            // Clear chat history when changing questions
-            setChatHistory([]);
             // Reset exam response submitted state
             setExamResponseSubmitted(false);
 
@@ -198,8 +202,6 @@ export default function LearnerQuizView({
             const newIndex = currentQuestionIndex + 1;
             setCurrentQuestionIndex(newIndex);
             setCurrentAnswer(""); // Reset answer when changing questions
-            // Clear chat history when changing questions
-            setChatHistory([]);
             // Reset exam response submitted state
             setExamResponseSubmitted(false);
 
@@ -246,13 +248,15 @@ export default function LearnerQuizView({
             return;
         }
 
+        const currentQuestionId = validQuestions[currentQuestionIndex].id;
+
         // Set submitting state to true
         setIsSubmitting(true);
 
         // Get the current answer from the ref
         const answer = currentAnswerRef.current;
 
-        // Add user message to chat history
+        // Add user message to chat history for current question
         const userMessage: ChatMessage = {
             id: `user-${Date.now()}`,
             content: answer,
@@ -260,7 +264,10 @@ export default function LearnerQuizView({
             timestamp: new Date()
         };
 
-        setChatHistory(prev => [...prev, userMessage]);
+        setChatHistories(prev => ({
+            ...prev,
+            [currentQuestionId]: [...(prev[currentQuestionId] || []), userMessage]
+        }));
 
         // Clear the input field after submission
         setCurrentAnswer("");
@@ -275,8 +282,8 @@ export default function LearnerQuizView({
         setIsSubmitting(false);
 
         // Call the onSubmitAnswer callback immediately to mark completion
-        if (onSubmitAnswer && validQuestions[currentQuestionIndex]) {
-            onSubmitAnswer(validQuestions[currentQuestionIndex].id, answer);
+        if (onSubmitAnswer) {
+            onSubmitAnswer(currentQuestionId, answer);
         }
 
         // If this is an exam, immediately show the response without delay
@@ -291,7 +298,10 @@ export default function LearnerQuizView({
                 timestamp: new Date()
             };
 
-            setChatHistory(prev => [...prev, aiResponse]);
+            setChatHistories(prev => ({
+                ...prev,
+                [currentQuestionId]: [...(prev[currentQuestionId] || []), aiResponse]
+            }));
         } else {
             // For non-exam tasks, use the original animation and delay
             setIsAiResponding(true);
@@ -305,7 +315,10 @@ export default function LearnerQuizView({
                     timestamp: new Date()
                 };
 
-                setChatHistory(prev => [...prev, aiResponse]);
+                setChatHistories(prev => ({
+                    ...prev,
+                    [currentQuestionId]: [...(prev[currentQuestionId] || []), aiResponse]
+                }));
                 setIsAiResponding(false);
             }, 2000);
         }
@@ -396,7 +409,7 @@ export default function LearnerQuizView({
                 <div className="w-1/2 p-6 flex flex-col bg-[#111111]">
                     {/* Chat history or empty state message */}
                     <div className="flex-1 mb-4">
-                        {chatHistory.length === 0 ? (
+                        {currentChatHistory.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full">
                                 <h2 className="text-4xl font-light text-white mb-6">Ready to test your knowledge?</h2>
                                 <p className="text-gray-400 text-center max-w-md mb-8">
@@ -409,7 +422,7 @@ export default function LearnerQuizView({
                                 className="h-full overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
                             >
                                 <div className="flex flex-col space-y-4">
-                                    {chatHistory.map((message) => (
+                                    {currentChatHistory.map((message) => (
                                         <div
                                             key={message.id}
                                             className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
