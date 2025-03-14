@@ -99,6 +99,40 @@ export default function QuizEditor({
     // Initialize questions state
     const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
 
+    // Update questions when initialQuestions prop changes
+    useEffect(() => {
+        if (!initialQuestions || initialQuestions.length === 0) {
+            setQuestions([]);
+            return;
+        }
+
+        // Ensure each question has the required properties
+        const formattedQuestions = initialQuestions.map(q => {
+            // Handle potential different formats from API
+            const questionContent = Array.isArray(q.content) ? q.content :
+                (q as any).blocks ? (q as any).blocks : [];
+
+            // Handle potential different config formats
+            const correctAnswer = q.config?.correctAnswer ||
+                (q as any).answer || '';
+
+            return {
+                id: q.id || `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                content: questionContent,
+                config: {
+                    inputType: q.config?.inputType || 'text',
+                    responseStyle: q.config?.responseStyle || 'coach',
+                    evaluationCriteria: q.config?.evaluationCriteria || [],
+                    correctAnswer: correctAnswer,
+                    codeLanguage: q.config?.codeLanguage || '',
+                    audioMaxDuration: q.config?.audioMaxDuration || 60
+                }
+            };
+        });
+
+        setQuestions(formattedQuestions);
+    }, [initialQuestions]);
+
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
@@ -448,34 +482,31 @@ export default function QuizEditor({
 
     // Memoize the onSubmitAnswer callback to prevent it from being recreated on each render
     const handlePreviewSubmitAnswer = useCallback((questionId: string, answer: string) => {
-        console.log(`Answer submitted for question ${questionId}: ${answer}`);
-
         // Find the question with the matching ID
         const questionIndex = questions.findIndex(q => q.id === questionId);
         if (questionIndex !== -1) {
             const question = questions[questionIndex];
 
-            // Log whether the answer is correct (for debugging purposes)
+            // Check if the answer is correct (for internal use)
             const isCorrect = question.config.correctAnswer &&
                 answer.trim().toLowerCase() === question.config.correctAnswer.trim().toLowerCase();
-
-            console.log(`Answer is ${isCorrect ? 'correct' : 'incorrect'}`);
-            console.log(`Correct answer: ${question.config.correctAnswer || "Not provided"}`);
 
             // No alerts or immediate feedback - the LearnerQuizView component will handle the UI
         }
     }, [questions]);
 
     // Memoize the LearnerQuizView component to prevent unnecessary re-renders
-    const MemoizedLearnerQuizView = useMemo(() => (
-        <LearnerQuizView
-            questions={questions}
-            isDarkMode={isDarkMode}
-            readOnly={false}
-            className="w-full h-full"
-            onSubmitAnswer={handlePreviewSubmitAnswer}
-        />
-    ), [questions, isDarkMode, handlePreviewSubmitAnswer]);
+    const MemoizedLearnerQuizView = useMemo(() => {
+        return (
+            <LearnerQuizView
+                questions={questions}
+                isDarkMode={isDarkMode}
+                readOnly={readOnly}
+                className="w-full h-full"
+                onSubmitAnswer={handlePreviewSubmitAnswer}
+            />
+        );
+    }, [questions, isDarkMode, readOnly, handlePreviewSubmitAnswer]);
 
     return (
         <div className="flex flex-col h-full relative">
@@ -631,7 +662,9 @@ export default function QuizEditor({
             {/* Content area with animation when a new question is added */}
             <div className={`flex flex-1 gap-4 ${newQuestionAdded ? 'animate-new-question' : ''}`}>
                 {isPreviewMode ? (
-                    MemoizedLearnerQuizView
+                    <>
+                        {MemoizedLearnerQuizView}
+                    </>
                 ) : (
                     <>
                         {questions.length === 0 ? (

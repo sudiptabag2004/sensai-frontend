@@ -1,7 +1,7 @@
 "use client";
 
 import "@blocknote/core/fonts/inter.css";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import BlockNoteEditor from "./BlockNoteEditor";
 
@@ -70,6 +70,31 @@ export default function LearnerQuizView({
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
+    // Ensure we have valid questions
+    const validQuestions = useMemo(() => {
+        return (questions || []).map(q => {
+            // If the question already has the right format, use it as is
+            if (q && q.content && Array.isArray(q.content) && q.content.length > 0) {
+                return q;
+            }
+
+            // Handle API format where content might be in 'blocks' property
+            if (q && (q as any).blocks && Array.isArray((q as any).blocks) && (q as any).blocks.length > 0) {
+                return {
+                    id: q.id || `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    content: (q as any).blocks,
+                    config: q.config || {
+                        inputType: 'text',
+                        responseStyle: 'coach',
+                        evaluationCriteria: []
+                    }
+                };
+            }
+
+            return null;
+        }).filter(Boolean) as QuizQuestion[];
+    }, [questions]);
+
     // Current answer input
     const [currentAnswer, setCurrentAnswer] = useState("");
 
@@ -103,6 +128,13 @@ export default function LearnerQuizView({
         }
     }, [currentQuestionIndex, readOnly]);
 
+    // Effect to log and validate questions when they change
+    useEffect(() => {
+        if (validQuestions.length > 0 && currentQuestionIndex >= validQuestions.length) {
+            setCurrentQuestionIndex(0);
+        }
+    }, [questions, validQuestions, currentQuestionIndex]);
+
     // Effect to scroll to the bottom of the chat when new messages are added
     useEffect(() => {
         if (chatContainerRef.current) {
@@ -122,13 +154,13 @@ export default function LearnerQuizView({
 
     // Navigate to next question
     const goToNextQuestion = useCallback(() => {
-        if (currentQuestionIndex < questions.length - 1) {
+        if (currentQuestionIndex < validQuestions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
             setCurrentAnswer(""); // Reset answer when changing questions
             // Clear chat history when changing questions
             setChatHistory([]);
         }
-    }, [currentQuestionIndex, questions.length]);
+    }, [currentQuestionIndex, validQuestions.length]);
 
     // Generate a mock AI response
     const generateMockAiResponse = useCallback((userMessage: string) => {
@@ -152,13 +184,8 @@ export default function LearnerQuizView({
         setCurrentAnswer(newValue);
         currentAnswerRef.current = newValue;
 
-        // Ensure the input stays focused after state update
-        // This is a direct DOM manipulation to guarantee focus
-        setTimeout(() => {
-            if (inputRef.current) {
-                inputRef.current.focus();
-            }
-        }, 0);
+        // Remove the setTimeout which might be causing issues
+        // The React state update should handle focus properly
     }, []); // No dependencies to ensure stability
 
     // Handle key press in the input field
@@ -170,7 +197,7 @@ export default function LearnerQuizView({
 
     // Handle answer submission
     const handleSubmitAnswer = useCallback(() => {
-        if (questions[currentQuestionIndex]) {
+        if (validQuestions[currentQuestionIndex]) {
             // Set submitting state to true
             setIsSubmitting(true);
 
@@ -204,7 +231,7 @@ export default function LearnerQuizView({
 
             // Call the onSubmitAnswer callback if provided
             if (onSubmitAnswer) {
-                onSubmitAnswer(questions[currentQuestionIndex].id, userMessage.content);
+                onSubmitAnswer(validQuestions[currentQuestionIndex].id, userMessage.content);
             }
 
             // Simulate AI response after 2 seconds
@@ -220,13 +247,13 @@ export default function LearnerQuizView({
                 setIsAiResponding(false);
             }, 2000);
         }
-    }, [questions, currentQuestionIndex, onSubmitAnswer, generateMockAiResponse]);
+    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, generateMockAiResponse]);
 
     // Get current question content
-    const currentQuestionContent = questions[currentQuestionIndex]?.content || [];
+    const currentQuestionContent = validQuestions[currentQuestionIndex]?.content || [];
 
     // Get current question config
-    const currentQuestionConfig = questions[currentQuestionIndex]?.config || {
+    const currentQuestionConfig = validQuestions[currentQuestionIndex]?.config || {
         inputType: 'text',
         responseStyle: 'coach',
         evaluationCriteria: []
@@ -241,7 +268,7 @@ export default function LearnerQuizView({
                 {/* Left side - Question (50%) */}
                 <div className="w-1/2 p-8 border-r border-[#222222] flex flex-col bg-[#1A1A1A]">
                     {/* Navigation controls at the top of left side - only show if more than one question */}
-                    {questions.length > 1 && (
+                    {validQuestions.length > 1 && (
                         <div className="flex items-center justify-between w-full mb-6">
                             <div className="w-10 h-10">
                                 <button
@@ -254,14 +281,14 @@ export default function LearnerQuizView({
                             </div>
 
                             <div className="bg-[#222222] px-3 py-1 rounded-full text-white text-sm">
-                                Question {currentQuestionIndex + 1} / {questions.length}
+                                Question {currentQuestionIndex + 1} / {validQuestions.length}
                             </div>
 
                             <div className="w-10 h-10">
                                 <button
-                                    className={`w-10 h-10 rounded-full flex items-center justify-center bg-[#222222] text-white ${currentQuestionIndex < questions.length - 1 ? 'hover:bg-[#333333] cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center bg-[#222222] text-white ${currentQuestionIndex < validQuestions.length - 1 ? 'hover:bg-[#333333] cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
                                     onClick={goToNextQuestion}
-                                    disabled={currentQuestionIndex >= questions.length - 1}
+                                    disabled={currentQuestionIndex >= validQuestions.length - 1}
                                 >
                                     <ChevronRight size={18} />
                                 </button>
@@ -279,6 +306,7 @@ export default function LearnerQuizView({
                                 isDarkMode={true}
                                 readOnly={true}
                                 className="!bg-transparent"
+                                placeholder="Question content will appear here"
                             />
                         </div>
                     </div>
@@ -350,7 +378,7 @@ export default function LearnerQuizView({
                                     inputRef.current.focus();
                                 }
                             }}
-                            disabled={readOnly || isAiResponding}
+                            disabled={readOnly && isAiResponding}
                         />
                         <button
                             className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}

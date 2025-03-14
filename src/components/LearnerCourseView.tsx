@@ -68,14 +68,12 @@ export default function LearnerCourseView({
             if (!item) return;
 
             // Fetch item details from API
-            console.log("Fetching task data for taskId for learner view:", itemId);
             const response = await fetch(`http://localhost:8001/tasks/${itemId}`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch task: ${response.status}`);
             }
 
             const data = await response.json();
-            console.log("Fetched task data:", data);
 
             // Create an updated item with the fetched data
             let updatedItem;
@@ -85,9 +83,25 @@ export default function LearnerCourseView({
                     content: data.blocks || []
                 };
             } else if (item.type === 'quiz' || item.type === 'exam') {
+                // Ensure questions have the right format for the QuizEditor component
+                const formattedQuestions = (data.questions || []).map((q: any) => {
+                    // Create a properly formatted question object
+                    return {
+                        id: q.id || `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        blocks: q.blocks || [], // Keep the original blocks property
+                        content: q.blocks || [], // Also add as content for compatibility
+                        config: {
+                            inputType: 'text',
+                            responseStyle: 'coach',
+                            evaluationCriteria: [],
+                            correctAnswer: q.answer || ''
+                        }
+                    };
+                });
+
                 updatedItem = {
                     ...item,
-                    questions: data.questions || []
+                    questions: formattedQuestions
                 };
             } else {
                 updatedItem = item;
@@ -411,11 +425,14 @@ export default function LearnerCourseView({
                                             </div>
                                         )}
                                         {(activeItem?.type === 'quiz' || activeItem?.type === 'exam') && (
-                                            <DynamicQuizEditor
-                                                initialQuestions={activeItem.questions || []}
-                                                readOnly={true}
-                                                isPreviewMode={true}
-                                            />
+                                            <>
+                                                <DynamicQuizEditor
+                                                    initialQuestions={activeItem.questions || []}
+                                                    readOnly={true}
+                                                    isPreviewMode={true}
+                                                    taskId={activeItem.id}
+                                                />
+                                            </>
                                         )}
                                     </>
                                 )}
