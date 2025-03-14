@@ -261,25 +261,15 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
     // Handle correct answer content change
     const handleCorrectAnswerContentChange = useCallback((content: any[]) => {
-        if (questions.length === 0 || !content || content.length === 0) return;
+        // Simply store the content in the editor without processing
+        // The actual text extraction will happen during save/publish
 
-        // Extract text from all blocks in the content
-        let textContent = "";
-        try {
-            if (correctAnswerEditorRef.current) {
-                const blocks = correctAnswerEditorRef.current.document;
-                if (blocks && blocks.length > 0) {
-                    // Use the helper function to extract text from all blocks
-                    textContent = extractTextFromBlocks(blocks);
-                }
-            }
-        } catch (e) {
-            console.error("Error extracting text from correct answer editor:", e);
-        }
+        // Instead of processing on every keystroke, we do nothing here
+        // This allows normal typing behavior without state updates interrupting input
 
-        // Update the correct answer in the question config
-        handleCorrectAnswerChange(textContent);
-    }, [questions.length, handleCorrectAnswerChange]);
+        // Note: We intentionally don't call handleCorrectAnswerChange here
+        // The correctAnswer will be extracted when saving or publishing
+    }, []);
 
     // Add a new question
     const addQuestion = useCallback(() => {
@@ -421,10 +411,35 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             const currentTitle = dialogTitleElement?.textContent || '';
 
             // Format questions for the API
-            const formattedQuestions = questions.map(question => {
-                // Get the correct answer text from the question config
-                // This should already contain the extracted text from all blocks
-                const correctAnswerText = question.config.correctAnswer || "";
+            const formattedQuestions = questions.map((question, index) => {
+                // Extract correct answer text directly from the editor if we're on the current question
+                let correctAnswerText = question.config.correctAnswer || "";
+
+                // If this is the current question, extract the text from the editor
+                if (index === currentQuestionIndex && correctAnswerEditorRef.current) {
+                    try {
+                        const blocks = correctAnswerEditorRef.current.document;
+                        if (blocks && blocks.length > 0) {
+                            // Use the helper function to extract text from all blocks
+                            correctAnswerText = extractTextFromBlocks(blocks);
+
+                            // Update the question in state so it has the correct value
+                            const updatedQuestions = [...questions];
+                            updatedQuestions[currentQuestionIndex] = {
+                                ...updatedQuestions[currentQuestionIndex],
+                                config: {
+                                    ...updatedQuestions[currentQuestionIndex].config,
+                                    correctAnswer: correctAnswerText
+                                }
+                            };
+
+                            // Update the questions state
+                            setQuestions(updatedQuestions);
+                        }
+                    } catch (e) {
+                        console.error("Error extracting text from correct answer editor:", e);
+                    }
+                }
 
                 console.log(`Question ${question.id} - Correct answer: "${correctAnswerText}"`);
 
@@ -509,8 +524,35 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             const currentTitle = dialogTitleElement?.textContent || '';
 
             // Format questions for the API
-            const formattedQuestions = questions.map(question => {
-                const correctAnswerText = question.config.correctAnswer || "";
+            const formattedQuestions = questions.map((question, index) => {
+                // Extract correct answer text directly from the editor if we're on the current question
+                let correctAnswerText = question.config.correctAnswer || "";
+
+                // If this is the current question, extract the text from the editor
+                if (index === currentQuestionIndex && correctAnswerEditorRef.current) {
+                    try {
+                        const blocks = correctAnswerEditorRef.current.document;
+                        if (blocks && blocks.length > 0) {
+                            // Use the helper function to extract text from all blocks
+                            correctAnswerText = extractTextFromBlocks(blocks);
+
+                            // Update the question in state so it has the correct value
+                            const updatedQuestions = [...questions];
+                            updatedQuestions[currentQuestionIndex] = {
+                                ...updatedQuestions[currentQuestionIndex],
+                                config: {
+                                    ...updatedQuestions[currentQuestionIndex].config,
+                                    correctAnswer: correctAnswerText
+                                }
+                            };
+
+                            // Update the questions state
+                            setQuestions(updatedQuestions);
+                        }
+                    } catch (e) {
+                        console.error("Error extracting text from correct answer editor:", e);
+                    }
+                }
 
                 return {
                     id: question.id,
