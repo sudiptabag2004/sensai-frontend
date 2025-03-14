@@ -829,6 +829,13 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                             onMouseDown={(e) => {
                                                 e.stopPropagation();
                                             }}
+                                            // Add keydown handler to ensure spacebar works
+                                            onKeyDown={(e) => {
+                                                e.stopPropagation();
+                                                // We don't need to do anything special here, just prevent bubbling
+                                            }}
+                                            // Important: Make this div focusable but ensure it doesn't trap focus
+                                            tabIndex={-1}
                                         >
                                             <BlockNoteEditor
                                                 key={`correct-answer-editor-${currentQuestionIndex}`}
