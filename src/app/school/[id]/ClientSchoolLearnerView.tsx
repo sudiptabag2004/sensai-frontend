@@ -379,6 +379,12 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
                                                                 position: 3
                                                             }
                                                         ]}
+                                                        currentUser={{
+                                                            name: "Jane Cooper",
+                                                            completionPercentage: 35,
+                                                            tasksSolved: 15,
+                                                            position: 7
+                                                        }}
                                                     />
                                                 </div>
                                             )}

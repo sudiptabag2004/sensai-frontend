@@ -1,6 +1,6 @@
 import React from "react";
-import { ChevronDown } from "lucide-react";
 import Image from "next/image";
+import { User, ChevronRight, ArrowRight } from "lucide-react";
 
 interface Performer {
     name: string;
@@ -12,11 +12,13 @@ interface Performer {
 interface TopPerformersProps {
     performers: Performer[];
     timeFrame?: "Weekly" | "Monthly" | "All Time";
+    currentUser?: Performer; // Current logged-in user data
 }
 
 export default function TopPerformers({
     performers,
-    timeFrame = "Weekly"
+    timeFrame = "Weekly",
+    currentUser
 }: TopPerformersProps) {
     // Function to get the appropriate badge SVG based on position
     const getPositionBadge = (position: number) => {
@@ -30,13 +32,23 @@ export default function TopPerformers({
         return null;
     };
 
+    // Check if current user is already in top performers
+    const isCurrentUserInTopPerformers = currentUser
+        ? performers.some(performer => performer.name === currentUser.name)
+        : false;
+
     return (
         <div className="bg-white dark:bg-[#121212] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-            <div className="bg-[#FFF3D8] dark:bg-[#2A2000] px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-[#FFF3D8] dark:bg-[#2A2000] flex justify-between items-center">
                 <h3 className="text-lg font-light text-black dark:text-white">Top Performers</h3>
-                <button className="flex items-center text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-md px-3 py-1">
-                    {timeFrame}
-                    <ChevronDown size={16} className="ml-1" />
+                <button
+                    onClick={() => console.log('View full leaderboard clicked')}
+                    className="group px-2.5 py-1 text-sm font-light rounded-md transition-all duration-200 flex items-center 
+                    bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 text-gray-700 dark:text-gray-200 cursor-pointer"
+                    aria-label="See all performers"
+                >
+                    <span>See All</span>
+                    <ChevronRight size={16} className="ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </button>
             </div>
 
@@ -70,6 +82,35 @@ export default function TopPerformers({
                         </div>
                     </div>
                 ))}
+
+                {/* Show current user if they're not in top performers */}
+                {currentUser && !isCurrentUserInTopPerformers && (
+                    <>
+                        <div className="px-4 bg-gray-50 dark:bg-gray-900 text-center text-xs text-gray-500 dark:text-gray-400">
+                        </div>
+                        <div className="p-4 flex items-center bg-gray-50/50 dark:bg-gray-900/20">
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center mr-4 bg-blue-50 dark:bg-blue-900/20">
+                                <div className="w-10 h-10 rounded-full flex items-center justify-center font-light text-base border-2 text-blue-500 border-blue-500">
+                                    {currentUser.position}
+                                </div>
+                            </div>
+                            <div className="flex-1">
+                                <div className="text-base font-medium text-black dark:text-white flex items-center">
+                                    {currentUser.name}
+                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                        You
+                                    </span>
+                                </div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    Course Completion: {currentUser.completionPercentage}%
+                                </div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    Solved: {currentUser.tasksSolved} Tasks
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

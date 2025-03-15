@@ -32,6 +32,7 @@ interface LearnerCourseViewProps {
     streakDays?: number;
     activeDays?: string[];
     performers?: Performer[];
+    currentUser?: Performer;
 }
 
 export default function LearnerCourseView({
@@ -40,7 +41,8 @@ export default function LearnerCourseView({
     schoolId,
     streakDays = 0,
     activeDays = [],
-    performers = []
+    performers = [],
+    currentUser
 }: LearnerCourseViewProps) {
     const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
     const [activeItem, setActiveItem] = useState<any>(null);
@@ -527,7 +529,10 @@ export default function LearnerCourseView({
                         )}
 
                         {performers.length > 0 && (
-                            <TopPerformers performers={performers} />
+                            <TopPerformers
+                                performers={performers}
+                                currentUser={currentUser}
+                            />
                         )}
                     </div>
                 )}
