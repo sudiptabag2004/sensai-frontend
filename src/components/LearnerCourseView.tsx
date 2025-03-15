@@ -49,6 +49,27 @@ export default function LearnerCourseView({
     // Filter out empty modules (those with no items after filtering)
     const filteredModules = modulesWithFilteredItems.filter(module => module.items.length > 0);
 
+    // Calculate progress for each module based on completed tasks
+    const modulesWithProgress = filteredModules.map(module => {
+        // Get the total number of items in the module
+        const totalItems = module.items.length;
+
+        // If there are no items, progress is 0
+        if (totalItems === 0) {
+            return { ...module, progress: 0 };
+        }
+
+        // Count completed items in this module
+        const completedItemsCount = module.items.filter(item =>
+            completedTasks[item.id] === true
+        ).length;
+
+        // Calculate progress percentage
+        const progress = Math.round((completedItemsCount / totalItems) * 100);
+
+        return { ...module, progress };
+    });
+
     const toggleModule = (moduleId: string) => {
         setExpandedModules(prev => ({
             ...prev,
@@ -470,7 +491,7 @@ export default function LearnerCourseView({
         <div className="bg-white dark:bg-black">
             {filteredModules.length > 0 ? (
                 <CourseModuleList
-                    modules={filteredModules}
+                    modules={modulesWithProgress}
                     mode="view"
                     expandedModules={expandedModules}
                     onToggleModule={toggleModule}
