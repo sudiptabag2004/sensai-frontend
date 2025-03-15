@@ -670,9 +670,15 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             const index = questions.findIndex(q => q.id === activeQuestionId);
             if (index !== -1 && index !== currentQuestionIndex) {
                 setCurrentQuestionIndex(index);
+
+                // Also ensure the parent component is notified of the change
+                // Only necessary when the change originated from within this component
+                if (onQuestionChange && !currentQuestionId) {
+                    onQuestionChange(activeQuestionId);
+                }
             }
         }
-    }, [activeQuestionId, isPreviewMode, questions, currentQuestionIndex]);
+    }, [activeQuestionId, isPreviewMode, questions, currentQuestionIndex, onQuestionChange, currentQuestionId]);
 
     // Memoize the LearnerQuizView component to prevent unnecessary re-renders
     const MemoizedLearnerQuizView = useMemo(() => {
@@ -685,7 +691,14 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 onSubmitAnswer={onSubmitAnswer}
                 taskType={taskType}
                 currentQuestionId={activeQuestionId}
-                onQuestionChange={setActiveQuestionId}
+                onQuestionChange={(questionId) => {
+                    // Update our internal state
+                    setActiveQuestionId(questionId);
+                    // Also pass the change up to the parent component
+                    if (onQuestionChange) {
+                        onQuestionChange(questionId);
+                    }
+                }}
             />
         );
     }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, onQuestionChange]);
