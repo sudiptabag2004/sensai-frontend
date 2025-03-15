@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import { User, ChevronRight, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface Performer {
     name: string;
@@ -13,13 +14,19 @@ interface TopPerformersProps {
     performers: Performer[];
     timeFrame?: "Weekly" | "Monthly" | "All Time";
     currentUser?: Performer; // Current logged-in user data
+    schoolId?: string; // School ID for navigation
+    cohortId?: string; // Cohort ID for navigation
 }
 
 export default function TopPerformers({
     performers,
     timeFrame = "Weekly",
-    currentUser
+    currentUser,
+    schoolId,
+    cohortId
 }: TopPerformersProps) {
+    const router = useRouter();
+
     // Function to get the appropriate badge SVG based on position
     const getPositionBadge = (position: number) => {
         if (position === 1) {
@@ -37,12 +44,21 @@ export default function TopPerformers({
         ? performers.some(performer => performer.name === currentUser.name)
         : false;
 
+    // Function to navigate to the full leaderboard
+    const navigateToLeaderboard = () => {
+        if (schoolId && cohortId) {
+            router.push(`/school/${schoolId}/cohort/${cohortId}/leaderboard`);
+        } else {
+            console.warn("Cannot navigate to leaderboard: missing schoolId or cohortId");
+        }
+    };
+
     return (
         <div className="bg-white dark:bg-[#121212] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-[#FFF3D8] dark:bg-[#2A2000] flex justify-between items-center">
                 <h3 className="text-lg font-light text-black dark:text-white">Top Performers</h3>
                 <button
-                    onClick={() => console.log('View full leaderboard clicked')}
+                    onClick={navigateToLeaderboard}
                     className="group px-2.5 py-1 text-sm font-light rounded-md transition-all duration-200 flex items-center 
                     bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 text-gray-700 dark:text-gray-200 cursor-pointer"
                     aria-label="See all performers"

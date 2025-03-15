@@ -6,7 +6,7 @@ import { Building, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CohortCard from "@/components/CohortCard";
 import { useAuth } from "@/lib/auth";
-import LearnerCourseView from "@/components/LearnerCourseView";
+import LearnerCohortView from "@/components/LearnerCohortView";
 import { Module, ModuleItem } from "@/types/course";
 
 interface School {
@@ -156,7 +156,7 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
         fetchCohortCourses();
     }, [activeCohort]);
 
-    // Transform course data to modules format for LearnerCourseView
+    // Transform course data to modules format for LearnerCohortView
     const transformCourseToModules = (course: Course) => {
         if (!course.milestones || !Array.isArray(course.milestones)) {
             setCourseModules([]);
@@ -349,14 +349,15 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
                                             </div>
                                         )}
 
-                                        {/* Course Content using LearnerCourseView */}
+                                        {/* Course Content using LearnerCohortView */}
                                         <div className="w-full">
                                             {courses.length > 0 && (
                                                 <div className="w-full">
-                                                    <LearnerCourseView
+                                                    <LearnerCohortView
                                                         courseTitle={courses.length > 1 ? "" : courses[activeCourseIndex].name}
                                                         modules={courseModules}
                                                         schoolId={school.id.toString()}
+                                                        cohortId={activeCohort?.id.toString()}
                                                         streakDays={2}
                                                         activeDays={["M", "T"]}
                                                         performers={[

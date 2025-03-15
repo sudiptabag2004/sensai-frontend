@@ -4,8 +4,6 @@ import { ModuleItem, Module } from "@/types/course";
 import CourseModuleList, { LocalModule } from "./CourseModuleList";
 import dynamic from "next/dynamic";
 import { X, CheckCircle, BookOpen, HelpCircle, Clipboard, ChevronLeft, ChevronRight } from "lucide-react";
-import LearningStreak from "./LearningStreak";
-import TopPerformers from "./TopPerformers";
 
 // Dynamically import editor components to avoid SSR issues
 const DynamicLearningMaterialEditor = dynamic(
@@ -18,31 +16,14 @@ const DynamicQuizEditor = dynamic(
     { ssr: false }
 );
 
-interface Performer {
-    name: string;
-    completionPercentage: number;
-    tasksSolved: number;
-    position: number;
-}
-
 interface LearnerCourseViewProps {
     courseTitle: string;
     modules: Module[];
-    schoolId?: string;
-    streakDays?: number;
-    activeDays?: string[];
-    performers?: Performer[];
-    currentUser?: Performer;
 }
 
 export default function LearnerCourseView({
     courseTitle,
-    modules,
-    schoolId,
-    streakDays = 0,
-    activeDays = [],
-    performers = [],
-    currentUser
+    modules
 }: LearnerCourseViewProps) {
     const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
     const [activeItem, setActiveItem] = useState<any>(null);
@@ -487,56 +468,26 @@ export default function LearnerCourseView({
 
     return (
         <div className="bg-white dark:bg-black">
-            <div className="flex flex-col lg:flex-row gap-10">
-                {/* Main Content Column */}
-                <div className={`${(streakDays > 0 || performers.length > 0) ? 'w-full lg:w-2/3' : 'w-full'}`}>
-                    {courseTitle && (
-                        <h1 className="text-4xl font-light text-black dark:text-white mb-8">
-                            {courseTitle}
-                        </h1>
-                    )}
-
-                    {filteredModules.length > 0 ? (
-                        <CourseModuleList
-                            modules={filteredModules}
-                            mode="view"
-                            expandedModules={expandedModules}
-                            onToggleModule={toggleModule}
-                            onOpenItem={openTaskItem}
-                        />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div>
-                                <h2 className="text-4xl font-light mb-4 text-white">
-                                    Your learning adventure awaits!
-                                </h2>
-                                <p className="text-gray-400 mb-8">
-                                    This course is still being crafted with care. Check back soon to begin your journey.
-                                </p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Sidebar Column */}
-                {(streakDays > 0 || performers.length > 0) && (
-                    <div className="w-full lg:w-1/3 space-y-6">
-                        {streakDays > 0 && (
-                            <LearningStreak
-                                streakDays={streakDays}
-                                activeDays={activeDays}
-                            />
-                        )}
-
-                        {performers.length > 0 && (
-                            <TopPerformers
-                                performers={performers}
-                                currentUser={currentUser}
-                            />
-                        )}
+            {filteredModules.length > 0 ? (
+                <CourseModuleList
+                    modules={filteredModules}
+                    mode="view"
+                    expandedModules={expandedModules}
+                    onToggleModule={toggleModule}
+                    onOpenItem={openTaskItem}
+                />
+            ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div>
+                        <h2 className="text-4xl font-light mb-4 text-white">
+                            Your learning adventure awaits!
+                        </h2>
+                        <p className="text-gray-400 mb-8">
+                            This course is still being crafted with care. Check back soon to begin your journey.
+                        </p>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* Task Viewer Dialog - Using the same pattern as the editor view */}
             {isDialogOpen && activeItem && (

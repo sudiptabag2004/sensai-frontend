@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import LearnerCourseView from "@/components/LearnerCourseView";
+import LearnerCohortView from "@/components/LearnerCohortView";
 import { Module } from "@/types/course";
 
 interface ClientPreviewWrapperProps {
@@ -9,12 +9,14 @@ interface ClientPreviewWrapperProps {
     modules: Module[];
     isPreview: boolean;
     schoolId: string;
+    cohortId?: string;
 }
 
 export default function ClientPreviewWrapper({
     courseTitle,
     modules,
-    schoolId
+    schoolId,
+    cohortId
 }: ClientPreviewWrapperProps) {
     // Client-side state and effects can be used here
     // For example:
@@ -25,10 +27,11 @@ export default function ClientPreviewWrapper({
     // }, []);
 
     return (
-        <LearnerCourseView
+        <LearnerCohortView
             courseTitle={courseTitle}
             modules={modules}
             schoolId={schoolId}
+            cohortId={cohortId}
         />
     );
 } 
