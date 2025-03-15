@@ -329,33 +329,56 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
                                     </div>
                                 ) : (
                                     <div className="w-full">
-                                        {/* Course Tabs */}
-                                        <div className="mb-8 border-b border-gray-800">
-                                            <div className="flex space-x-1 overflow-x-auto pb-2">
-                                                {courses.map((course, index) => (
-                                                    <button
-                                                        key={course.id}
-                                                        className={`px-4 py-2 rounded-t-lg text-sm font-light whitespace-nowrap transition-colors ${index === activeCourseIndex
-                                                            ? 'bg-gray-800 text-white'
-                                                            : 'text-gray-400 hover:text-white hover:bg-gray-900'
-                                                            }`}
-                                                        onClick={() => handleCourseSelect(index)}
-                                                    >
-                                                        {course.name}
-                                                    </button>
-                                                ))}
+                                        {/* Course Tabs - Only show if there are multiple courses */}
+                                        {courses.length > 1 && (
+                                            <div className="mb-8 border-b border-gray-800">
+                                                <div className="flex space-x-1 overflow-x-auto pb-2">
+                                                    {courses.map((course, index) => (
+                                                        <button
+                                                            key={course.id}
+                                                            className={`px-4 py-2 rounded-t-lg text-sm font-light whitespace-nowrap transition-colors ${index === activeCourseIndex
+                                                                ? 'bg-gray-800 text-white'
+                                                                : 'text-gray-400 hover:text-white hover:bg-gray-900'
+                                                                }`}
+                                                            onClick={() => handleCourseSelect(index)}
+                                                        >
+                                                            {course.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
 
                                         {/* Course Content using LearnerCourseView */}
                                         <div className="w-full">
                                             {courses.length > 0 && (
                                                 <div className="w-full">
                                                     <LearnerCourseView
-                                                        courseTitle={courses[activeCourseIndex].name}
+                                                        courseTitle={courses.length > 1 ? "" : courses[activeCourseIndex].name}
                                                         modules={courseModules}
-                                                        isPreview={false}
                                                         schoolId={school.id.toString()}
+                                                        streakDays={2}
+                                                        activeDays={["M", "T"]}
+                                                        performers={[
+                                                            {
+                                                                name: "Ronak Shah",
+                                                                completionPercentage: 45,
+                                                                tasksSolved: 20,
+                                                                position: 1
+                                                            },
+                                                            {
+                                                                name: "Anshum Shailey",
+                                                                completionPercentage: 45,
+                                                                tasksSolved: 20,
+                                                                position: 2
+                                                            },
+                                                            {
+                                                                name: "Rishab Burman",
+                                                                completionPercentage: 45,
+                                                                tasksSolved: 20,
+                                                                position: 3
+                                                            }
+                                                        ]}
                                                     />
                                                 </div>
                                             )}

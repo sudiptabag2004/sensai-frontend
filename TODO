@@ -112,3 +112,7 @@ types of content blocks - only text for now
 fix ugly dialog boxes
 
 guards on pages so that learner can't act as admin 
+
+testing;
+- multiple cohorts dropdown
+- multiple courses in cohort tab with streaks and leaderboards
