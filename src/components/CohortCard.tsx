@@ -28,7 +28,7 @@ export default function CohortCard({ cohort, schoolId }: CohortCardProps) {
     };
 
     return (
-        <Link href={`/schools/${schoolId}/cohorts/${cohort.id}`} className="block h-full">
+        <Link href={`/school/admin/${schoolId}/cohorts/${cohort.id}`} className="block h-full">
             <div className={`bg-[#1A1A1A] text-gray-300 rounded-lg p-6 h-full transition-all hover:opacity-90 cursor-pointer border-b-2 ${getBorderColor()} border-opacity-70`}>
                 <h2 className="text-xl font-light mb-2">{cohort.name}</h2>
                 {cohort.description && (

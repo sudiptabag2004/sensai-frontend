@@ -16,6 +16,11 @@ interface Course {
   moduleCount: number;
   description?: string;
   role?: string;
+  org?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
   org_id?: number;
 }
 
@@ -95,7 +100,7 @@ export default function Home() {
       setIsCreateCourseDialogOpen(true);
     } else {
       // If no school exists, redirect to school creation page
-      router.push("/schools/create");
+      router.push("/school/admin/create");
     }
   }, [hasSchool, schoolId, router]);
 
@@ -121,7 +126,7 @@ export default function Home() {
 
         const data = await response.json();
         // Redirect to the new course page - no need to close dialog since navigation will unmount components
-        router.push(`/schools/${schoolId}/courses/${data.id}`);
+        router.push(`/school/admin/${schoolId}/courses/${data.id}`);
       } catch (error) {
         console.error('Error creating course:', error);
         // Only close dialog on error
@@ -129,7 +134,7 @@ export default function Home() {
         throw error; // Re-throw to let the dialog handle the error
       }
     } else {
-      router.push("/schools/create");
+      router.push("/school/admin/create");
     }
   }, [hasSchool, schoolId, router]);
 
@@ -224,6 +229,7 @@ export default function Home() {
                       key={course.id}
                       course={{
                         ...course,
+                        title: course.org?.slug ? `@${course.org.slug}/${course.title}` : course.title,
                         moduleCount: course.moduleCount || 0
                       }}
                     />

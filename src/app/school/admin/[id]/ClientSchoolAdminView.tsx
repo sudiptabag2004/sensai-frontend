@@ -75,7 +75,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                 // Check if user has a school
                 const hasSchool = localStorage.getItem("hasSchool") === "true";
                 if (!hasSchool) {
-                    router.push("/schools/create");
+                    router.push("/school/admin/create");
                     return;
                 }
 
@@ -111,7 +111,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                 const transformedSchool: School = {
                     id: parseInt(schoolData.id),
                     name: schoolData.name,
-                    url: `sensai.hyperverge.org/${schoolData.slug}`,
+                    url: `sensai.hyperverge.org/school/${schoolData.slug}`,
                     courses: coursesData.map((course: any) => ({
                         id: course.id,
                         name: course.name,
@@ -301,18 +301,18 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
 
             // Check if the ID exists before navigating
             if (newCohortData && newCohortData.id) {
-                console.log("Navigating to:", `/schools/${id}/cohorts/${newCohortData.id}`);
+                console.log("Navigating to:", `/school/admin/${id}/cohorts/${newCohortData.id}`);
 
                 // Important: Navigate before closing the dialog to prevent flash of school page
                 // This navigation will unmount the current component, which implicitly closes the dialog
-                router.push(`/schools/${id}/cohorts/${newCohortData.id}`);
+                router.push(`/school/admin/${id}/cohorts/${newCohortData.id}`);
 
                 // No need to explicitly close the dialog as the navigation will unmount the component
             } else {
                 console.error("Cohort ID is missing in the API response:", newCohortData);
                 // Fallback to schools page if ID is missing and close dialog
                 setIsCreateCohortDialogOpen(false);
-                router.push(`/schools/${id}#cohorts`);
+                router.push(`/school/admin/${id}#cohorts`);
             }
 
         } catch (error) {
@@ -344,7 +344,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
 
             const data = await response.json();
             // Redirect to the new course page - no need to close dialog since navigation will unmount components
-            router.push(`/schools/${id}/courses/${data.id}`);
+            router.push(`/school/admin/${id}/courses/${data.id}`);
         } catch (error) {
             console.error("Error creating course:", error);
             // Only close dialog on error

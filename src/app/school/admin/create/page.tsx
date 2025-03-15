@@ -18,7 +18,7 @@ export default function CreateSchool() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Base URL for the school (would come from environment variables in a real app)
-    const baseUrl = "sensai.hyperverge.org/";
+    const baseUrl = "sensai.hyperverge.org/school";
 
     // Function to handle form submission
     const handleSubmit = async (e: React.FormEvent) => {
@@ -58,7 +58,7 @@ export default function CreateSchool() {
             const data = await response.json();
 
             // Redirect to the new school page
-            router.push(`/schools/${data.id}`);
+            router.push(`/school/${data.id}`);
         } catch (error) {
             console.error("Error creating school:", error);
             // Handle error state here

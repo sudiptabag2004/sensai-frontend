@@ -13,6 +13,11 @@ export interface Course {
   updatedAt?: string;
   moduleCount?: number;
   role?: string;
+  org?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
   org_id?: number;
   // Add other fields as needed
 }
@@ -26,6 +31,7 @@ export interface School {
   updatedAt?: string;
   url?: string;
   role?: string;
+  slug?: string;
   // Add other fields as needed
 }
 
@@ -62,7 +68,8 @@ export function useCourses() {
           description: course.description,
           moduleCount: course.moduleCount || 0,
           role: course.role,
-          org_id: course.org_id,
+          org: course.org,
+          org_id: course.org?.id,
           coverImage: course.coverImage,
           createdAt: course.createdAt,
           updatedAt: course.updatedAt

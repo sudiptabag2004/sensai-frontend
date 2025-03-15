@@ -484,7 +484,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                         <div className="mb-10">
                             <div className="flex flex-col">
                                 <Link
-                                    href={`/schools/${schoolId}#cohorts`}
+                                    href={`/school/admin/${schoolId}#cohorts`}
                                     className="flex items-center text-gray-400 hover:text-white transition-colors mb-4"
                                 >
                                     <ArrowLeft size={16} className="mr-2" />
@@ -586,7 +586,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                                                     <h3 className="text-lg font-light mb-1">No courses available</h3>
                                                                     <p className="text-gray-400 text-sm">Create courses in your school that you can publish to your cohort</p>
                                                                     <Link
-                                                                        href={`/schools/${schoolId}#courses`}
+                                                                        href={`/school/admin/${schoolId}#courses`}
                                                                         className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity"
                                                                     >
                                                                         Go to School
@@ -598,7 +598,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                                                     <h3 className="text-lg font-light mb-1">No courses left</h3>
                                                                     <p className="text-gray-400 text-sm">All courses from your school have been added to this cohort</p>
                                                                     <Link
-                                                                        href={`/schools/${schoolId}#courses`}
+                                                                        href={`/school/admin/${schoolId}#courses`}
                                                                         className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity cursor-pointer"
                                                                     >
                                                                         Create more courses

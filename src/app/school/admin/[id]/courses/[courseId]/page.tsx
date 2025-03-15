@@ -13,18 +13,18 @@ import CourseItemDialog from "@/components/CourseItemDialog";
 
 // Dynamically import the editor components
 const DynamicLearningMaterialEditor = dynamic(
-    () => import("../../../../../components/LearningMaterialEditor"),
+    () => import("../../../../../../components/LearningMaterialEditor"),
     { ssr: false }
 );
 
 // Dynamically import the QuizEditor component
 const DynamicQuizEditor = dynamic(
-    () => import("../../../../../components/QuizEditor"),
+    () => import("../../../../../../components/QuizEditor"),
     { ssr: false }
 );
 
 // Import the QuizQuestion type
-import { QuizQuestion, QuizQuestionConfig } from "../../../../../components/QuizEditor";
+import { QuizQuestion, QuizQuestionConfig } from "../../../../../../components/QuizEditor";
 
 // Define interfaces
 interface Milestone {
@@ -1460,7 +1460,7 @@ export default function CreateCourse() {
                     <div className="max-w-5xl ml-24 col-span-4">
                         {/* Back to Courses button */}
                         <Link
-                            href={`/schools/${schoolId}#courses`}
+                            href={`/school/admin/${schoolId}#courses`}
                             className="flex items-center text-gray-400 hover:text-white transition-colors mb-4"
                         >
                             <ArrowLeft size={16} className="mr-2" />
@@ -1532,7 +1532,7 @@ export default function CreateCourse() {
                                             className="flex items-center px-6 py-2 text-sm font-medium text-white bg-transparent border-2 !border-[#EF4444] hover:bg-[#222222] outline-none rounded-full transition-all cursor-pointer shadow-md"
                                             onClick={() => {
                                                 // Open preview in a new tab
-                                                window.open(`/schools/${schoolId}/courses/${courseId}/preview`, '_blank');
+                                                window.open(`/school/admin/${schoolId}/courses/${courseId}/preview`, '_blank');
                                             }}
                                         >
                                             <span className="mr-2 text-base">
@@ -1632,7 +1632,7 @@ export default function CreateCourse() {
                                                                             <h3 className="text-lg text-white font-light mb-1">No cohorts available</h3>
                                                                             <p className="text-gray-400 text-sm">Create cohorts in your school that you can publish courses to</p>
                                                                             <Link
-                                                                                href={`/schools/${schoolId}#cohorts`}
+                                                                                href={`/school/admin/${schoolId}#cohorts`}
                                                                                 className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity cursor-pointer"
                                                                             >
                                                                                 Go to School
@@ -1644,7 +1644,7 @@ export default function CreateCourse() {
                                                                             <h3 className="text-lg text-white font-light mb-1">All cohorts selected</h3>
                                                                             <p className="text-gray-400 text-sm">You have selected all available cohorts</p>
                                                                             <Link
-                                                                                href={`/schools/${schoolId}#cohorts`}
+                                                                                href={`/school/admin/${schoolId}#cohorts`}
                                                                                 className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity cursor-pointer"
                                                                             >
                                                                                 Create more cohorts

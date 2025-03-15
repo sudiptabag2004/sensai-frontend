@@ -19,8 +19,14 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
     const [isCreateCourseDialogOpen, setIsCreateCourseDialogOpen] = useState(false);
     const profileMenuRef = useRef<HTMLDivElement>(null);
     const { schools, isLoading } = useSchools();
-    const schoolId = schools && schools.length > 0 ? schools[0].id : null;
-    const hasSchool = Boolean(schools && schools.length > 0);
+
+    // Check if user has a school they own (role admin)
+    const hasOwnedSchool = Boolean(schools && schools.length > 0 &&
+        schools.some(school => school.role === 'owner'));
+
+    // Use the first owned school or just first school as fallback
+    const ownedSchool = schools?.find(school => school.role === 'owner');
+    const schoolId = ownedSchool?.id || (schools && schools.length > 0 ? schools[0].id : null);
 
     // Close the profile menu when clicking outside
     useEffect(() => {
@@ -47,19 +53,20 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
         setProfileMenuOpen(!profileMenuOpen);
     };
 
-    // Handle button click to open school admin page or create page
+    // Handle button click based on school ownership
     const handleButtonClick = (e: React.MouseEvent) => {
-        // If user has a school, go to school admin page, otherwise go to school creation page
-        if (hasSchool && schoolId) {
-            router.push(`/schools/${schoolId}`);
+        if (hasOwnedSchool && schoolId) {
+            // If user has a school they own, go to school admin page
+            router.push(`/school/admin/${schoolId}`);
         } else {
-            router.push("/schools/create");
+            // Otherwise go to school creation page
+            router.push("/school/admin/create");
         }
     };
 
     // Handle creating a new course with the provided name
     const handleCreateCourse = async (courseName: string) => {
-        if (hasSchool && schoolId) {
+        if (hasOwnedSchool && schoolId) {
             try {
                 // Make API request to create course
                 const response = await fetch('http://localhost:8001/courses', {
@@ -79,7 +86,7 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
 
                 const data = await response.json();
                 // Redirect to the new course page - no need to close dialog since navigation will unmount components
-                router.push(`/schools/${schoolId}/courses/${data.id}`);
+                router.push(`/school/admin/${schoolId}/courses/${data.id}`);
             } catch (error) {
                 console.error("Error creating course:", error);
                 // Only close dialog on error
@@ -87,7 +94,7 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
                 throw error; // Re-throw to let the dialog handle the error
             }
         } else {
-            router.push("/schools/create");
+            router.push("/school/admin/create");
         }
     };
 
@@ -97,6 +104,15 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
             return session.user.name.charAt(0).toUpperCase();
         }
         return "U";
+    };
+
+    // Get appropriate button text based on conditions
+    const getButtonText = () => {
+        if (hasOwnedSchool) {
+            return "Go To School";
+        } else {
+            return "Create a Course";
+        }
     };
 
     return (
@@ -122,7 +138,7 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
                             onClick={handleButtonClick}
                             className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none focus:ring-0 focus:border-0 cursor-pointer"
                         >
-                            Go To School
+                            {getButtonText()}
                         </button>
                     )}
 
