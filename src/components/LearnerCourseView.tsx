@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from "react";
-import { Header } from "@/components/layout/header";
 import Link from "next/link";
 import { ModuleItem, Module } from "@/types/course";
 import CourseModuleList, { LocalModule } from "./CourseModuleList";
@@ -20,14 +19,12 @@ const DynamicQuizEditor = dynamic(
 interface LearnerCourseViewProps {
     courseTitle: string;
     modules: Module[];
-    isPreview?: boolean;
     schoolId?: string;
 }
 
 export default function LearnerCourseView({
     courseTitle,
     modules,
-    isPreview = false,
     schoolId
 }: LearnerCourseViewProps) {
     const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
@@ -443,18 +440,9 @@ export default function LearnerCourseView({
     };
 
     return (
-        <div className="min-h-screen bg-white dark:bg-black">
-            {!isPreview && <Header showCreateCourseButton={false} />}
-
-            {/* Preview announcement banner */}
-            {isPreview && (
-                <div className="bg-[#111111] border-b border-gray-800 text-white py-3 px-4 text-center shadow-sm">
-                    <p className="font-light text-sm">You are viewing a preview of this course. This is how it will appear to learners.</p>
-                </div>
-            )}
-
-            <div className="px-8 py-12">
-                <div className="max-w-5xl mx-auto">
+        <div className="bg-white dark:bg-black">
+            <div>
+                <div>
                     <h1 className="text-4xl font-light text-black dark:text-white mb-8">
                         {courseTitle}
                     </h1>

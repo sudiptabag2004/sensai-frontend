@@ -7,17 +7,36 @@ import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useSchools } from "@/lib/api";
 import CreateCourseDialog from "@/components/CreateCourseDialog";
+import { ChevronDown } from "lucide-react";
+
+interface Cohort {
+    id: number;
+    name: string;
+    courseCount: number;
+    memberCount: number;
+    description?: string;
+}
 
 interface HeaderProps {
     showCreateCourseButton?: boolean;
+    cohorts?: Cohort[];
+    activeCohort?: Cohort | null;
+    onCohortSelect?: (cohort: Cohort) => void;
 }
 
-export function Header({ showCreateCourseButton = true }: HeaderProps) {
+export function Header({
+    showCreateCourseButton = true,
+    cohorts = [],
+    activeCohort = null,
+    onCohortSelect
+}: HeaderProps) {
     const router = useRouter();
     const { data: session } = useSession();
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+    const [cohortDropdownOpen, setCohortDropdownOpen] = useState(false);
     const [isCreateCourseDialogOpen, setIsCreateCourseDialogOpen] = useState(false);
     const profileMenuRef = useRef<HTMLDivElement>(null);
+    const cohortDropdownRef = useRef<HTMLDivElement>(null);
     const { schools, isLoading } = useSchools();
 
     // Check if user has a school they own (role admin)
@@ -34,13 +53,16 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
             if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
                 setProfileMenuOpen(false);
             }
+            if (cohortDropdownRef.current && !cohortDropdownRef.current.contains(event.target as Node)) {
+                setCohortDropdownOpen(false);
+            }
         }
 
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, [profileMenuRef]);
+    }, [profileMenuRef, cohortDropdownRef]);
 
     // Handle logout
     const handleLogout = () => {
@@ -51,6 +73,21 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
     // Toggle profile menu
     const toggleProfileMenu = () => {
         setProfileMenuOpen(!profileMenuOpen);
+    };
+
+    // Toggle cohort dropdown
+    const toggleCohortDropdown = () => {
+        if (cohorts.length > 1) {
+            setCohortDropdownOpen(!cohortDropdownOpen);
+        }
+    };
+
+    // Handle cohort selection
+    const handleCohortSelect = (cohort: Cohort) => {
+        if (onCohortSelect) {
+            onCohortSelect(cohort);
+        }
+        setCohortDropdownOpen(false);
     };
 
     // Handle button click based on school ownership
@@ -130,6 +167,41 @@ export function Header({ showCreateCourseButton = true }: HeaderProps) {
                         />
                     </div>
                 </Link>
+
+                {/* Center - Cohort Selector or Active Cohort Name */}
+                {cohorts.length > 0 && activeCohort && (
+                    <div className="flex-1 flex justify-center">
+                        {cohorts.length > 1 ? (
+                            <div className="relative" ref={cohortDropdownRef}>
+                                <button
+                                    className="flex items-center text-xl font-light bg-transparent hover:bg-gray-900 rounded-full px-4 py-2 cursor-pointer"
+                                    onClick={toggleCohortDropdown}
+                                >
+                                    {activeCohort.name}
+                                    <ChevronDown className="ml-2 h-5 w-5" />
+                                </button>
+
+                                {cohortDropdownOpen && (
+                                    <div className="absolute left-1/2 transform -translate-x-1/2 z-10 mt-1 w-full min-w-[200px] bg-gray-900 border border-gray-700 rounded-lg shadow-lg">
+                                        <ul className="py-1">
+                                            {cohorts.map(cohort => (
+                                                <li
+                                                    key={cohort.id}
+                                                    className={`px-4 py-2 hover:bg-gray-800 cursor-pointer ${activeCohort.id === cohort.id ? 'bg-gray-800' : ''}`}
+                                                    onClick={() => handleCohortSelect(cohort)}
+                                                >
+                                                    {cohort.name}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <h2 className="text-xl font-light">{activeCohort.name}</h2>
+                        )}
+                    </div>
+                )}
 
                 {/* Right side actions */}
                 <div className="flex items-center space-x-4 pr-1">

@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
-import { Building } from "lucide-react";
+import { Building, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CohortCard from "@/components/CohortCard";
 import { useAuth } from "@/lib/auth";
+import LearnerCourseView from "@/components/LearnerCourseView";
+import { Module, ModuleItem } from "@/types/course";
 
 interface School {
     id: number;
@@ -21,12 +23,40 @@ interface Cohort {
     description?: string;
 }
 
+interface Task {
+    id: number;
+    title: string;
+    type: string;
+    status: string;
+    ordering: number;
+}
+
+interface Milestone {
+    id: number;
+    name: string;
+    color: string;
+    ordering: number;
+    tasks?: Task[];
+}
+
+interface Course {
+    id: number;
+    name: string;
+    milestones?: Milestone[];
+}
+
 export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
     const router = useRouter();
     const { user, isAuthenticated, isLoading: authLoading } = useAuth();
     const [school, setSchool] = useState<School | null>(null);
     const [cohorts, setCohorts] = useState<Cohort[]>([]);
+    const [activeCohort, setActiveCohort] = useState<Cohort | null>(null);
     const [loading, setLoading] = useState(true);
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [activeCourseIndex, setActiveCourseIndex] = useState(0);
+    const [loadingCourses, setLoadingCourses] = useState(false);
+    const [courseError, setCourseError] = useState<string | null>(null);
+    const [courseModules, setCourseModules] = useState<Module[]>([]);
 
     // Fetch school data
     useEffect(() => {
@@ -71,6 +101,12 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
                 }));
 
                 setCohorts(transformedCohorts);
+
+                // Set the active cohort
+                if (transformedCohorts.length > 0) {
+                    setActiveCohort(transformedCohorts[0]);
+                }
+
                 setLoading(false);
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -80,6 +116,118 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
 
         fetchSchool();
     }, [slug, router, user?.id, isAuthenticated, authLoading]);
+
+    // Fetch courses when active cohort changes
+    useEffect(() => {
+        const fetchCohortCourses = async () => {
+            if (!activeCohort) return;
+
+            setLoadingCourses(true);
+            setCourseError(null);
+
+            try {
+                const response = await fetch(`http://localhost:8001/cohorts/${activeCohort.id}/courses?include_tree=true`);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch courses: ${response.status}`);
+                }
+
+                const coursesData = await response.json();
+                setCourses(coursesData);
+
+                // Reset active course index when cohort changes
+                setActiveCourseIndex(0);
+
+                // Transform the first course's milestones to modules if available
+                if (coursesData.length > 0) {
+                    transformCourseToModules(coursesData[0]);
+                } else {
+                    setCourseModules([]);
+                }
+
+                setLoadingCourses(false);
+            } catch (error) {
+                console.error("Error fetching cohort courses:", error);
+                setCourseError("Failed to load courses. Please try again.");
+                setLoadingCourses(false);
+            }
+        };
+
+        fetchCohortCourses();
+    }, [activeCohort]);
+
+    // Transform course data to modules format for LearnerCourseView
+    const transformCourseToModules = (course: Course) => {
+        if (!course.milestones || !Array.isArray(course.milestones)) {
+            setCourseModules([]);
+            return;
+        }
+
+        const transformedModules = course.milestones.map((milestone: Milestone) => {
+            // Map tasks to module items if they exist
+            const moduleItems: ModuleItem[] = [];
+
+            if (milestone.tasks && Array.isArray(milestone.tasks)) {
+                milestone.tasks.forEach((task: Task) => {
+                    if (task.type === 'learning_material') {
+                        moduleItems.push({
+                            id: task.id.toString(),
+                            title: task.title,
+                            position: task.ordering,
+                            type: 'material',
+                            content: [], // Empty content initially
+                            status: task.status
+                        });
+                    } else if (task.type === 'quiz') {
+                        moduleItems.push({
+                            id: task.id.toString(),
+                            title: task.title,
+                            position: task.ordering,
+                            type: 'quiz',
+                            questions: [], // Empty questions initially
+                            status: task.status
+                        });
+                    } else if (task.type === 'exam') {
+                        moduleItems.push({
+                            id: task.id.toString(),
+                            title: task.title,
+                            position: task.ordering,
+                            type: 'exam',
+                            questions: [], // Empty questions initially
+                            status: task.status
+                        });
+                    }
+                });
+
+                // Sort items by position/ordering
+                moduleItems.sort((a, b) => a.position - b.position);
+            }
+
+            return {
+                id: milestone.id.toString(),
+                title: milestone.name,
+                position: milestone.ordering,
+                items: moduleItems,
+                isExpanded: false,
+                backgroundColor: `${milestone.color}80`, // Add 50% opacity for UI display
+            };
+        });
+
+        // Sort modules by position/ordering
+        transformedModules.sort((a, b) => a.position - b.position);
+        setCourseModules(transformedModules);
+    };
+
+    // Handle course tab selection
+    const handleCourseSelect = (index: number) => {
+        setActiveCourseIndex(index);
+        transformCourseToModules(courses[index]);
+    };
+
+    // Handle cohort selection
+    const handleCohortSelect = (cohort: Cohort) => {
+        setActiveCohort(cohort);
+    };
 
     // Show loading state while auth is loading
     if (authLoading) {
@@ -121,42 +269,100 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
 
     return (
         <>
-            <Header showCreateCourseButton={false} />
+            <Header
+                showCreateCourseButton={false}
+                cohorts={cohorts}
+                activeCohort={activeCohort}
+                onCohortSelect={handleCohortSelect}
+            />
             <div className="min-h-screen bg-black text-white">
                 <div className="container mx-auto px-4 py-8">
                     <main>
-                        {/* School header with title */}
-                        <div className="mb-10">
-                            <div className="flex items-center">
-                                <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mr-4">
-                                    <Building size={24} className="text-white" />
-                                </div>
-                                <div>
-                                    <h1 className="text-3xl font-light">{school.name}</h1>
-                                </div>
-                            </div>
-                        </div>
-
-                        {cohorts.length > 0 ? (
-                            <div className="mt-12">
-                                <h2 className="text-2xl font-light mb-6">Your Cohorts</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {cohorts.map(cohort => (
-                                        <CohortCard
-                                            key={cohort.id}
-                                            cohort={cohort}
-                                            schoolId={school.id}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
+                        {cohorts.length === 0 && (
                             <div className="mt-24">
                                 <div className="flex flex-col items-center justify-center py-12 rounded-lg">
                                     <h3 className="text-xl font-light mb-2">No cohorts available</h3>
                                     <p className="text-gray-400">You are not enrolled in any cohorts for this school</p>
                                 </div>
                             </div>
+                        )}
+
+                        {cohorts.length > 0 && activeCohort && (
+                            <>
+                                {loadingCourses ? (
+                                    <div className="flex justify-center items-center py-12">
+                                        <div className="w-12 h-12 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
+                                    </div>
+                                ) : courseError ? (
+                                    <div className="mt-12 text-center">
+                                        <p className="text-red-400 mb-4">{courseError}</p>
+                                        <button
+                                            onClick={() => {
+                                                if (activeCohort) {
+                                                    setLoadingCourses(true);
+                                                    fetch(`http://localhost:8001/cohorts/${activeCohort.id}/courses?include_tree=true`)
+                                                        .then(res => res.json())
+                                                        .then(data => {
+                                                            setCourses(data);
+                                                            if (data.length > 0) {
+                                                                transformCourseToModules(data[0]);
+                                                            }
+                                                            setLoadingCourses(false);
+                                                            setCourseError(null);
+                                                        })
+                                                        .catch(err => {
+                                                            console.error(err);
+                                                            setCourseError("Failed to load courses. Please try again.");
+                                                            setLoadingCourses(false);
+                                                        });
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-md transition-colors"
+                                        >
+                                            Try Again
+                                        </button>
+                                    </div>
+                                ) : courses.length === 0 ? (
+                                    <div className="mt-12 text-center">
+                                        <h3 className="text-xl font-light mb-2">No courses available</h3>
+                                        <p className="text-gray-400">There are no courses in this cohort yet</p>
+                                    </div>
+                                ) : (
+                                    <div className="w-full">
+                                        {/* Course Tabs */}
+                                        <div className="mb-8 border-b border-gray-800">
+                                            <div className="flex space-x-1 overflow-x-auto pb-2">
+                                                {courses.map((course, index) => (
+                                                    <button
+                                                        key={course.id}
+                                                        className={`px-4 py-2 rounded-t-lg text-sm font-light whitespace-nowrap transition-colors ${index === activeCourseIndex
+                                                            ? 'bg-gray-800 text-white'
+                                                            : 'text-gray-400 hover:text-white hover:bg-gray-900'
+                                                            }`}
+                                                        onClick={() => handleCourseSelect(index)}
+                                                    >
+                                                        {course.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Course Content using LearnerCourseView */}
+                                        <div className="w-full">
+                                            {courses.length > 0 && (
+                                                <div className="w-full">
+                                                    <LearnerCourseView
+                                                        courseTitle={courses[activeCourseIndex].name}
+                                                        modules={courseModules}
+                                                        isPreview={false}
+                                                        schoolId={school.id.toString()}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </main>
                 </div>

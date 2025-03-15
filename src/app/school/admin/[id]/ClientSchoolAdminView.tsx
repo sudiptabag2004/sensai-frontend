@@ -72,13 +72,6 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
         const fetchSchool = async () => {
             setLoading(true);
             try {
-                // Check if user has a school
-                const hasSchool = localStorage.getItem("hasSchool") === "true";
-                if (!hasSchool) {
-                    router.push("/school/admin/create");
-                    return;
-                }
-
                 // Fetch basic school info
                 const schoolResponse = await fetch(`http://localhost:8001/organizations/${id}`);
                 if (!schoolResponse.ok) {

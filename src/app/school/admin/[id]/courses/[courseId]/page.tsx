@@ -229,12 +229,6 @@ export default function CreateCourse() {
         fetchCourseCohorts();
     }, [courseId]);
 
-    // Check if user has a school
-    useEffect(() => {
-        // No need to check localStorage - we're already on a school page
-        // If they don't have a school, they couldn't have navigated here
-    }, [router]);
-
     // Check for dark mode
     useEffect(() => {
         setIsDarkMode(document.documentElement.classList.contains('dark'));
