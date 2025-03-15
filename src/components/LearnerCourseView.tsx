@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { ModuleItem, Module } from "@/types/course";
 import CourseModuleList, { LocalModule } from "./CourseModuleList";
@@ -54,6 +54,8 @@ export default function LearnerCourseView({
     const [completedQuestions, setCompletedQuestions] = useState<Record<string, boolean>>({});
     const dialogTitleRef = useRef<HTMLHeadingElement>(null);
     const dialogContentRef = useRef<HTMLDivElement>(null);
+    // Add a ref to track if we've added a history entry
+    const hasAddedHistoryEntryRef = useRef(false);
 
     // Filter out draft items from modules in both preview and learner view
     const modulesWithFilteredItems = modules.map(module => ({
@@ -70,6 +72,30 @@ export default function LearnerCourseView({
             [moduleId]: !prev[moduleId]
         }));
     };
+
+    // Handle browser history for dialog
+    useEffect(() => {
+        // Handler for back button
+        const handlePopState = (event: PopStateEvent) => {
+            // If dialog is open, close it
+            if (isDialogOpen) {
+                event.preventDefault();
+                closeDialog();
+            }
+        };
+
+        // If dialog is opened, add history entry
+        if (isDialogOpen && !hasAddedHistoryEntryRef.current) {
+            window.history.pushState({ dialog: true }, "");
+            hasAddedHistoryEntryRef.current = true;
+            window.addEventListener("popstate", handlePopState);
+        }
+
+        // Cleanup
+        return () => {
+            window.removeEventListener("popstate", handlePopState);
+        };
+    }, [isDialogOpen]);
 
     // Function to open a task item and fetch its details
     const openTaskItem = async (moduleId: string, itemId: string, questionId?: string) => {
@@ -166,6 +192,9 @@ export default function LearnerCourseView({
         setActiveItem(null);
         setActiveModuleId(null);
         setActiveQuestionId(null);
+
+        // Reset history entry flag when dialog is closed
+        hasAddedHistoryEntryRef.current = false;
     };
 
     // Function to handle quiz/exam answer submission
