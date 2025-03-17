@@ -501,6 +501,7 @@ export default function LearnerCourseView({
                     expandedModules={expandedModules}
                     onToggleModule={toggleModule}
                     onOpenItem={openTaskItem}
+                    completedTaskIds={completedTasks}
                 />
             ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -630,8 +631,8 @@ export default function LearnerCourseView({
                                     </h2>
                                 </div>
                                 <div className="flex items-center space-x-3">
-                                    {/* Show completed status for exams that have been answered */}
-                                    {(activeItem?.type === 'exam' &&
+                                    {/* Show completed status for both quiz and exam questions that have been answered */}
+                                    {((activeItem?.type === 'exam' || activeItem?.type === 'quiz') &&
                                         ((activeItem.questions?.length === 1 && completedTasks[activeItem.id]) ||
                                             (activeItem.questions?.length > 1 && activeQuestionId && completedQuestions[activeQuestionId]))) && (
                                             <button

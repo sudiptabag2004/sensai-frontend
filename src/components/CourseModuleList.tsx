@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ChevronUp, ChevronDown, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Clipboard, Check } from "lucide-react";
 import { Module, ModuleItem } from "@/types/course";
 import { QuizQuestion } from "@/components/QuizEditor"; // Import needed types directly
@@ -64,6 +64,7 @@ interface CourseModuleListProps {
     expandedModules?: Record<string, boolean>; // For learner view
     saveModuleTitle?: (moduleId: string) => void; // Function to save module title
     cancelModuleEditing?: (moduleId: string) => void; // Function to cancel module title editing
+    completedTaskIds?: Record<string, boolean>; // Added prop for completed task IDs
 
     // Dialog-related props
     isDialogOpen?: boolean;
@@ -101,6 +102,7 @@ export default function CourseModuleList({
     expandedModules = {},
     saveModuleTitle = () => { }, // Default empty function
     cancelModuleEditing = () => { }, // Default empty function
+    completedTaskIds = {}, // Default empty object for completed task IDs
 
     // Dialog-related props
     isDialogOpen = false,
@@ -122,8 +124,13 @@ export default function CourseModuleList({
     // For editor mode where we need to keep track of expanded modules internally
     const [internalExpandedModules, setInternalExpandedModules] = useState<Record<string, boolean>>({});
 
-    // Track completed items
-    const [completedItems, setCompletedItems] = useState<Record<string, boolean>>({});
+    // Track completed items - initialize with completedTaskIds prop
+    const [completedItems, setCompletedItems] = useState<Record<string, boolean>>(completedTaskIds);
+
+    // Update completedItems when completedTaskIds changes
+    useEffect(() => {
+        setCompletedItems(completedTaskIds);
+    }, [completedTaskIds]);
 
     // State to track deletion in progress
     const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
