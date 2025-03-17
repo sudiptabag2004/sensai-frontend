@@ -4,25 +4,14 @@ adding learning material
 
 editor:
 
-publishing learning material
-editing learning material content and name and hitting update
-
-being able to delete block by doing back
-create columns?
-video link?
-scrolling?
-
 when clicking on cancel, ask confirmation that progress will be lost
 when clicking outside dialog box in edit mode, ask confirmation that progress will be lost
 
 add acknowledgement toasts/balloons or whatever to show something is done and warning in places where progress can be lost
 
 learner view:
-- checkbox empty for tasks
 - mark as read
 - when go back to module list, should reflect change
-- being able to navigate across tasks in a module
-- next/previous task buttons
 
 ordering tasks
 delete tasks with confirmation
@@ -30,26 +19,9 @@ ordering modules
 delete modules with confirmation
 
 adding quiz
-- questions not deletable after publish
 - send correct answer from input given by user.
-- editing quiz - name + existing questions
-- learner view
-- exam
 - ai integration
-- support for showing completion and netflix style wait for 5 seconds or autoatically go to next question if all questions done, move to next quiz if it exists or back to course page
 - ballons and more acknowledgements
-
-errors for invalid input - question empty, correct answer empty, other fields empty etc.
-during save for task - ask for confirmation before saving.
-
-Cohort page for learner
-Cohort page should have leaderboard/streaks
-Learner seeing courses in the home page and cohorts in the home page
-when clicking on course (that is part of some cohort) - takes to learner course view
-learner courseview should have breadcrumbs like Cohort > Course Name so that when they click on Cohort, they go back to the cohort page
-
-code block - unable to switch langauge
-show code block as option for correct answer too
 
 
 ordering milestones
@@ -67,19 +39,6 @@ When to use STT vs when to use native audio input for analysis?
 or what comes with text - can do stt and show text
 or what comes with input type audio - directly do raw audio
 
-pending
-
-
-course creation
-- preview question
-- preview quiz
-- exam type?
-- course url
-
-assigning cohorts to courses after the course flow is complete
-
-learner view
-- course url
 
 analytics?
 - overall metrics
@@ -126,3 +85,15 @@ integrate ai feedback and track progress, mark completed status for quiz tasks
 show cohort name as breadcrumb in leaderboard view
 
 connect streak and leaderboard data with actual backend
+
+- support for showing completion and netflix style wait for 5 seconds or autoatically go to next question if all questions done, move to next quiz if it exists or back to course page
+
+errors for invalid input - question empty, correct answer empty, other fields empty etc.
+during save for task - ask for confirmation before saving.
+
+create columns?
+video link?
+
+
+code block - unable to switch langauge
+show code block as option for correct answer too

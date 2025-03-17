@@ -261,7 +261,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to add courses to cohort: ${response.status}`);
+                throw new Error(`Failed to link courses to cohort: ${response.status}`);
             }
 
             // Update the cohort with added courses
@@ -301,8 +301,8 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
             setIsDropdownOpen(false);
 
         } catch (error) {
-            console.error("Error adding courses to cohort:", error);
-            setCourseError("Failed to add courses. Please try again.");
+            console.error("Error linking courses to cohort:", error);
+            setCourseError("Failed to link courses. Please try again.");
         } finally {
             setIsLoadingCourses(false);
         }
@@ -517,7 +517,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                             }}
                                         >
                                             <Plus size={16} />
-                                            <span>Add Course</span>
+                                            <span>Link Course</span>
                                         </button>
 
                                         {isDropdownOpen && (
@@ -643,7 +643,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                                                 onClick={handleAddSelectedCourses}
                                                                 disabled={isLoadingCourses}
                                                             >
-                                                                {isLoadingCourses ? "Adding..." : "Add courses to cohort"}
+                                                                {isLoadingCourses ? "Linking..." : "Link courses with cohort"}
                                                             </button>
                                                         </div>
                                                     )}
@@ -978,7 +978,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                 disabled={!emailInputs.some(input => input.email.trim() && !input.error) || isSubmitting}
                                 className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
-                                {isSubmitting ? 'Adding...' : 'Add courses to cohort'}
+                                {isSubmitting ? 'Linking...' : 'Link courses to cohort'}
                             </button>
                         </div>
                     </div>
