@@ -50,7 +50,7 @@ interface ChatMessage {
     timestamp: Date;
 }
 
-interface LearnerQuizViewProps {
+export interface LearnerQuizViewProps {
     questions: QuizQuestion[];
     onSubmitAnswer?: (questionId: string, answer: string) => void;
     isDarkMode?: boolean;
@@ -60,6 +60,7 @@ interface LearnerQuizViewProps {
     taskType?: 'quiz' | 'exam';
     currentQuestionId?: string;
     onQuestionChange?: (questionId: string) => void;
+    userId?: string;
 }
 
 export default function LearnerQuizView({
@@ -71,7 +72,8 @@ export default function LearnerQuizView({
     showCorrectAnswers = false,
     taskType = 'quiz',
     currentQuestionId,
-    onQuestionChange
+    onQuestionChange,
+    userId = ''
 }: LearnerQuizViewProps) {
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -213,21 +215,6 @@ export default function LearnerQuizView({
         }
     }, [currentQuestionIndex, validQuestions.length, onQuestionChange, validQuestions]);
 
-    // Generate a mock AI response
-    const generateMockAiResponse = useCallback((userMessage: string) => {
-        // Sample responses based on common patterns
-        const responses = [
-            "That's a good start! Let's think about this more deeply...",
-            "I see your approach. Have you considered looking at it from another angle?",
-            "You're on the right track. Let me add some additional context to help you understand better.",
-            "That's an interesting perspective. Let me elaborate on why this concept is important.",
-            "Good effort! Here's a hint that might help you refine your answer further."
-        ];
-
-        // Select a random response
-        return responses[Math.floor(Math.random() * responses.length)];
-    }, []);
-
     // Handle input change with focus preservation
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
@@ -312,23 +299,65 @@ export default function LearnerQuizView({
             // But don't mark them as complete
             setIsAiResponding(true);
 
-            // Simulate AI response after 2 seconds
-            setTimeout(() => {
-                const aiResponse: ChatMessage = {
-                    id: `ai-${Date.now()}`,
-                    content: generateMockAiResponse(userMessage.content),
-                    sender: 'ai',
-                    timestamp: new Date()
-                };
+            // Call the API instead of using mock responses
+            fetch(`http://localhost:8001/ai/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
 
-                setChatHistories(prev => ({
-                    ...prev,
-                    [currentQuestionId]: [...(prev[currentQuestionId] || []), aiResponse]
-                }));
-                setIsAiResponding(false);
-            }, 2000);
+                body: JSON.stringify({
+                    user_response: answer,
+                    question_id: currentQuestionId,
+                    user_id: userId
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Add AI response from the API
+                    const aiResponse: ChatMessage = {
+                        id: `ai-${Date.now()}`,
+                        content: data.feedback,
+                        sender: 'ai',
+                        timestamp: new Date()
+                    };
+
+                    setChatHistories(prev => ({
+                        ...prev,
+                        [currentQuestionId]: [...(prev[currentQuestionId] || []), aiResponse]
+                    }));
+
+                    // If the answer is correct, mark the question as completed
+                    if (data.is_correct && onSubmitAnswer) {
+                        onSubmitAnswer(currentQuestionId, answer);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching AI response:', error);
+
+                    // Fallback to mock response in case of error
+                    const aiResponse: ChatMessage = {
+                        id: `ai-${Date.now()}`,
+                        content: "I couldn't process your answer at the moment. Please try again later.",
+                        sender: 'ai',
+                        timestamp: new Date()
+                    };
+
+                    setChatHistories(prev => ({
+                        ...prev,
+                        [currentQuestionId]: [...(prev[currentQuestionId] || []), aiResponse]
+                    }));
+                })
+                .finally(() => {
+                    setIsAiResponding(false);
+                });
         }
-    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, generateMockAiResponse, taskType]);
+    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId]);
 
     // Update the handleSubmitAnswerRef when handleSubmitAnswer changes
     useEffect(() => {

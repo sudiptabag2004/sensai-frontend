@@ -4,6 +4,7 @@ import { ModuleItem, Module } from "@/types/course";
 import CourseModuleList, { LocalModule } from "./CourseModuleList";
 import dynamic from "next/dynamic";
 import { X, CheckCircle, BookOpen, HelpCircle, Clipboard, ChevronLeft, ChevronRight } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 // Dynamically import editor components to avoid SSR issues
 const DynamicLearningMaterialEditor = dynamic(
@@ -25,6 +26,10 @@ export default function LearnerCourseView({
     courseTitle,
     modules
 }: LearnerCourseViewProps) {
+    // Get user from auth context
+    const { user } = useAuth();
+    const userId = user?.id || '';
+
     const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
     const [activeItem, setActiveItem] = useState<any>(null);
     const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
@@ -695,6 +700,7 @@ export default function LearnerCourseView({
                                                     currentQuestionId={activeQuestionId || undefined}
                                                     onQuestionChange={activateQuestion}
                                                     onSubmitAnswer={handleQuizAnswerSubmit}
+                                                    userId={userId}
                                                 />
                                             </>
                                         )}

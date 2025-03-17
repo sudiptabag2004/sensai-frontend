@@ -56,6 +56,7 @@ export interface QuizEditorProps {
     currentQuestionId?: string;
     onQuestionChange?: (questionId: string) => void;
     onSubmitAnswer?: (questionId: string, answer: string) => void;
+    userId?: string;
 }
 
 // Default configuration for new questions
@@ -113,6 +114,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     currentQuestionId,
     onQuestionChange,
     onSubmitAnswer,
+    userId,
 }, ref) => {
     // Initialize questions state
     const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
@@ -699,9 +701,10 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                         onQuestionChange(questionId);
                     }
                 }}
+                userId={userId}
             />
         );
-    }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, onQuestionChange]);
+    }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, onQuestionChange, userId]);
 
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
