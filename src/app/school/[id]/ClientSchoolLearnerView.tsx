@@ -117,43 +117,46 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
         fetchSchool();
     }, [slug, router, user?.id, isAuthenticated, authLoading]);
 
+    // Function to fetch cohort courses
+    const fetchCohortCourses = async (cohortId: number) => {
+        if (!cohortId) return;
+
+        setLoadingCourses(true);
+        setCourseError(null);
+
+        try {
+            const response = await fetch(`http://localhost:8001/cohorts/${cohortId}/courses?include_tree=true`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch courses: ${response.status}`);
+            }
+
+            const coursesData = await response.json();
+            setCourses(coursesData);
+
+            // Reset active course index when cohort changes
+            setActiveCourseIndex(0);
+
+            // Transform the first course's milestones to modules if available
+            if (coursesData.length > 0) {
+                transformCourseToModules(coursesData[0]);
+            } else {
+                setCourseModules([]);
+            }
+
+            setLoadingCourses(false);
+        } catch (error) {
+            console.error("Error fetching cohort courses:", error);
+            setCourseError("Failed to load courses. Please try again.");
+            setLoadingCourses(false);
+        }
+    };
+
     // Fetch courses when active cohort changes
     useEffect(() => {
-        const fetchCohortCourses = async () => {
-            if (!activeCohort) return;
-
-            setLoadingCourses(true);
-            setCourseError(null);
-
-            try {
-                const response = await fetch(`http://localhost:8001/cohorts/${activeCohort.id}/courses?include_tree=true`);
-
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch courses: ${response.status}`);
-                }
-
-                const coursesData = await response.json();
-                setCourses(coursesData);
-
-                // Reset active course index when cohort changes
-                setActiveCourseIndex(0);
-
-                // Transform the first course's milestones to modules if available
-                if (coursesData.length > 0) {
-                    transformCourseToModules(coursesData[0]);
-                } else {
-                    setCourseModules([]);
-                }
-
-                setLoadingCourses(false);
-            } catch (error) {
-                console.error("Error fetching cohort courses:", error);
-                setCourseError("Failed to load courses. Please try again.");
-                setLoadingCourses(false);
-            }
-        };
-
-        fetchCohortCourses();
+        if (activeCohort) {
+            fetchCohortCourses(activeCohort.id);
+        }
     }, [activeCohort]);
 
     // Transform course data to modules format for LearnerCohortView
@@ -299,22 +302,7 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
                                         <button
                                             onClick={() => {
                                                 if (activeCohort) {
-                                                    setLoadingCourses(true);
-                                                    fetch(`http://localhost:8001/cohorts/${activeCohort.id}/courses?include_tree=true`)
-                                                        .then(res => res.json())
-                                                        .then(data => {
-                                                            setCourses(data);
-                                                            if (data.length > 0) {
-                                                                transformCourseToModules(data[0]);
-                                                            }
-                                                            setLoadingCourses(false);
-                                                            setCourseError(null);
-                                                        })
-                                                        .catch(err => {
-                                                            console.error(err);
-                                                            setCourseError("Failed to load courses. Please try again.");
-                                                            setLoadingCourses(false);
-                                                        });
+                                                    fetchCohortCourses(activeCohort.id);
                                                 }
                                             }}
                                             className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-md transition-colors"
