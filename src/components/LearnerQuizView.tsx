@@ -144,6 +144,15 @@ export default function LearnerQuizView({
     // Store the handleSubmitAnswer function in a ref to avoid circular dependencies
     const handleSubmitAnswerRef = useRef<() => void>(() => { });
 
+    // State to track which exam questions have had responses submitted
+    const [submittedQuestionIds, setSubmittedQuestionIds] = useState<Record<string, boolean>>({});
+
+    // Add state to track completed questions
+    const [completedQuestionIds, setCompletedQuestionIds] = useState<Record<string, boolean>>({});
+
+    // State to track which questions are currently being submitted (waiting for API response)
+    const [pendingSubmissionQuestionIds, setPendingSubmissionQuestionIds] = useState<Record<string, boolean>>({});
+
     // Update the ref when the state changes
     useEffect(() => {
         currentAnswerRef.current = currentAnswer;
@@ -163,6 +172,40 @@ export default function LearnerQuizView({
             setIsChatHistoryLoaded(false);
         }
     }, [taskId]);
+
+    // Get the current question's chat history
+    const currentChatHistory = useMemo(() => {
+        const currentQuestionId = validQuestions[currentQuestionIndex]?.id || '';
+        const history = chatHistories[currentQuestionId] || [];
+
+        // For exam questions with existing chat history, we need to filter what's shown
+        if (taskType === 'exam') {
+            // Find any user messages in the history
+            const userMessages = history.filter(msg => msg.sender === 'user');
+
+            // Check if this question has a user message and is properly submitted (not currently in the submission process)
+            const isSubmitted = submittedQuestionIds[currentQuestionId] && !pendingSubmissionQuestionIds[currentQuestionId];
+
+            // If we have user messages and the question is already submitted (not pending)
+            if (userMessages.length > 0 && isSubmitted) {
+                // Get the last user message
+                const lastUserMessage = userMessages[userMessages.length - 1];
+
+                // Only return the last user message and a confirmation message
+                return [
+                    lastUserMessage,
+                    {
+                        id: `ai-confirmation-${currentQuestionId}`,
+                        content: "Thank you for your submission. We will review it shortly",
+                        sender: 'ai',
+                        timestamp: new Date()
+                    }
+                ];
+            }
+        }
+
+        return history;
+    }, [chatHistories, currentQuestionIndex, validQuestions, taskType, submittedQuestionIds, pendingSubmissionQuestionIds]);
 
     // Fetch chat history from backend when component mounts or task changes
     useEffect(() => {
@@ -189,6 +232,8 @@ export default function LearnerQuizView({
 
                 // Organize chat messages by question ID
                 const chatHistoryByQuestion: Record<string, ChatMessage[]> = {};
+                // Track which questions had user messages
+                const questionsWithResponses: Record<string, boolean> = {};
 
                 chatData.forEach((message: any) => {
                     const questionId = message.question_id.toString();
@@ -204,11 +249,34 @@ export default function LearnerQuizView({
                         timestamp: new Date(message.created_at)
                     };
 
+                    // Track questions with user responses for exam questions
+                    if (message.role === 'user') {
+                        questionsWithResponses[questionId] = true;
+                    }
+
                     chatHistoryByQuestion[questionId].push(chatMessage);
                 });
 
                 // Update chat histories state
                 setChatHistories(chatHistoryByQuestion);
+
+                // For exam questions with responses, mark them as submitted
+                if (taskType === 'exam') {
+                    setSubmittedQuestionIds(prev => ({
+                        ...prev,
+                        ...questionsWithResponses
+                    }));
+
+                    // Clear any pending submissions for these questions since they're loaded from history
+                    setPendingSubmissionQuestionIds(prev => {
+                        const newState = { ...prev };
+                        Object.keys(questionsWithResponses).forEach(id => {
+                            delete newState[id];
+                        });
+                        return newState;
+                    });
+                }
+
                 setIsChatHistoryLoaded(true);
 
             } catch (error) {
@@ -217,7 +285,7 @@ export default function LearnerQuizView({
         };
 
         fetchChatHistory();
-    }, [isTestMode, userId, validQuestions, isChatHistoryLoaded, taskId]);
+    }, [isTestMode, userId, validQuestions, isChatHistoryLoaded, taskId, taskType]);
 
     // Effect to focus the input when the question changes
     useEffect(() => {
@@ -244,18 +312,6 @@ export default function LearnerQuizView({
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     }, [chatHistories]);
-
-    // Get the current question's chat history
-    const currentChatHistory = useMemo(() => {
-        const currentQuestionId = validQuestions[currentQuestionIndex]?.id || '';
-        return chatHistories[currentQuestionId] || [];
-    }, [chatHistories, currentQuestionIndex, validQuestions]);
-
-    // State to track which exam questions have had responses submitted
-    const [submittedQuestionIds, setSubmittedQuestionIds] = useState<Record<string, boolean>>({});
-
-    // Add state to track completed questions
-    const [completedQuestionIds, setCompletedQuestionIds] = useState<Record<string, boolean>>({});
 
     // Navigate to previous question
     const goToPreviousQuestion = useCallback(() => {
@@ -305,7 +361,25 @@ export default function LearnerQuizView({
     const storeChatHistory = useCallback(async (questionId: string, userMessage: ChatMessage, aiMessage: ChatMessage) => {
         if (!userId || isTestMode) return;
 
-        const isSolved = completedQuestionIds[questionId] || false;
+        // For exam questions, always mark user message as solved
+        // For quiz questions, use the completedQuestionIds state
+        const userIsSolved = taskType === 'exam' ? true : (completedQuestionIds[questionId] || false);
+
+        // For AI messages, check if it contains feedback about correctness
+        // We'll extract the is_correct value from the message if it exists
+        let aiIsSolved = false;
+        try {
+            // Try to parse the AI message as JSON to see if it contains is_correct
+            const aiResponseData = JSON.parse(aiMessage.content);
+            if (aiResponseData && typeof aiResponseData.is_correct === 'boolean') {
+                aiIsSolved = aiResponseData.is_correct;
+            }
+        } catch (e) {
+            // If it's not JSON, check if it contains certain keywords
+            aiIsSolved = aiMessage.content.includes('correct') &&
+                !aiMessage.content.includes('incorrect') &&
+                !aiMessage.content.includes('not correct');
+        }
 
         const messages = [
             {
@@ -313,7 +387,7 @@ export default function LearnerQuizView({
                 question_id: parseInt(questionId),
                 role: "user",
                 content: userMessage.content,
-                is_solved: isSolved,
+                is_solved: userIsSolved,
                 response_type: "text"
             },
             {
@@ -321,7 +395,7 @@ export default function LearnerQuizView({
                 question_id: parseInt(questionId),
                 role: "assistant",
                 content: aiMessage.content,
-                is_solved: isSolved,
+                is_solved: aiIsSolved,
                 response_type: null
             }
         ];
@@ -341,7 +415,7 @@ export default function LearnerQuizView({
         } catch (error) {
             console.error('Error storing chat history:', error);
         }
-    }, [userId, isTestMode, completedQuestionIds]);
+    }, [userId, isTestMode, completedQuestionIds, taskType]);
 
     // Modify the handleSubmitAnswer function to store chat history
     const handleSubmitAnswer = useCallback(() => {
@@ -355,6 +429,14 @@ export default function LearnerQuizView({
         // Set submitting state to true
         setIsSubmitting(true);
 
+        // For exam questions, mark as pending submission
+        if (taskType === 'exam') {
+            setPendingSubmissionQuestionIds(prev => ({
+                ...prev,
+                [currentQuestionId]: true
+            }));
+        }
+
         // Get the current answer from the ref
         const answer = currentAnswerRef.current;
 
@@ -366,6 +448,7 @@ export default function LearnerQuizView({
             timestamp: new Date()
         };
 
+        // Immediately add only the user's message to the chat history
         setChatHistories(prev => ({
             ...prev,
             [currentQuestionId]: [...(prev[currentQuestionId] || []), userMessage]
@@ -380,140 +463,147 @@ export default function LearnerQuizView({
             inputRef.current.focus();
         }
 
-        // Reset submitting state
-        setIsSubmitting(false);
+        // Show the AI typing animation
+        setIsAiResponding(true);
 
-        // If this is an exam, mark it as completed and call onSubmitAnswer
-        if (taskType === 'exam') {
-            // Mark this specific question as submitted
-            setSubmittedQuestionIds(prev => ({
-                ...prev,
-                [currentQuestionId]: true
+        // Prepare the request body based on whether this is a teacher testing or a real learner
+        let requestBody;
+
+        if (isTestMode) {
+            // In teacher testing mode, send chat_history and question data
+            // Format the chat history for the current question
+            const formattedChatHistory = (chatHistories[currentQuestionId] || []).map(msg => ({
+                role: msg.sender === 'user' ? 'user' : 'assistant',
+                content: msg.content
             }));
 
-            // Call the onSubmitAnswer callback to mark completion (only for exam questions)
-            if (onSubmitAnswer) {
-                onSubmitAnswer(currentQuestionId, answer);
-            }
-
-            // Add AI response immediately without setting isAiResponding
-            const aiResponse: ChatMessage = {
-                id: `ai-${Date.now()}`,
-                content: "Thank you for your submission. We will review it shortly",
-                sender: 'ai',
-                timestamp: new Date()
+            // Create the request body for teacher testing mode
+            requestBody = {
+                user_response: answer,
+                chat_history: formattedChatHistory,
+                question: {
+                    "blocks": validQuestions[currentQuestionIndex].content,
+                    "response_type": "chat",
+                    "answer": validQuestions[currentQuestionIndex].config.correctAnswer,
+                    "type": "objective",
+                    "input_type": "text"
+                }
             };
-
-            setChatHistories(prev => ({
-                ...prev,
-                [currentQuestionId]: [...(prev[currentQuestionId] || []), aiResponse]
-            }));
         } else {
-            // For non-exam tasks (quizzes), use the animation and delay
-            // But don't mark them as complete
-            setIsAiResponding(true);
+            // In normal mode, send question_id and user_id
+            requestBody = {
+                user_response: answer,
+                question_id: currentQuestionId,
+                user_id: userId
+            };
+        }
 
-            // Prepare the request body based on whether this is a teacher testing or a real learner
-            let requestBody;
+        // Call the API with the appropriate request body
+        fetch(`http://localhost:8001/ai/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Store the actual AI response for backend purposes
+                const actualAiResponse: ChatMessage = {
+                    id: `ai-actual-${Date.now()}`,
+                    content: data.feedback,
+                    sender: 'ai',
+                    timestamp: new Date()
+                };
 
-            if (isTestMode) {
-                // In teacher testing mode, send chat_history and question data
-                // Format the chat history for the current question
-                const formattedChatHistory = (chatHistories[currentQuestionId] || []).map(msg => ({
-                    role: msg.sender === 'user' ? 'user' : 'assistant',
-                    content: msg.content
+                // Create a UI response message (either confirmation for exam or actual feedback for quiz)
+                const uiResponse: ChatMessage = {
+                    id: `ai-${Date.now()}`,
+                    content: taskType === 'exam'
+                        ? "Thank you for your submission. We will review it shortly"
+                        : data.feedback,
+                    sender: 'ai',
+                    timestamp: new Date()
+                };
+
+                // Now that the API call is complete, handle exam submissions
+                if (taskType === 'exam') {
+                    // Mark this specific question as submitted
+                    setSubmittedQuestionIds(prev => ({
+                        ...prev,
+                        [currentQuestionId]: true
+                    }));
+
+                    // Call the onSubmitAnswer callback to mark completion
+                    if (onSubmitAnswer) {
+                        onSubmitAnswer(currentQuestionId, answer);
+                    }
+
+                    // Clear the pending submission status
+                    setPendingSubmissionQuestionIds(prev => {
+                        const newState = { ...prev };
+                        delete newState[currentQuestionId];
+                        return newState;
+                    });
+                }
+                // For quizzes, check if the answer is correct and mark completed if so
+                else if (taskType === 'quiz' && data.is_correct && onSubmitAnswer) {
+                    onSubmitAnswer(currentQuestionId, answer);
+                    setCompletedQuestionIds(prev => ({
+                        ...prev,
+                        [currentQuestionId]: true
+                    }));
+                }
+
+                // Now that we have the AI response, update the chat history with the UI response
+                // This happens only after the API call is complete
+                setChatHistories(prev => ({
+                    ...prev,
+                    [currentQuestionId]: [...(prev[currentQuestionId] || []), uiResponse]
                 }));
 
-                // Create the request body for teacher testing mode
-                requestBody = {
-                    user_response: answer,
-                    chat_history: formattedChatHistory,
-                    question: {
-                        "blocks": validQuestions[currentQuestionIndex].content,
-                        "response_type": "chat",
-                        "answer": validQuestions[currentQuestionIndex].config.correctAnswer,
-                        "type": "objective",
-                        "input_type": "text"
-                    }
-                };
-            } else {
-                // In normal mode, send question_id and user_id
-                requestBody = {
-                    user_response: answer,
-                    question_id: currentQuestionId,
-                    user_id: userId
-                };
-            }
-            console.log(JSON.stringify(requestBody))
-
-            // Call the API with the appropriate request body
-            fetch(`http://localhost:8001/ai/chat`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
+                // Store chat history in backend for both quiz and exam
+                if (!isTestMode) {
+                    storeChatHistory(currentQuestionId, userMessage, actualAiResponse);
+                }
             })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Add AI response from the API
-                    const aiResponse: ChatMessage = {
-                        id: `ai-${Date.now()}`,
-                        content: data.feedback,
-                        sender: 'ai',
-                        timestamp: new Date()
-                    };
+            .catch(error => {
+                console.error('Error fetching AI response:', error);
 
-                    setChatHistories(prev => ({
-                        ...prev,
-                        [currentQuestionId]: [...(prev[currentQuestionId] || []), aiResponse]
-                    }));
+                // Show error message to the user
+                const errorResponse: ChatMessage = {
+                    id: `ai-error-${Date.now()}`,
+                    content: "There was an error processing your answer. Please try again.",
+                    sender: 'ai',
+                    timestamp: new Date()
+                };
 
-                    // If the answer is correct, mark the question as completed
-                    if (data.is_correct && onSubmitAnswer) {
-                        onSubmitAnswer(currentQuestionId, answer);
-                        setCompletedQuestionIds(prev => ({
-                            ...prev,
-                            [currentQuestionId]: true
-                        }));
-                    }
+                // For exam questions, clear the pending status so the user can try again
+                if (taskType === 'exam') {
+                    setPendingSubmissionQuestionIds(prev => {
+                        const newState = { ...prev };
+                        delete newState[currentQuestionId];
+                        return newState;
+                    });
+                }
 
-                    // Store chat history in backend
-                    if (!isTestMode) {
-                        const userMessage: ChatMessage = {
-                            id: `user-${Date.now()}`,
-                            content: answer,
-                            sender: 'user',
-                            timestamp: new Date()
-                        };
-                        storeChatHistory(currentQuestionId, userMessage, aiResponse);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching AI response:', error);
-
-                    // Fallback to mock response in case of error
-                    const aiResponse: ChatMessage = {
-                        id: `ai-${Date.now()}`,
-                        content: "I couldn't process your answer at the moment. Please try again later.",
-                        sender: 'ai',
-                        timestamp: new Date()
-                    };
-
-                    setChatHistories(prev => ({
-                        ...prev,
-                        [currentQuestionId]: [...(prev[currentQuestionId] || []), aiResponse]
-                    }));
-                })
-                .finally(() => {
-                    setIsAiResponding(false);
-                });
-        }
+                // Add the error message to the chat history
+                // This is only for UI display and won't be saved to the database
+                setChatHistories(prev => ({
+                    ...prev,
+                    [currentQuestionId]: [...(prev[currentQuestionId] || []), errorResponse]
+                }));
+            })
+            .finally(() => {
+                // Always reset submitting and AI responding states when API call is done
+                setIsSubmitting(false);
+                setIsAiResponding(false);
+            });
     }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId, isTestMode, chatHistories, storeChatHistory]);
 
     // Update the handleSubmitAnswerRef when handleSubmitAnswer changes
