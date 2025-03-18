@@ -702,7 +702,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                     }
                 }}
                 userId={userId}
-                isTeacherTesting={true}
+                isTestMode={true}
             />
         );
     }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, onQuestionChange, userId]);

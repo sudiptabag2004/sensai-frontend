@@ -701,7 +701,7 @@ export default function LearnerCourseView({
                                                     onQuestionChange={activateQuestion}
                                                     onSubmitAnswer={handleQuizAnswerSubmit}
                                                     userId={userId}
-                                                    isTeacherTesting={false}
+                                                    isTestMode={false}
                                                 />
                                             </>
                                         )}

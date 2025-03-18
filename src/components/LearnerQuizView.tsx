@@ -61,7 +61,7 @@ export interface LearnerQuizViewProps {
     currentQuestionId?: string;
     onQuestionChange?: (questionId: string) => void;
     userId?: string;
-    isTeacherTesting?: boolean;
+    isTestMode?: boolean;
 }
 
 export default function LearnerQuizView({
@@ -75,7 +75,7 @@ export default function LearnerQuizView({
     currentQuestionId,
     onQuestionChange,
     userId = '',
-    isTeacherTesting = false
+    isTestMode = false
 }: LearnerQuizViewProps) {
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -304,7 +304,7 @@ export default function LearnerQuizView({
             // Prepare the request body based on whether this is a teacher testing or a real learner
             let requestBody;
 
-            if (isTeacherTesting) {
+            if (isTestMode) {
                 // In teacher testing mode, send chat_history and question data
                 // Format the chat history for the current question
                 const formattedChatHistory = (chatHistories[currentQuestionId] || []).map(msg => ({
@@ -387,7 +387,7 @@ export default function LearnerQuizView({
                     setIsAiResponding(false);
                 });
         }
-    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId, isTeacherTesting, chatHistories]);
+    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId, isTestMode, chatHistories]);
 
     // Update the handleSubmitAnswerRef when handleSubmitAnswer changes
     useEffect(() => {
