@@ -21,11 +21,15 @@ const DynamicLearnerQuizView = dynamic(
 interface LearnerCourseViewProps {
     courseTitle: string;
     modules: Module[];
+    completedTaskIds?: Record<string, boolean>;
+    completedQuestionIds?: Record<string, Record<string, boolean>>;
 }
 
 export default function LearnerCourseView({
     courseTitle,
-    modules
+    modules,
+    completedTaskIds = {},
+    completedQuestionIds = {}
 }: LearnerCourseViewProps) {
     // Get user from auth context
     const { user } = useAuth();
@@ -37,9 +41,9 @@ export default function LearnerCourseView({
     const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    // Track completed tasks
-    const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
-    // Track completed questions within quizzes/exams
+    // Track completed tasks - initialize with props
+    const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>(completedTaskIds);
+    // Track completed questions within quizzes/exams - initialize with structure that will be populated
     const [completedQuestions, setCompletedQuestions] = useState<Record<string, boolean>>({});
     // Add state to track when task is being marked as complete
     const [isMarkingComplete, setIsMarkingComplete] = useState(false);
@@ -47,6 +51,25 @@ export default function LearnerCourseView({
     const dialogContentRef = useRef<HTMLDivElement>(null);
     // Add a ref to track if we've added a history entry
     const hasAddedHistoryEntryRef = useRef(false);
+
+    // Update completedTasks when completedTaskIds prop changes
+    useEffect(() => {
+        setCompletedTasks(completedTaskIds);
+    }, [completedTaskIds]);
+
+    // Process completedQuestionIds into the format expected by this component
+    useEffect(() => {
+        // Convert the nested structure to a flat structure with keys like "questionId"
+        const flatQuestionCompletions: Record<string, boolean> = {};
+
+        Object.entries(completedQuestionIds).forEach(([taskId, questions]) => {
+            Object.entries(questions).forEach(([questionId, isComplete]) => {
+                flatQuestionCompletions[questionId] = isComplete;
+            });
+        });
+
+        setCompletedQuestions(flatQuestionCompletions);
+    }, [completedQuestionIds]);
 
     // Filter out draft items from modules in both preview and learner view
     const modulesWithFilteredItems = modules.map(module => ({
@@ -519,7 +542,7 @@ export default function LearnerCourseView({
                     expandedModules={expandedModules}
                     onToggleModule={toggleModule}
                     onOpenItem={openTaskItem}
-                    completedTaskIds={completedTasks}
+                    completedTaskIds={completedTaskIds}
                 />
             ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -729,6 +752,7 @@ export default function LearnerCourseView({
                                                     userId={userId}
                                                     isTestMode={false}
                                                     taskId={activeItem.id}
+                                                    completedQuestionIds={completedQuestions}
                                                 />
                                             </>
                                         )}

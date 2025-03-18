@@ -20,6 +20,8 @@ interface LearnerCohortViewProps {
     activeDays?: string[];
     performers?: Performer[];
     currentUser?: Performer;
+    completedTaskIds?: Record<string, boolean>;
+    completedQuestionIds?: Record<string, Record<string, boolean>>;
 }
 
 export default function LearnerCohortView({
@@ -30,7 +32,9 @@ export default function LearnerCohortView({
     streakDays = 0,
     activeDays = [],
     performers = [],
-    currentUser
+    currentUser,
+    completedTaskIds = {},
+    completedQuestionIds = {}
 }: LearnerCohortViewProps) {
     return (
         <div className="bg-white dark:bg-black">
@@ -46,6 +50,8 @@ export default function LearnerCohortView({
                     <LearnerCourseView
                         courseTitle=""
                         modules={modules}
+                        completedTaskIds={completedTaskIds}
+                        completedQuestionIds={completedQuestionIds}
                     />
                 </div>
 

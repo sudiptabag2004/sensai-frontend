@@ -68,6 +68,7 @@ export interface LearnerQuizViewProps {
     userId?: string;
     isTestMode?: boolean;
     taskId?: string;
+    completedQuestionIds?: Record<string, boolean>;
 }
 
 export default function LearnerQuizView({
@@ -82,7 +83,8 @@ export default function LearnerQuizView({
     onQuestionChange,
     userId = '',
     isTestMode = false,
-    taskId = ''
+    taskId = '',
+    completedQuestionIds: initialCompletedQuestionIds = {}
 }: LearnerQuizViewProps) {
     // Constant message for exam submission confirmation
     const EXAM_CONFIRMATION_MESSAGE = "Thank you for your submission. We will review it shortly";
@@ -152,8 +154,16 @@ export default function LearnerQuizView({
     // Store the handleSubmitAnswer function in a ref to avoid circular dependencies
     const handleSubmitAnswerRef = useRef<() => void>(() => { });
 
-    // Use a single state to track completed/submitted questions
-    const [completedQuestionIds, setCompletedQuestionIds] = useState<Record<string, boolean>>({});
+    // Use a single state to track completed/submitted questions - initialize with props
+    const [completedQuestionIds, setCompletedQuestionIds] = useState<Record<string, boolean>>(initialCompletedQuestionIds);
+
+    // Update completedQuestionIds when the prop changes
+    useEffect(() => {
+        setCompletedQuestionIds(prev => ({
+            ...prev,
+            ...initialCompletedQuestionIds
+        }));
+    }, [initialCompletedQuestionIds]);
 
     // State to track which questions are currently being submitted (waiting for API response)
     const [pendingSubmissionQuestionIds, setPendingSubmissionQuestionIds] = useState<Record<string, boolean>>({});

@@ -58,6 +58,10 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
     const [courseError, setCourseError] = useState<string | null>(null);
     const [courseModules, setCourseModules] = useState<Module[]>([]);
 
+    // Add state for completion data
+    const [completedTaskIds, setCompletedTaskIds] = useState<Record<string, boolean>>({});
+    const [completedQuestionIds, setCompletedQuestionIds] = useState<Record<string, Record<string, boolean>>>({});
+
     // Fetch school data
     useEffect(() => {
         const fetchSchool = async () => {
@@ -152,12 +156,63 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
         }
     };
 
+    // Function to fetch completion data
+    const fetchCompletionData = async (cohortId: number, userId: string) => {
+        if (!cohortId || !userId) return;
+
+        try {
+            const response = await fetch(`http://localhost:8001/cohorts/${cohortId}/completion?user_id=${userId}`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch completion data: ${response.status}`);
+            }
+
+            const completionData = await response.json();
+
+            // Process completion data for tasks
+            const taskCompletions: Record<string, boolean> = {};
+            // Process completion data for questions
+            const questionCompletions: Record<string, Record<string, boolean>> = {};
+
+            // Iterate through each task in the completion data
+            Object.entries(completionData).forEach(([taskId, taskData]: [string, any]) => {
+                // Store task completion status
+                taskCompletions[taskId] = taskData.is_complete;
+
+                // Store question completion status if questions exist
+                if (taskData.questions && taskData.questions.length > 0) {
+                    const questionsMap: Record<string, boolean> = {};
+
+                    taskData.questions.forEach((question: any) => {
+                        questionsMap[question.question_id.toString()] = question.is_complete;
+                    });
+
+                    questionCompletions[taskId] = questionsMap;
+                }
+            });
+
+            // Update state with processed completion data
+            setCompletedTaskIds(taskCompletions);
+            setCompletedQuestionIds(questionCompletions);
+
+        } catch (error) {
+            console.error("Error fetching completion data:", error);
+            // We don't set an error state as this is not critical functionality
+            // Just log the error and continue
+        }
+    };
+
     // Fetch courses when active cohort changes
     useEffect(() => {
         if (activeCohort) {
             fetchCohortCourses(activeCohort.id);
+
+            // Also fetch completion data when cohort changes
+            if (user?.id) {
+                fetchCompletionData(activeCohort.id, user.id.toString());
+            }
         }
-    }, [activeCohort]);
+    }, [activeCohort, user?.id]);
 
     // Transform course data to modules format for LearnerCohortView
     const transformCourseToModules = (course: Course) => {
@@ -374,6 +429,8 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
                                                             tasksSolved: 15,
                                                             position: 7
                                                         }}
+                                                        completedTaskIds={completedTaskIds}
+                                                        completedQuestionIds={completedQuestionIds}
                                                     />
                                                 </div>
                                             )}
