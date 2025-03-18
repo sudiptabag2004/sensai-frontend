@@ -271,7 +271,7 @@ export default function LearnerCourseView({
         // Reset history entry flag when dialog is closed
         hasAddedHistoryEntryRef.current = false;
 
-        // Notify parent component that dialog has been closed
+        // Call the onDialogClose callback if provided
         if (onDialogClose) {
             onDialogClose();
         }
