@@ -6,7 +6,8 @@ interface LearningStreakProps {
 }
 
 export default function LearningStreak({ streakDays, activeDays }: LearningStreakProps) {
-    const daysOfWeek = ["M", "T", "W", "T", "F", "S", "S"];
+    // Reordered days of week to start with Sunday, end with Saturday, with Wednesday in the middle
+    const daysOfWeek = ["S", "M", "T", "W", "T", "F", "S"];
 
     // List of energizing emojis
     const energizing_emojis = [
@@ -34,16 +35,16 @@ export default function LearningStreak({ streakDays, activeDays }: LearningStrea
                     {randomEmoji && <span className="ml-2" role="img" aria-label="Energizing emoji">{randomEmoji}</span>}
                 </div>
 
-                <div className="flex space-x-2">
+                <div className="flex justify-between w-full">
                     {daysOfWeek.map((day, index) => (
                         <div
                             key={index}
                             className={`
-                w-8 h-8 flex items-center justify-center rounded
-                ${activeDays.includes(day)
+                                flex-1 h-8 flex items-center justify-center rounded mx-1.5
+                                ${activeDays.includes(day)
                                     ? "bg-[#F9B84E] text-black font-light"
                                     : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-light"}
-              `}
+                            `}
                         >
                             {day}
                         </div>

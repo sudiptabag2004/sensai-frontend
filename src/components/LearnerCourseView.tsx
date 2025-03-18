@@ -5,6 +5,8 @@ import CourseModuleList, { LocalModule } from "./CourseModuleList";
 import dynamic from "next/dynamic";
 import { X, CheckCircle, BookOpen, HelpCircle, Clipboard, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import confetti from "canvas-confetti";
+import SuccessSound from "./SuccessSound";
 
 // Dynamically import editor components to avoid SSR issues
 const DynamicLearningMaterialEditor = dynamic(
@@ -57,6 +59,31 @@ export default function LearnerCourseView({
     const dialogContentRef = useRef<HTMLDivElement>(null);
     // Add a ref to track if we've added a history entry
     const hasAddedHistoryEntryRef = useRef(false);
+
+    // Add state for success message
+    const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
+    // Add state for sound
+    const [playSuccessSound, setPlaySuccessSound] = useState(false);
+
+    // List of encouragement messages
+    const encouragementMessages = [
+        "Great job! 🎯",
+        "You're crushing it! 💪",
+        "Keep it up! 🚀",
+        "Excellent work! ⭐",
+        "Knowledge gained! 📚",
+        "You're making progress! 🌱",
+        "Achievement unlocked! 🏆",
+        "Learning mastered! 🧠",
+        "Skill acquired! ✨"
+    ];
+
+    // Function to select a random encouragement message
+    const getRandomMessage = () => {
+        const randomIndex = Math.floor(Math.random() * encouragementMessages.length);
+        return encouragementMessages[randomIndex];
+    };
 
     // Update completedTasks when completedTaskIds prop changes
     useEffect(() => {
@@ -243,6 +270,35 @@ export default function LearnerCourseView({
         hasAddedHistoryEntryRef.current = false;
     };
 
+    // Function to trigger confetti animation
+    const triggerConfetti = () => {
+        // Trigger confetti effect
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
+            zIndex: 9999
+        });
+
+        // Show success message
+        setSuccessMessage(getRandomMessage());
+        setShowSuccessMessage(true);
+
+        // Play success sound
+        setPlaySuccessSound(true);
+
+        // Reset sound trigger after a short delay
+        setTimeout(() => {
+            setPlaySuccessSound(false);
+        }, 300);
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+            setShowSuccessMessage(false);
+        }, 3000);
+    };
+
     // Function to handle quiz/exam answer submission
     const handleQuizAnswerSubmit = useCallback((questionId: string, answer: string) => {
         // Mark the question as completed
@@ -289,6 +345,9 @@ export default function LearnerCourseView({
                 if (onTaskComplete) {
                     onTaskComplete(activeItem.id, true);
                 }
+
+                // Trigger confetti on quiz completion
+                triggerConfetti();
             } else {
                 // For multi-question quiz/exam, check if all questions are now completed
                 const areAllQuestionsCompleted = allQuestions.every(
@@ -305,6 +364,9 @@ export default function LearnerCourseView({
                     if (onTaskComplete) {
                         onTaskComplete(activeItem.id, true);
                     }
+
+                    // Trigger confetti when all questions are completed
+                    triggerConfetti();
                 }
             }
         }
@@ -351,6 +413,9 @@ export default function LearnerCourseView({
             if (onTaskComplete) {
                 onTaskComplete(activeItem.id, true);
             }
+
+            // Trigger confetti animation on successful completion
+            triggerConfetti();
 
             // Find the current module
             const currentModule = filteredModules.find(m => m.id === activeModuleId);
@@ -606,6 +671,18 @@ export default function LearnerCourseView({
                     </div>
                 </div>
             )}
+
+            {/* Success Message Overlay */}
+            {showSuccessMessage && (
+                <div className="fixed inset-0 flex items-center justify-center z-[999] pointer-events-none">
+                    <div className="bg-black bg-opacity-70 text-white text-3xl font-light py-6 px-12 rounded-lg animate-bounce">
+                        {successMessage}
+                    </div>
+                </div>
+            )}
+
+            {/* Success Sound */}
+            <SuccessSound play={playSuccessSound} />
 
             {/* Task Viewer Dialog - Using the same pattern as the editor view */}
             {isDialogOpen && activeItem && (
