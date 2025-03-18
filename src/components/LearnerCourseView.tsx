@@ -258,23 +258,12 @@ export default function LearnerCourseView({
             // This is similar to the chat message storage in LearnerQuizView
             // but we only send a user message, not an AI response
             try {
-                const messages = [
-                    {
-                        user_id: parseInt(userId),
-                        question_id: parseInt(activeItem.id),
-                        role: "user",
-                        content: null,
-                        is_solved: true,
-                        response_type: null,
-                    }
-                ];
-
-                const response = await fetch('http://localhost:8001/chat', {
+                const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}/complete`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ messages })
+                    body: JSON.stringify({ user_id: parseInt(userId) })
                 });
 
                 if (!response.ok) {

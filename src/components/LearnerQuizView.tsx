@@ -50,6 +50,11 @@ interface ChatMessage {
     timestamp: Date;
 }
 
+interface AIResponse {
+    feedback: string;
+    is_correct: boolean;
+}
+
 export interface LearnerQuizViewProps {
     questions: QuizQuestion[];
     onSubmitAnswer?: (questionId: string, answer: string) => void;
@@ -358,7 +363,7 @@ export default function LearnerQuizView({
     }, [readOnly]); // Only depend on readOnly
 
     // Function to store chat history in backend
-    const storeChatHistory = useCallback(async (questionId: string, userMessage: ChatMessage, aiMessage: ChatMessage) => {
+    const storeChatHistory = useCallback(async (questionId: string, userMessage: ChatMessage, aiMessage: AIResponse) => {
         if (!userId || isTestMode) return;
 
         // For both exam and quiz questions, use the completedQuestionIds state
@@ -369,35 +374,34 @@ export default function LearnerQuizView({
         let aiIsSolved = false;
         try {
             // Try to parse the AI message as JSON to see if it contains is_correct
-            const aiResponseData = JSON.parse(aiMessage.content);
-            if (aiResponseData && typeof aiResponseData.is_correct === 'boolean') {
-                aiIsSolved = aiResponseData.is_correct;
+            if (aiMessage && typeof aiMessage.is_correct === 'boolean') {
+                aiIsSolved = aiMessage.is_correct;
             }
         } catch (e) {
-            // If it's not JSON, check if it contains certain keywords
-            aiIsSolved = aiMessage.content.includes('correct') &&
-                !aiMessage.content.includes('incorrect') &&
-                !aiMessage.content.includes('not correct');
+            console.error('Error parsing AI message:', e);
         }
 
         const messages = [
             {
-                user_id: parseInt(userId),
-                question_id: parseInt(questionId),
                 role: "user",
                 content: userMessage.content,
-                is_solved: userIsSolved,
                 response_type: "text"
             },
             {
-                user_id: parseInt(userId),
-                question_id: parseInt(questionId),
                 role: "assistant",
-                content: aiMessage.content,
-                is_solved: aiIsSolved,
+                content: aiMessage.feedback,
                 response_type: null
             }
         ];
+
+        const isComplete = taskType === 'exam' ? true : !userIsSolved && aiIsSolved;
+
+        const requestBody = {
+            user_id: parseInt(userId),
+            question_id: parseInt(questionId),
+            messages: messages,
+            is_complete: isComplete
+        };
 
         try {
             const response = await fetch('http://localhost:8001/chat', {
@@ -405,7 +409,7 @@ export default function LearnerQuizView({
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ messages })
+                body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
@@ -545,14 +549,6 @@ export default function LearnerQuizView({
                 return response.json();
             })
             .then(data => {
-                // Store the actual AI response for backend purposes
-                const actualAiResponse: ChatMessage = {
-                    id: `ai-actual-${Date.now()}`,
-                    content: data.feedback,
-                    sender: 'ai',
-                    timestamp: new Date()
-                };
-
                 // Create a UI response message (either confirmation for exam or actual feedback for quiz)
                 const uiResponse: ChatMessage = {
                     id: `ai-${Date.now()}`,
@@ -595,7 +591,7 @@ export default function LearnerQuizView({
 
                 // Store chat history in backend for both quiz and exam
                 if (!isTestMode) {
-                    storeChatHistory(currentQuestionId, userMessage, actualAiResponse);
+                    storeChatHistory(currentQuestionId, userMessage, data);
                 }
             })
             .catch(error => {
