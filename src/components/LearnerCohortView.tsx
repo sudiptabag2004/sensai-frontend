@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import LearnerCourseView from "./LearnerCourseView";
 import LearningStreak from "./LearningStreak";
 import TopPerformers from "./TopPerformers";
 import { Module } from "@/types/course";
 import { useAuth } from "@/lib/auth";
+
+// Constants for localStorage keys
+const LAST_INCREMENT_DATE_KEY = 'streak_last_increment_date';
+const LAST_STREAK_COUNT_KEY = 'streak_last_count';
 
 interface Performer {
     name: string;
@@ -46,14 +50,64 @@ export default function LearnerCohortView({
     const [localCompletedTaskIds, setLocalCompletedTaskIds] = useState<Record<string, boolean>>(completedTaskIds);
     const [localCompletedQuestionIds, setLocalCompletedQuestionIds] = useState<Record<string, Record<string, boolean>>>(completedQuestionIds);
 
+    // Get user from auth context
+    const { user } = useAuth();
+    const userId = user?.id || '';
+
+    // Create user-specific localStorage keys
+    const getUserStorageKey = useCallback((key: string): string => {
+        return `${key}_${userId}_${cohortId}`;
+    }, [userId, cohortId]);
+
     // Add state for streak data
     const [streakCount, setStreakCount] = useState<number>(streakDays);
     const [activeWeekDays, setActiveWeekDays] = useState<string[]>(activeDays);
     const [isLoadingStreak, setIsLoadingStreak] = useState<boolean>(false);
 
-    // Get user from auth context
-    const { user } = useAuth();
-    const userId = user?.id || '';
+    // Initialize state from localStorage or default values
+    const [lastIncrementDate, setLastIncrementDate] = useState<string | null>(() => {
+        if (typeof window !== 'undefined' && userId && cohortId) {
+            return localStorage.getItem(getUserStorageKey(LAST_INCREMENT_DATE_KEY));
+        }
+        return null;
+    });
+
+    const [lastStreakCount, setLastStreakCount] = useState<number>(() => {
+        if (typeof window !== 'undefined' && userId && cohortId) {
+            const stored = localStorage.getItem(getUserStorageKey(LAST_STREAK_COUNT_KEY));
+            return stored ? parseInt(stored, 10) : streakDays;
+        }
+        return streakDays;
+    });
+
+    // Re-initialize state from localStorage when userId or cohortId changes
+    useEffect(() => {
+        if (typeof window !== 'undefined' && userId && cohortId) {
+            const storedDate = localStorage.getItem(getUserStorageKey(LAST_INCREMENT_DATE_KEY));
+            if (storedDate) {
+                setLastIncrementDate(storedDate);
+            }
+
+            const storedCount = localStorage.getItem(getUserStorageKey(LAST_STREAK_COUNT_KEY));
+            if (storedCount) {
+                setLastStreakCount(parseInt(storedCount, 10));
+            }
+        }
+    }, [userId, cohortId, getUserStorageKey]);
+
+    // Update localStorage when lastIncrementDate changes
+    useEffect(() => {
+        if (typeof window !== 'undefined' && userId && cohortId && lastIncrementDate !== null) {
+            localStorage.setItem(getUserStorageKey(LAST_INCREMENT_DATE_KEY), lastIncrementDate);
+        }
+    }, [lastIncrementDate, userId, cohortId, getUserStorageKey]);
+
+    // Update localStorage when lastStreakCount changes
+    useEffect(() => {
+        if (typeof window !== 'undefined' && userId && cohortId) {
+            localStorage.setItem(getUserStorageKey(LAST_STREAK_COUNT_KEY), lastStreakCount.toString());
+        }
+    }, [lastStreakCount, userId, cohortId, getUserStorageKey]);
 
     // Function to convert date to day of week abbreviation (M, T, W, T, F, S, S)
     const convertDateToDayOfWeek = (dateString: string): string => {
@@ -65,51 +119,99 @@ export default function LearnerCohortView({
         return daysOfWeek[dayIndex];
     };
 
+    // Get today's date in YYYY-MM-DD format
+    const getTodayDateString = (): string => {
+        const today = new Date();
+        return today.toISOString().split('T')[0];
+    };
+
+    // Check if we already incremented streak today
+    const isStreakIncrementedToday = useCallback((): boolean => {
+        return lastIncrementDate === getTodayDateString();
+    }, [lastIncrementDate]);
+
+    // Extract the fetchStreakData function so it can be reused
+    const fetchStreakData = useCallback(async () => {
+        // Only fetch if we have both user ID and cohort ID
+        if (!userId || !cohortId) return;
+
+        // If streak was already incremented today, don't fetch again
+        if (isStreakIncrementedToday()) {
+            console.log("Streak already incremented today, skipping fetch");
+            return;
+        }
+
+        setIsLoadingStreak(true);
+
+        try {
+            const response = await fetch(`http://localhost:8001/users/${userId}/streak?cohort_id=${cohortId}`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch streak data: ${response.status}`);
+            }
+
+            const data: StreakData = await response.json();
+
+            // Check if streak count has increased since last fetch
+            const hasStreakIncremented = data.streak_count > lastStreakCount;
+
+            // Update last streak count
+            setLastStreakCount(data.streak_count);
+
+            // If streak has increased, mark today as the last increment date
+            if (hasStreakIncremented) {
+                setLastIncrementDate(getTodayDateString());
+                console.log("Streak incremented! New streak:", data.streak_count);
+            }
+
+            // Set streak count
+            setStreakCount(data.streak_count);
+
+            // Convert active days from dates to day abbreviations
+            const dayAbbreviations = data.active_days.map(convertDateToDayOfWeek);
+            setActiveWeekDays(dayAbbreviations);
+
+        } catch (error) {
+            console.error("Error fetching streak data:", error);
+            // Keep existing values on error
+        } finally {
+            setIsLoadingStreak(false);
+        }
+    }, [userId, cohortId, lastStreakCount, isStreakIncrementedToday]);
+
     // Fetch streak data when component mounts
     useEffect(() => {
-        const fetchStreakData = async () => {
-            // Only fetch if we have both user ID and cohort ID
-            if (!userId || !cohortId) return;
+        if (userId && cohortId) {
+            fetchStreakData();
+        }
+    }, [fetchStreakData, userId, cohortId]);
 
-            setIsLoadingStreak(true);
-
-            try {
-                const response = await fetch(`http://localhost:8001/users/${userId}/streak?cohort_id=${cohortId}`);
-
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch streak data: ${response.status}`);
-                }
-
-                const data: StreakData = await response.json();
-
-                // Set streak count
-                setStreakCount(data.streak_count);
-
-                // Convert active days from dates to day abbreviations
-                const dayAbbreviations = data.active_days.map(convertDateToDayOfWeek);
-                setActiveWeekDays(dayAbbreviations);
-
-            } catch (error) {
-                console.error("Error fetching streak data:", error);
-                // Keep existing values on error
-            } finally {
-                setIsLoadingStreak(false);
-            }
-        };
-
-        fetchStreakData();
-    }, [userId, cohortId]);
+    // Handler for when the LearnerCourseView dialog closes
+    const handleDialogClose = useCallback(() => {
+        // Only refresh streak data if it wasn't already incremented today
+        if (!isStreakIncrementedToday()) {
+            fetchStreakData();
+        }
+    }, [fetchStreakData, isStreakIncrementedToday]);
 
     // Handler for task completion updates
-    const handleTaskComplete = (taskId: string, isComplete: boolean) => {
+    const handleTaskComplete = useCallback((taskId: string, isComplete: boolean) => {
         setLocalCompletedTaskIds(prev => ({
             ...prev,
             [taskId]: isComplete
         }));
-    };
+
+        // If a task was completed, check for streak update
+        if (isComplete && !isStreakIncrementedToday()) {
+            // Small delay to allow the backend to process the completion
+            setTimeout(() => {
+                fetchStreakData();
+            }, 500);
+        }
+    }, [fetchStreakData, isStreakIncrementedToday]);
 
     // Handler for question completion updates
-    const handleQuestionComplete = (taskId: string, questionId: string, isComplete: boolean) => {
+    const handleQuestionComplete = useCallback((taskId: string, questionId: string, isComplete: boolean) => {
         setLocalCompletedQuestionIds(prev => {
             const updatedQuestionIds = { ...prev };
 
@@ -126,7 +228,15 @@ export default function LearnerCohortView({
 
             return updatedQuestionIds;
         });
-    };
+
+        // If a question was completed, check for streak update
+        if (isComplete && !isStreakIncrementedToday()) {
+            // Small delay to allow the backend to process the completion
+            setTimeout(() => {
+                fetchStreakData();
+            }, 500);
+        }
+    }, [fetchStreakData, isStreakIncrementedToday]);
 
     // Determine if sidebar should be shown
     const showSidebar = cohortId || performers.length > 0;
@@ -149,6 +259,7 @@ export default function LearnerCohortView({
                         completedQuestionIds={localCompletedQuestionIds}
                         onTaskComplete={handleTaskComplete}
                         onQuestionComplete={handleQuestionComplete}
+                        onDialogClose={handleDialogClose}
                     />
                 </div>
 

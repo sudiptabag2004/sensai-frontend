@@ -27,6 +27,7 @@ interface LearnerCourseViewProps {
     completedQuestionIds?: Record<string, Record<string, boolean>>;
     onTaskComplete?: (taskId: string, isComplete: boolean) => void;
     onQuestionComplete?: (taskId: string, questionId: string, isComplete: boolean) => void;
+    onDialogClose?: () => void;
 }
 
 export default function LearnerCourseView({
@@ -35,7 +36,8 @@ export default function LearnerCourseView({
     completedTaskIds = {},
     completedQuestionIds = {},
     onTaskComplete,
-    onQuestionComplete
+    onQuestionComplete,
+    onDialogClose
 }: LearnerCourseViewProps) {
     // Get user from auth context
     const { user } = useAuth();
@@ -268,6 +270,11 @@ export default function LearnerCourseView({
 
         // Reset history entry flag when dialog is closed
         hasAddedHistoryEntryRef.current = false;
+
+        // Notify parent component that dialog has been closed
+        if (onDialogClose) {
+            onDialogClose();
+        }
     };
 
     // Function to trigger confetti animation
