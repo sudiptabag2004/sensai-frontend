@@ -147,10 +147,7 @@ export default function LearnerQuizView({
     // Store the handleSubmitAnswer function in a ref to avoid circular dependencies
     const handleSubmitAnswerRef = useRef<() => void>(() => { });
 
-    // State to track which exam questions have had responses submitted
-    const [submittedQuestionIds, setSubmittedQuestionIds] = useState<Record<string, boolean>>({});
-
-    // Add state to track completed questions
+    // Use a single state to track completed/submitted questions
     const [completedQuestionIds, setCompletedQuestionIds] = useState<Record<string, boolean>>({});
 
     // State to track which questions are currently being submitted (waiting for API response)
@@ -167,7 +164,7 @@ export default function LearnerQuizView({
         if (inputRef.current) {
             inputRef.current.focus();
         }
-    }, []); // Empty dependency array means this runs once on mount
+    }, []);
 
     // Reset chat history loaded state when taskId changes
     useEffect(() => {
@@ -187,7 +184,7 @@ export default function LearnerQuizView({
             const userMessages = history.filter(msg => msg.sender === 'user');
 
             // Check if this question has a user message and is properly submitted (not currently in the submission process)
-            const isSubmitted = submittedQuestionIds[currentQuestionId] && !pendingSubmissionQuestionIds[currentQuestionId];
+            const isSubmitted = completedQuestionIds[currentQuestionId] && !pendingSubmissionQuestionIds[currentQuestionId];
 
             // If we have user messages and the question is already submitted (not pending)
             if (userMessages.length > 0 && isSubmitted) {
@@ -208,7 +205,7 @@ export default function LearnerQuizView({
         }
 
         return history;
-    }, [chatHistories, currentQuestionIndex, validQuestions, taskType, submittedQuestionIds, pendingSubmissionQuestionIds]);
+    }, [chatHistories, currentQuestionIndex, validQuestions, taskType, completedQuestionIds, pendingSubmissionQuestionIds]);
 
     // Fetch chat history from backend when component mounts or task changes
     useEffect(() => {
@@ -263,9 +260,9 @@ export default function LearnerQuizView({
                 // Update chat histories state
                 setChatHistories(chatHistoryByQuestion);
 
-                // For exam questions with responses, mark them as submitted
+                // For exam questions with responses, mark them as completed
                 if (taskType === 'exam') {
-                    setSubmittedQuestionIds(prev => ({
+                    setCompletedQuestionIds(prev => ({
                         ...prev,
                         ...questionsWithResponses
                     }));
@@ -364,9 +361,8 @@ export default function LearnerQuizView({
     const storeChatHistory = useCallback(async (questionId: string, userMessage: ChatMessage, aiMessage: ChatMessage) => {
         if (!userId || isTestMode) return;
 
-        // For exam questions, always mark user message as solved
-        // For quiz questions, use the completedQuestionIds state
-        const userIsSolved = taskType === 'exam' ? true : (completedQuestionIds[questionId] || false);
+        // For both exam and quiz questions, use the completedQuestionIds state
+        const userIsSolved = completedQuestionIds[questionId] || false;
 
         // For AI messages, check if it contains feedback about correctness
         // We'll extract the is_correct value from the message if it exists
@@ -418,7 +414,7 @@ export default function LearnerQuizView({
         } catch (error) {
             console.error('Error storing chat history:', error);
         }
-    }, [userId, isTestMode, completedQuestionIds, taskType]);
+    }, [userId, isTestMode, completedQuestionIds]);
 
     // Modify the handleSubmitAnswer function to store chat history
     const handleSubmitAnswer = useCallback(() => {
@@ -461,8 +457,8 @@ export default function LearnerQuizView({
         // Special case: For exam questions in test mode, don't make the API call
         // instead show confirmation immediately
         if (taskType === 'exam' && isTestMode) {
-            // Mark this question as submitted
-            setSubmittedQuestionIds(prev => ({
+            // Mark this question as completed
+            setCompletedQuestionIds(prev => ({
                 ...prev,
                 [currentQuestionId]: true
             }));
@@ -567,10 +563,10 @@ export default function LearnerQuizView({
                     timestamp: new Date()
                 };
 
-                // Now that the API call is complete, handle exam submissions
-                if (taskType === 'exam') {
-                    // Mark this specific question as submitted
-                    setSubmittedQuestionIds(prev => ({
+                // Now that the API call is complete, mark the question as completed
+                if (taskType === 'exam' || (taskType === 'quiz' && data.is_correct)) {
+                    // Mark this specific question as completed
+                    setCompletedQuestionIds(prev => ({
                         ...prev,
                         [currentQuestionId]: true
                     }));
@@ -579,21 +575,15 @@ export default function LearnerQuizView({
                     if (onSubmitAnswer) {
                         onSubmitAnswer(currentQuestionId, answer);
                     }
+                }
 
-                    // Clear the pending submission status
+                // For exam questions, clear the pending submission status
+                if (taskType === 'exam') {
                     setPendingSubmissionQuestionIds(prev => {
                         const newState = { ...prev };
                         delete newState[currentQuestionId];
                         return newState;
                     });
-                }
-                // For quizzes, check if the answer is correct and mark completed if so
-                else if (taskType === 'quiz' && data.is_correct && onSubmitAnswer) {
-                    onSubmitAnswer(currentQuestionId, answer);
-                    setCompletedQuestionIds(prev => ({
-                        ...prev,
-                        [currentQuestionId]: true
-                    }));
                 }
 
                 // Now that we have the AI response, update the chat history with the UI response
@@ -772,7 +762,7 @@ export default function LearnerQuizView({
                     </div>
 
                     {/* Input area or message for exam */}
-                    {!(taskType === 'exam' && submittedQuestionIds[validQuestions[currentQuestionIndex]?.id]) && (
+                    {!(taskType === 'exam' && completedQuestionIds[validQuestions[currentQuestionIndex]?.id]) && (
                         /* Input area - same for both states */
                         <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
                             <input
