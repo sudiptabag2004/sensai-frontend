@@ -47,6 +47,8 @@ export default function LearnerCourseView({
     const [completedQuestions, setCompletedQuestions] = useState<Record<string, boolean>>({});
     // Add state to track when task is being marked as complete
     const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+    // Add state for completedQuestionIds to manage the nested structure
+    const [localCompletedQuestionIds, setLocalCompletedQuestionIds] = useState<Record<string, Record<string, boolean>>>(completedQuestionIds);
     const dialogTitleRef = useRef<HTMLHeadingElement>(null);
     const dialogContentRef = useRef<HTMLDivElement>(null);
     // Add a ref to track if we've added a history entry
@@ -57,19 +59,24 @@ export default function LearnerCourseView({
         setCompletedTasks(completedTaskIds);
     }, [completedTaskIds]);
 
+    // Update localCompletedQuestionIds when completedQuestionIds prop changes
+    useEffect(() => {
+        setLocalCompletedQuestionIds(completedQuestionIds);
+    }, [completedQuestionIds]);
+
     // Process completedQuestionIds into the format expected by this component
     useEffect(() => {
         // Convert the nested structure to a flat structure with keys like "questionId"
         const flatQuestionCompletions: Record<string, boolean> = {};
 
-        Object.entries(completedQuestionIds).forEach(([taskId, questions]) => {
+        Object.entries(localCompletedQuestionIds).forEach(([taskId, questions]) => {
             Object.entries(questions).forEach(([questionId, isComplete]) => {
                 flatQuestionCompletions[questionId] = isComplete;
             });
         });
 
         setCompletedQuestions(flatQuestionCompletions);
-    }, [completedQuestionIds]);
+    }, [localCompletedQuestionIds]);
 
     // Filter out draft items from modules in both preview and learner view
     const modulesWithFilteredItems = modules.map(module => ({
@@ -243,6 +250,24 @@ export default function LearnerCourseView({
         // Check if all questions in the current quiz/exam are now completed
         if (activeItem?.type === 'quiz' || activeItem?.type === 'exam') {
             const allQuestions = activeItem.questions || [];
+
+            // Also update the nested completedQuestionIds structure to match our UI display
+            setLocalCompletedQuestionIds(prev => {
+                const updatedQuestionIds = { ...prev };
+
+                // Initialize the object for this task if it doesn't exist
+                if (!updatedQuestionIds[activeItem.id]) {
+                    updatedQuestionIds[activeItem.id] = {};
+                }
+
+                // Mark this question as complete
+                updatedQuestionIds[activeItem.id] = {
+                    ...updatedQuestionIds[activeItem.id],
+                    [questionId]: true
+                };
+
+                return updatedQuestionIds;
+            });
 
             // If this is a single question quiz, mark the entire task as complete
             if (allQuestions.length <= 1) {
@@ -590,11 +615,24 @@ export default function LearnerCourseView({
                                                 ? "bg-[#222222] border-l-2 border-green-500"
                                                 : completedTasks[item.id]
                                                     ? "border-l-2 border-green-500 text-green-500"
-                                                    : "hover:bg-[#1A1A1A] border-l-2 border-transparent"
+                                                    : (item.type === 'quiz' || item.type === 'exam') &&
+                                                        // Check if there are any completed questions for this quiz/exam
+                                                        localCompletedQuestionIds[item.id] &&
+                                                        Object.keys(localCompletedQuestionIds[item.id]).some(qId => localCompletedQuestionIds[item.id][qId] === true)
+                                                        ? "border-l-2 border-yellow-500"
+                                                        : "hover:bg-[#1A1A1A] border-l-2 border-transparent"
                                                 }`}
                                             onClick={() => openTaskItem(activeModuleId, item.id)}
                                         >
-                                            <div className={`flex items-center mr-2 ${completedTasks[item.id] ? "text-green-500" : "text-gray-400"}`}>
+                                            <div className={`flex items-center mr-2 ${completedTasks[item.id]
+                                                ? "text-green-500"
+                                                : (item.type === 'quiz' || item.type === 'exam') &&
+                                                    // Match the same condition for the icon color
+                                                    localCompletedQuestionIds[item.id] &&
+                                                    Object.keys(localCompletedQuestionIds[item.id]).some(qId => localCompletedQuestionIds[item.id][qId] === true)
+                                                    ? "text-yellow-500"
+                                                    : "text-gray-400"
+                                                }`}>
                                                 {completedTasks[item.id]
                                                     ? <CheckCircle size={14} />
                                                     : item.type === 'material'
@@ -604,7 +642,15 @@ export default function LearnerCourseView({
                                                             : <Clipboard size={14} />
                                                 }
                                             </div>
-                                            <div className={`flex-1 text-sm ${completedTasks[item.id] ? "text-green-500" : "text-gray-200"} truncate`}>
+                                            <div className={`flex-1 text-sm ${completedTasks[item.id]
+                                                ? "text-green-500"
+                                                : (item.type === 'quiz' || item.type === 'exam') &&
+                                                    // Match the same condition for the text color
+                                                    localCompletedQuestionIds[item.id] &&
+                                                    Object.keys(localCompletedQuestionIds[item.id]).some(qId => localCompletedQuestionIds[item.id][qId] === true)
+                                                    ? "text-yellow-500"
+                                                    : "text-gray-200"
+                                                } truncate`}>
                                                 {item.title}
                                             </div>
                                         </div>
