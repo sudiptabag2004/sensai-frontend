@@ -41,6 +41,8 @@ export default function LearnerCourseView({
     const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
     // Track completed questions within quizzes/exams
     const [completedQuestions, setCompletedQuestions] = useState<Record<string, boolean>>({});
+    // Add state to track when task is being marked as complete
+    const [isMarkingComplete, setIsMarkingComplete] = useState(false);
     const dialogTitleRef = useRef<HTMLHeadingElement>(null);
     const dialogContentRef = useRef<HTMLDivElement>(null);
     // Add a ref to track if we've added a history entry
@@ -243,22 +245,45 @@ export default function LearnerCourseView({
 
     // Function to mark task as completed (placeholder for now)
     const markTaskComplete = async () => {
-        if (!activeItem || !activeModuleId) return;
+        if (!activeItem || !activeModuleId || !userId) return;
+
+        // Set loading state to true to show spinner
+        setIsMarkingComplete(true);
 
         try {
             // API call to mark the task as completed would go here
             console.log("Marking task as complete:", activeItem.id);
 
-            // Placeholder for actual API call
-            // const response = await fetch(`http://localhost:8001/task-completions`, {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     body: JSON.stringify({
-            //         task_id: activeItem.id,
-            //     }),
-            // });
+            // Store chat message for learning material completion
+            // This is similar to the chat message storage in LearnerQuizView
+            // but we only send a user message, not an AI response
+            try {
+                const messages = [
+                    {
+                        user_id: parseInt(userId),
+                        question_id: parseInt(activeItem.id),
+                        role: "user",
+                        content: null,
+                        is_solved: true,
+                        response_type: null,
+                    }
+                ];
+
+                const response = await fetch('http://localhost:8001/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ messages })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to store learning material completion');
+                }
+            } catch (error) {
+                console.error('Error storing learning material completion:', error);
+                // Continue execution even if this fails - don't block the UI update
+            }
 
             // Mark the task as completed in our local state
             setCompletedTasks(prev => ({
@@ -285,6 +310,9 @@ export default function LearnerCourseView({
             }
         } catch (error) {
             console.error("Error marking task as complete:", error);
+        } finally {
+            // Reset loading state
+            setIsMarkingComplete(false);
         }
     };
 
@@ -656,11 +684,20 @@ export default function LearnerCourseView({
                                         ) : (
                                             <button
                                                 onClick={markTaskComplete}
-                                                className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                                className={`flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors ${isMarkingComplete ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
                                                 aria-label="Mark complete"
+                                                disabled={isMarkingComplete}
                                             >
-                                                <CheckCircle size={16} className="mr-2" />
-                                                Mark Complete
+                                                {isMarkingComplete ? (
+                                                    <>
+                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <CheckCircle size={16} className="mr-2" />
+                                                        Mark Complete
+                                                    </>
+                                                )}
                                             </button>
                                         )
                                     )}
