@@ -468,15 +468,15 @@ export default function LearnerQuizView({
                 </div>
 
                 {/* Right side - Chat (50%) */}
-                <div className="w-1/2 p-6 flex flex-col bg-[#111111]">
+                <div className="w-1/2 p-6 flex flex-col bg-[#111111] relative">
                     {/* Chat history or empty state message */}
-                    <div className="flex-1 mb-4">
+                    <div className="flex-1 mb-4 relative">
                         {currentChatHistory.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full">
-                                <h2 className="text-4xl font-light text-white mb-6">
+                            <div className="flex flex-col items-center justify-center h-full w-full absolute inset-0 px-4">
+                                <h2 className="text-4xl font-light text-white mb-6 text-center">
                                     {taskType === 'exam' ? 'Ready for a challenge?' : 'Ready to test your knowledge?'}
                                 </h2>
-                                <p className="text-gray-400 text-center max-w-md mb-8">
+                                <p className="text-gray-400 text-center max-w-md mx-auto mb-8">
                                     {taskType === 'exam'
                                         ? 'Think through your answer, then type it here. You can attempt the question only once. Be careful and confident.'
                                         : 'Think through your answer, then type it here. You will receive instant feedback and support throughout your journey'
