@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import LearnerCourseView from "./LearnerCourseView";
 import LearningStreak from "./LearningStreak";
 import TopPerformers from "./TopPerformers";
@@ -36,6 +36,38 @@ export default function LearnerCohortView({
     completedTaskIds = {},
     completedQuestionIds = {}
 }: LearnerCohortViewProps) {
+    // Add state to manage completed tasks and questions
+    const [localCompletedTaskIds, setLocalCompletedTaskIds] = useState<Record<string, boolean>>(completedTaskIds);
+    const [localCompletedQuestionIds, setLocalCompletedQuestionIds] = useState<Record<string, Record<string, boolean>>>(completedQuestionIds);
+
+    // Handler for task completion updates
+    const handleTaskComplete = (taskId: string, isComplete: boolean) => {
+        setLocalCompletedTaskIds(prev => ({
+            ...prev,
+            [taskId]: isComplete
+        }));
+    };
+
+    // Handler for question completion updates
+    const handleQuestionComplete = (taskId: string, questionId: string, isComplete: boolean) => {
+        setLocalCompletedQuestionIds(prev => {
+            const updatedQuestionIds = { ...prev };
+
+            // Initialize the object for this task if it doesn't exist
+            if (!updatedQuestionIds[taskId]) {
+                updatedQuestionIds[taskId] = {};
+            }
+
+            // Mark this question as complete
+            updatedQuestionIds[taskId] = {
+                ...updatedQuestionIds[taskId],
+                [questionId]: isComplete
+            };
+
+            return updatedQuestionIds;
+        });
+    };
+
     return (
         <div className="bg-white dark:bg-black">
             <div className="flex flex-col lg:flex-row gap-10">
@@ -50,8 +82,10 @@ export default function LearnerCohortView({
                     <LearnerCourseView
                         courseTitle=""
                         modules={modules}
-                        completedTaskIds={completedTaskIds}
-                        completedQuestionIds={completedQuestionIds}
+                        completedTaskIds={localCompletedTaskIds}
+                        completedQuestionIds={localCompletedQuestionIds}
+                        onTaskComplete={handleTaskComplete}
+                        onQuestionComplete={handleQuestionComplete}
                     />
                 </div>
 

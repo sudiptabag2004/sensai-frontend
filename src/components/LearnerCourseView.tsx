@@ -23,13 +23,17 @@ interface LearnerCourseViewProps {
     modules: Module[];
     completedTaskIds?: Record<string, boolean>;
     completedQuestionIds?: Record<string, Record<string, boolean>>;
+    onTaskComplete?: (taskId: string, isComplete: boolean) => void;
+    onQuestionComplete?: (taskId: string, questionId: string, isComplete: boolean) => void;
 }
 
 export default function LearnerCourseView({
     courseTitle,
     modules,
     completedTaskIds = {},
-    completedQuestionIds = {}
+    completedQuestionIds = {},
+    onTaskComplete,
+    onQuestionComplete
 }: LearnerCourseViewProps) {
     // Get user from auth context
     const { user } = useAuth();
@@ -269,12 +273,22 @@ export default function LearnerCourseView({
                 return updatedQuestionIds;
             });
 
+            // Notify parent component about question completion
+            if (onQuestionComplete) {
+                onQuestionComplete(activeItem.id, questionId, true);
+            }
+
             // If this is a single question quiz, mark the entire task as complete
             if (allQuestions.length <= 1) {
                 setCompletedTasks(prev => ({
                     ...prev,
                     [activeItem.id]: true
                 }));
+
+                // Notify parent component about task completion
+                if (onTaskComplete) {
+                    onTaskComplete(activeItem.id, true);
+                }
             } else {
                 // For multi-question quiz/exam, check if all questions are now completed
                 const areAllQuestionsCompleted = allQuestions.every(
@@ -286,10 +300,15 @@ export default function LearnerCourseView({
                         ...prev,
                         [activeItem.id]: true
                     }));
+
+                    // Notify parent component about task completion
+                    if (onTaskComplete) {
+                        onTaskComplete(activeItem.id, true);
+                    }
                 }
             }
         }
-    }, [activeItem, completedQuestions]);
+    }, [activeItem, completedQuestions, onTaskComplete, onQuestionComplete]);
 
     // Function to mark task as completed (placeholder for now)
     const markTaskComplete = async () => {
@@ -327,6 +346,11 @@ export default function LearnerCourseView({
                 ...prev,
                 [activeItem.id]: true
             }));
+
+            // Call the onTaskComplete callback to notify parent component
+            if (onTaskComplete) {
+                onTaskComplete(activeItem.id, true);
+            }
 
             // Find the current module
             const currentModule = filteredModules.find(m => m.id === activeModuleId);
