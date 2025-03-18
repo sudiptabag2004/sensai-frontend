@@ -187,6 +187,9 @@ export default function LearnerQuizView({
     // State to track which exam questions have had responses submitted
     const [submittedQuestionIds, setSubmittedQuestionIds] = useState<Record<string, boolean>>({});
 
+    // Add state to track completed questions
+    const [completedQuestionIds, setCompletedQuestionIds] = useState<Record<string, boolean>>({});
+
     // Navigate to previous question
     const goToPreviousQuestion = useCallback(() => {
         if (currentQuestionIndex > 0) {
@@ -231,7 +234,49 @@ export default function LearnerQuizView({
         }
     }, [readOnly]); // Only depend on readOnly
 
-    // Handle answer submission
+    // Function to store chat history in backend
+    const storeChatHistory = useCallback(async (questionId: string, userMessage: ChatMessage, aiMessage: ChatMessage) => {
+        if (!userId || isTestMode) return;
+
+        const isSolved = completedQuestionIds[questionId] || false;
+
+        const messages = [
+            {
+                user_id: parseInt(userId),
+                question_id: parseInt(questionId),
+                role: "user",
+                content: userMessage.content,
+                is_solved: isSolved,
+                response_type: "text"
+            },
+            {
+                user_id: parseInt(userId),
+                question_id: parseInt(questionId),
+                role: "assistant",
+                content: aiMessage.content,
+                is_solved: isSolved,
+                response_type: null
+            }
+        ];
+
+        try {
+            const response = await fetch('http://localhost:8001/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ messages })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to store chat history');
+            }
+        } catch (error) {
+            console.error('Error storing chat history:', error);
+        }
+    }, [userId, isTestMode, completedQuestionIds]);
+
+    // Modify the handleSubmitAnswer function to store chat history
     const handleSubmitAnswer = useCallback(() => {
         // Add a check to ensure we have valid questions and a valid index
         if (!validQuestions || validQuestions.length === 0 || currentQuestionIndex >= validQuestions.length) {
@@ -365,6 +410,21 @@ export default function LearnerQuizView({
                     // If the answer is correct, mark the question as completed
                     if (data.is_correct && onSubmitAnswer) {
                         onSubmitAnswer(currentQuestionId, answer);
+                        setCompletedQuestionIds(prev => ({
+                            ...prev,
+                            [currentQuestionId]: true
+                        }));
+                    }
+
+                    // Store chat history in backend
+                    if (!isTestMode) {
+                        const userMessage: ChatMessage = {
+                            id: `user-${Date.now()}`,
+                            content: answer,
+                            sender: 'user',
+                            timestamp: new Date()
+                        };
+                        storeChatHistory(currentQuestionId, userMessage, aiResponse);
                     }
                 })
                 .catch(error => {
@@ -387,7 +447,7 @@ export default function LearnerQuizView({
                     setIsAiResponding(false);
                 });
         }
-    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId, isTestMode, chatHistories]);
+    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId, isTestMode, chatHistories, storeChatHistory]);
 
     // Update the handleSubmitAnswerRef when handleSubmitAnswer changes
     useEffect(() => {
