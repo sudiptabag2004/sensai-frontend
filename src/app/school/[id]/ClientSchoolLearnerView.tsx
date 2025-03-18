@@ -379,7 +379,7 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
                                                     {courses.map((course, index) => (
                                                         <button
                                                             key={course.id}
-                                                            className={`px-4 py-2 rounded-t-lg text-sm font-light whitespace-nowrap transition-colors ${index === activeCourseIndex
+                                                            className={`px-4 py-2 rounded-t-lg text-sm font-light whitespace-nowrap transition-colors cursor-pointer ${index === activeCourseIndex
                                                                 ? 'bg-gray-800 text-white'
                                                                 : 'text-gray-400 hover:text-white hover:bg-gray-900'
                                                                 }`}
