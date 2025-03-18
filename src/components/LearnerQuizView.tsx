@@ -61,7 +61,7 @@ export interface LearnerQuizViewProps {
     currentQuestionId?: string;
     onQuestionChange?: (questionId: string) => void;
     userId?: string;
-    isPreviewMode?: boolean;
+    isTeacherTesting?: boolean;
 }
 
 export default function LearnerQuizView({
@@ -75,7 +75,7 @@ export default function LearnerQuizView({
     currentQuestionId,
     onQuestionChange,
     userId = '',
-    isPreviewMode = false
+    isTeacherTesting = false
 }: LearnerQuizViewProps) {
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -301,18 +301,18 @@ export default function LearnerQuizView({
             // But don't mark them as complete
             setIsAiResponding(true);
 
-            // Prepare the request body based on whether we're in preview mode or not
+            // Prepare the request body based on whether this is a teacher testing or a real learner
             let requestBody;
 
-            if (isPreviewMode) {
-                // In preview mode, send chat_history and question_blocks
+            if (isTeacherTesting) {
+                // In teacher testing mode, send chat_history and question data
                 // Format the chat history for the current question
                 const formattedChatHistory = (chatHistories[currentQuestionId] || []).map(msg => ({
                     role: msg.sender === 'user' ? 'user' : 'assistant',
                     content: msg.content
                 }));
 
-                // Create the request body for preview mode
+                // Create the request body for teacher testing mode
                 requestBody = {
                     user_response: answer,
                     chat_history: formattedChatHistory,
@@ -387,7 +387,7 @@ export default function LearnerQuizView({
                     setIsAiResponding(false);
                 });
         }
-    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId, isPreviewMode, chatHistories]);
+    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId, isTeacherTesting, chatHistories]);
 
     // Update the handleSubmitAnswerRef when handleSubmitAnswer changes
     useEffect(() => {

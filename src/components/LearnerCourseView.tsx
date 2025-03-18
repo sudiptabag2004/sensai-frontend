@@ -12,8 +12,9 @@ const DynamicLearningMaterialEditor = dynamic(
     { ssr: false }
 );
 
-const DynamicQuizEditor = dynamic(
-    () => import("./QuizEditor"),
+// Dynamic import for LearnerQuizView
+const DynamicLearnerQuizView = dynamic(
+    () => import("./LearnerQuizView"),
     { ssr: false }
 );
 
@@ -692,16 +693,15 @@ export default function LearnerCourseView({
                                         )}
                                         {(activeItem?.type === 'quiz' || activeItem?.type === 'exam') && (
                                             <>
-                                                <DynamicQuizEditor
-                                                    initialQuestions={activeItem.questions || []}
+                                                <DynamicLearnerQuizView
+                                                    questions={activeItem.questions || []}
                                                     readOnly={true}
-                                                    isPreviewMode={true}
-                                                    taskId={activeItem.id}
                                                     taskType={activeItem.type as 'quiz' | 'exam'}
                                                     currentQuestionId={activeQuestionId || undefined}
                                                     onQuestionChange={activateQuestion}
                                                     onSubmitAnswer={handleQuizAnswerSubmit}
                                                     userId={userId}
+                                                    isTeacherTesting={false}
                                                 />
                                             </>
                                         )}
