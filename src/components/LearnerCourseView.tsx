@@ -568,6 +568,7 @@ export default function LearnerCourseView({
                     onToggleModule={toggleModule}
                     onOpenItem={openTaskItem}
                     completedTaskIds={completedTaskIds}
+                    completedQuestionIds={localCompletedQuestionIds}
                 />
             ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-center">

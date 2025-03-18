@@ -65,6 +65,7 @@ interface CourseModuleListProps {
     saveModuleTitle?: (moduleId: string) => void; // Function to save module title
     cancelModuleEditing?: (moduleId: string) => void; // Function to cancel module title editing
     completedTaskIds?: Record<string, boolean>; // Added prop for completed task IDs
+    completedQuestionIds?: Record<string, Record<string, boolean>>; // Add prop for partially completed quiz/exam questions
 
     // Dialog-related props
     isDialogOpen?: boolean;
@@ -103,6 +104,7 @@ export default function CourseModuleList({
     saveModuleTitle = () => { }, // Default empty function
     cancelModuleEditing = () => { }, // Default empty function
     completedTaskIds = {}, // Default empty object for completed task IDs
+    completedQuestionIds = {}, // Default empty object for completed question IDs
 
     // Dialog-related props
     isDialogOpen = false,
@@ -488,13 +490,26 @@ export default function CourseModuleList({
                                                 "--hover-bg-color": "#2A2A2A"
                                             } as React.CSSProperties}
                                         >
-                                            <div className="flex items-center mr-2 text-gray-400">
+                                            <div className={`flex items-center mr-2 ${completedItems[item.id]
+                                                ? "text-gray-400"
+                                                : (item.type === 'quiz' || item.type === 'exam') &&
+                                                    completedQuestionIds[item.id] &&
+                                                    Object.keys(completedQuestionIds[item.id]).some(qId => completedQuestionIds[item.id][qId] === true)
+                                                    ? "text-yellow-500"
+                                                    : "text-gray-400"
+                                                }`}>
                                                 {item.type === 'material' ? <BookOpen size={16} /> :
                                                     item.type === 'quiz' ? <HelpCircle size={16} /> :
                                                         <Clipboard size={16} />}
                                             </div>
                                             <div className="flex-1">
-                                                <div className={`text-base font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none ${completedItems[item.id] ? "line-through" : ""
+                                                <div className={`text-base font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none ${completedItems[item.id]
+                                                    ? "line-through"
+                                                    : (item.type === 'quiz' || item.type === 'exam') &&
+                                                        completedQuestionIds[item.id] &&
+                                                        Object.keys(completedQuestionIds[item.id]).some(qId => completedQuestionIds[item.id][qId] === true)
+                                                        ? "text-yellow-500"
+                                                        : ""
                                                     }`}>
                                                     {item.title || (item.type === 'material' ? "New Learning Material" : item.type === 'quiz' ? "New Quiz" : "New Exam")}
                                                 </div>
