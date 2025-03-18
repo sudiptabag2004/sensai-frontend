@@ -129,8 +129,13 @@ export default function CourseModuleList({
 
     // Update completedItems when completedTaskIds changes
     useEffect(() => {
-        setCompletedItems(completedTaskIds);
-    }, [completedTaskIds]);
+        // Only update the state if the values are actually different
+        // This prevents an infinite update loop
+        const hasChanged = JSON.stringify(completedItems) !== JSON.stringify(completedTaskIds);
+        if (hasChanged) {
+            setCompletedItems(completedTaskIds);
+        }
+    }, [completedTaskIds, completedItems]);
 
     // State to track deletion in progress
     const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
