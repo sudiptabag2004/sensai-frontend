@@ -61,6 +61,7 @@ export interface LearnerQuizViewProps {
     currentQuestionId?: string;
     onQuestionChange?: (questionId: string) => void;
     userId?: string;
+    isPreviewMode?: boolean;
 }
 
 export default function LearnerQuizView({
@@ -73,7 +74,8 @@ export default function LearnerQuizView({
     taskType = 'quiz',
     currentQuestionId,
     onQuestionChange,
-    userId = ''
+    userId = '',
+    isPreviewMode = false
 }: LearnerQuizViewProps) {
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -299,18 +301,46 @@ export default function LearnerQuizView({
             // But don't mark them as complete
             setIsAiResponding(true);
 
-            // Call the API instead of using mock responses
+            // Prepare the request body based on whether we're in preview mode or not
+            let requestBody;
+
+            if (isPreviewMode) {
+                // In preview mode, send chat_history and question_blocks
+                // Format the chat history for the current question
+                const formattedChatHistory = (chatHistories[currentQuestionId] || []).map(msg => ({
+                    role: msg.sender === 'user' ? 'user' : 'assistant',
+                    content: msg.content
+                }));
+
+                // Create the request body for preview mode
+                requestBody = {
+                    user_response: answer,
+                    chat_history: formattedChatHistory,
+                    question: {
+                        "blocks": validQuestions[currentQuestionIndex].content,
+                        "response_type": "chat",
+                        "answer": validQuestions[currentQuestionIndex].config.correctAnswer,
+                        "type": "objective",
+                        "input_type": "text"
+                    }
+                };
+            } else {
+                // In normal mode, send question_id and user_id
+                requestBody = {
+                    user_response: answer,
+                    question_id: currentQuestionId,
+                    user_id: userId
+                };
+            }
+            console.log(JSON.stringify(requestBody))
+
+            // Call the API with the appropriate request body
             fetch(`http://localhost:8001/ai/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-
-                body: JSON.stringify({
-                    user_response: answer,
-                    question_id: currentQuestionId,
-                    user_id: userId
-                })
+                body: JSON.stringify(requestBody)
             })
                 .then(response => {
                     if (!response.ok) {
@@ -357,7 +387,7 @@ export default function LearnerQuizView({
                     setIsAiResponding(false);
                 });
         }
-    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId]);
+    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId, isPreviewMode, chatHistories]);
 
     // Update the handleSubmitAnswerRef when handleSubmitAnswer changes
     useEffect(() => {
