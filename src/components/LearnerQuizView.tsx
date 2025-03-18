@@ -62,6 +62,7 @@ export interface LearnerQuizViewProps {
     onQuestionChange?: (questionId: string) => void;
     userId?: string;
     isTestMode?: boolean;
+    taskId?: string;
 }
 
 export default function LearnerQuizView({
@@ -75,7 +76,8 @@ export default function LearnerQuizView({
     currentQuestionId,
     onQuestionChange,
     userId = '',
-    isTestMode = false
+    isTestMode = false,
+    taskId = ''
 }: LearnerQuizViewProps) {
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -127,6 +129,9 @@ export default function LearnerQuizView({
     // State to track if AI is responding
     const [isAiResponding, setIsAiResponding] = useState(false);
 
+    // State to track if chat history has been loaded
+    const [isChatHistoryLoaded, setIsChatHistoryLoaded] = useState(false);
+
     // Reference to the input element to maintain focus
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -151,6 +156,68 @@ export default function LearnerQuizView({
             inputRef.current.focus();
         }
     }, []); // Empty dependency array means this runs once on mount
+
+    // Reset chat history loaded state when taskId changes
+    useEffect(() => {
+        if (taskId) {
+            setIsChatHistoryLoaded(false);
+        }
+    }, [taskId]);
+
+    // Fetch chat history from backend when component mounts or task changes
+    useEffect(() => {
+        // Skip if we're in test mode or if userId is not available or if we've already loaded chat history
+        // Also skip if taskId is not provided
+        if (isTestMode || !userId || isChatHistoryLoaded || !taskId) {
+            return;
+        }
+
+        const fetchChatHistory = async () => {
+            if (!validQuestions || validQuestions.length === 0) {
+                return;
+            }
+
+            try {
+                // Make API call to fetch chat history using the provided taskId
+                const response = await fetch(`http://localhost:8001/chat/user/${userId}/task/${taskId}`);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch chat history: ${response.status}`);
+                }
+
+                const chatData = await response.json();
+
+                // Organize chat messages by question ID
+                const chatHistoryByQuestion: Record<string, ChatMessage[]> = {};
+
+                chatData.forEach((message: any) => {
+                    const questionId = message.question_id.toString();
+                    if (!chatHistoryByQuestion[questionId]) {
+                        chatHistoryByQuestion[questionId] = [];
+                    }
+
+                    // Convert API message to ChatMessage format
+                    const chatMessage: ChatMessage = {
+                        id: `${message.role}-${message.id}`,
+                        content: message.content,
+                        sender: message.role === 'user' ? 'user' : 'ai',
+                        timestamp: new Date(message.created_at)
+                    };
+
+                    chatHistoryByQuestion[questionId].push(chatMessage);
+                });
+
+                // Update chat histories state
+                setChatHistories(chatHistoryByQuestion);
+                setIsChatHistoryLoaded(true);
+
+            } catch (error) {
+                console.error("Error fetching chat history:", error);
+            }
+        };
+
+        fetchChatHistory();
+    }, [isTestMode, userId, validQuestions, isChatHistoryLoaded, taskId]);
 
     // Effect to focus the input when the question changes
     useEffect(() => {

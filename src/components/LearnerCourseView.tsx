@@ -702,6 +702,7 @@ export default function LearnerCourseView({
                                                     onSubmitAnswer={handleQuizAnswerSubmit}
                                                     userId={userId}
                                                     isTestMode={false}
+                                                    taskId={activeItem.id}
                                                 />
                                             </>
                                         )}
