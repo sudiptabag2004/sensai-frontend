@@ -79,6 +79,9 @@ export default function LearnerQuizView({
     isTestMode = false,
     taskId = ''
 }: LearnerQuizViewProps) {
+    // Constant message for exam submission confirmation
+    const EXAM_CONFIRMATION_MESSAGE = "Thank you for your submission. We will review it shortly";
+
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
@@ -196,7 +199,7 @@ export default function LearnerQuizView({
                     lastUserMessage,
                     {
                         id: `ai-confirmation-${currentQuestionId}`,
-                        content: "Thank you for your submission. We will review it shortly",
+                        content: EXAM_CONFIRMATION_MESSAGE,
                         sender: 'ai',
                         timestamp: new Date()
                     }
@@ -429,14 +432,6 @@ export default function LearnerQuizView({
         // Set submitting state to true
         setIsSubmitting(true);
 
-        // For exam questions, mark as pending submission
-        if (taskType === 'exam') {
-            setPendingSubmissionQuestionIds(prev => ({
-                ...prev,
-                [currentQuestionId]: true
-            }));
-        }
-
         // Get the current answer from the ref
         const answer = currentAnswerRef.current;
 
@@ -461,6 +456,47 @@ export default function LearnerQuizView({
         // Focus the input field again
         if (inputRef.current) {
             inputRef.current.focus();
+        }
+
+        // Special case: For exam questions in test mode, don't make the API call
+        // instead show confirmation immediately
+        if (taskType === 'exam' && isTestMode) {
+            // Mark this question as submitted
+            setSubmittedQuestionIds(prev => ({
+                ...prev,
+                [currentQuestionId]: true
+            }));
+
+            // Call the onSubmitAnswer callback to mark completion
+            if (onSubmitAnswer) {
+                onSubmitAnswer(currentQuestionId, answer);
+            }
+
+            // Add confirmation message immediately
+            const confirmationMessage: ChatMessage = {
+                id: `ai-${Date.now()}`,
+                content: EXAM_CONFIRMATION_MESSAGE,
+                sender: 'ai',
+                timestamp: new Date()
+            };
+
+            // Update chat history with confirmation message
+            setChatHistories(prev => ({
+                ...prev,
+                [currentQuestionId]: [...(prev[currentQuestionId] || []), confirmationMessage]
+            }));
+
+            // Reset states
+            setIsSubmitting(false);
+            return; // Skip the API call completely
+        }
+
+        // For exam questions, mark as pending submission
+        if (taskType === 'exam') {
+            setPendingSubmissionQuestionIds(prev => ({
+                ...prev,
+                [currentQuestionId]: true
+            }));
         }
 
         // Show the AI typing animation
@@ -525,7 +561,7 @@ export default function LearnerQuizView({
                 const uiResponse: ChatMessage = {
                     id: `ai-${Date.now()}`,
                     content: taskType === 'exam'
-                        ? "Thank you for your submission. We will review it shortly"
+                        ? EXAM_CONFIRMATION_MESSAGE
                         : data.feedback,
                     sender: 'ai',
                     timestamp: new Date()
