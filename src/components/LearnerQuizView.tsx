@@ -430,7 +430,7 @@ export default function LearnerQuizView({
         }
     }, [userId, isTestMode, completedQuestionIds]);
 
-    // Modify the handleSubmitAnswer function to store chat history
+    // Modified handleSubmitAnswer function to handle streaming responses
     const handleSubmitAnswer = useCallback(() => {
         // Add a check to ensure we have valid questions and a valid index
         if (!validQuestions || validQuestions.length === 0 || currentQuestionIndex >= validQuestions.length) {
@@ -544,7 +544,24 @@ export default function LearnerQuizView({
             };
         }
 
-        // Call the API with the appropriate request body
+        // Create a message ID for the streaming response
+        const aiMessageId = `ai-${Date.now()}`;
+
+        // Create an initial empty message for streaming content
+        const initialAiMessage: ChatMessage = {
+            id: aiMessageId,
+            content: "", // Use confirmation message for both exam and quiz initially
+            sender: 'ai',
+            timestamp: new Date()
+        };
+
+
+        let isCorrect = false;
+
+        // Track if we've received any feedback
+        let receivedAnyFeedback = false;
+
+        // Call the API with the appropriate request body for streaming response
         fetch(`http://localhost:8001/ai/chat`, {
             method: 'POST',
             headers: {
@@ -556,53 +573,165 @@ export default function LearnerQuizView({
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
-                return response.json();
-            })
-            .then(data => {
-                // Create a UI response message (either confirmation for exam or actual feedback for quiz)
-                const uiResponse: ChatMessage = {
-                    id: `ai-${Date.now()}`,
-                    content: taskType === 'exam'
-                        ? EXAM_CONFIRMATION_MESSAGE
-                        : data.feedback,
-                    sender: 'ai',
-                    timestamp: new Date()
+
+                // Get the response reader for streaming for both exam and quiz
+                const reader = response.body?.getReader();
+
+                if (!reader) {
+                    throw new Error('Failed to get response reader');
+                }
+
+                // Function to process the streaming chunks
+                const processStream = async () => {
+                    try {
+                        let accumulatedFeedback = "";
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+
+                            if (done) {
+                                break;
+                            }
+
+                            // Convert the chunk to text
+                            const chunk = new TextDecoder().decode(value);
+
+                            // Split by newlines to handle multiple JSON objects in a single chunk
+                            const jsonLines = chunk.split('\n').filter(line => line.trim());
+
+                            for (const line of jsonLines) {
+                                try {
+                                    const data = JSON.parse(line);
+
+                                    // Handle feedback updates
+                                    if (data.feedback) {
+                                        // Append to accumulated feedback
+                                        accumulatedFeedback = data.feedback;
+
+                                        // For quiz questions, update the UI as we receive chunks
+                                        if (taskType === 'quiz') {
+                                            // If this is the first feedback chunk we've received
+                                            if (!receivedAnyFeedback) {
+                                                receivedAnyFeedback = true;
+
+                                                // Stop showing the animation
+                                                setIsAiResponding(false);
+
+                                                // Add the AI message to chat history now that we have content
+                                                setChatHistories(prev => ({
+                                                    ...prev,
+                                                    [currentQuestionId]: [...(prev[currentQuestionId] || []), {
+                                                        ...initialAiMessage,
+                                                        content: accumulatedFeedback
+                                                    }]
+                                                }));
+                                            } else {
+                                                // Update the existing AI message content for subsequent chunks
+                                                setChatHistories(prev => {
+                                                    // Find the current question's chat history
+                                                    const currentHistory = [...(prev[currentQuestionId] || [])];
+
+                                                    // Find the index of the AI message to update
+                                                    const aiMessageIndex = currentHistory.findIndex(msg => msg.id === aiMessageId);
+
+                                                    if (aiMessageIndex !== -1) {
+                                                        // Update the existing message
+                                                        currentHistory[aiMessageIndex] = {
+                                                            ...currentHistory[aiMessageIndex],
+                                                            content: accumulatedFeedback
+                                                        };
+                                                    }
+
+                                                    return {
+                                                        ...prev,
+                                                        [currentQuestionId]: currentHistory
+                                                    };
+                                                });
+                                            }
+                                        }
+                                        // For exam questions, we don't update the UI yet
+                                        // but we still track that we received feedback
+                                        else if (!receivedAnyFeedback) {
+                                            receivedAnyFeedback = true;
+                                        }
+                                    }
+
+                                    // Handle is_correct when available - for quiz questions
+                                    if (taskType === 'quiz' && data.is_correct !== undefined) {
+                                        isCorrect = data.is_correct;
+
+                                        if (data.is_correct) {
+                                            // Mark this specific question as completed
+                                            setCompletedQuestionIds(prev => ({
+                                                ...prev,
+                                                [currentQuestionId]: true
+                                            }));
+
+                                            // Call the onSubmitAnswer callback to mark completion
+                                            if (onSubmitAnswer) {
+                                                onSubmitAnswer(currentQuestionId, answer);
+                                            }
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error('Error parsing JSON chunk:', e);
+                                }
+                            }
+                        }
+
+                        // After processing all chunks, handle exam questions completion
+                        if (taskType === 'exam') {
+                            // Now that all chunks have been received, mark as complete
+                            // Mark this question as completed
+                            setCompletedQuestionIds(prev => ({
+                                ...prev,
+                                [currentQuestionId]: true
+                            }));
+
+                            // Call the onSubmitAnswer callback to mark completion
+                            if (onSubmitAnswer) {
+                                onSubmitAnswer(currentQuestionId, answer);
+                            }
+
+                            // For exam questions, clear the pending submission status
+                            setPendingSubmissionQuestionIds(prev => {
+                                const newState = { ...prev };
+                                delete newState[currentQuestionId];
+                                return newState;
+                            });
+
+                            initialAiMessage.content = EXAM_CONFIRMATION_MESSAGE;
+
+                            // Add exam confirmation message to chat history
+                            setChatHistories(prev => ({
+                                ...prev,
+                                [currentQuestionId]: [...(prev[currentQuestionId] || []), {
+                                    ...initialAiMessage,
+                                    content: EXAM_CONFIRMATION_MESSAGE
+                                }]
+                            }));
+                        }
+
+                        // Store chat history in backend for both quiz and exam
+                        if (!isTestMode) {
+                            const aiResponse: AIResponse = {
+                                feedback: accumulatedFeedback,
+                                is_correct: isCorrect
+                            };
+                            storeChatHistory(currentQuestionId, userMessage, aiResponse);
+                        }
+
+                        // Stop the AI responding animation if it's still active
+                        setIsAiResponding(false);
+
+                    } catch (error) {
+                        console.error('Error processing stream:', error);
+                        throw error;
+                    }
                 };
 
-                // Now that the API call is complete, mark the question as completed
-                if (taskType === 'exam' || (taskType === 'quiz' && data.is_correct)) {
-                    // Mark this specific question as completed
-                    setCompletedQuestionIds(prev => ({
-                        ...prev,
-                        [currentQuestionId]: true
-                    }));
-
-                    // Call the onSubmitAnswer callback to mark completion
-                    if (onSubmitAnswer) {
-                        onSubmitAnswer(currentQuestionId, answer);
-                    }
-                }
-
-                // For exam questions, clear the pending submission status
-                if (taskType === 'exam') {
-                    setPendingSubmissionQuestionIds(prev => {
-                        const newState = { ...prev };
-                        delete newState[currentQuestionId];
-                        return newState;
-                    });
-                }
-
-                // Now that we have the AI response, update the chat history with the UI response
-                // This happens only after the API call is complete
-                setChatHistories(prev => ({
-                    ...prev,
-                    [currentQuestionId]: [...(prev[currentQuestionId] || []), uiResponse]
-                }));
-
-                // Store chat history in backend for both quiz and exam
-                if (!isTestMode) {
-                    storeChatHistory(currentQuestionId, userMessage, data);
-                }
+                // Start processing the stream for both exam and quiz
+                return processStream();
             })
             .catch(error => {
                 console.error('Error fetching AI response:', error);
@@ -632,9 +761,13 @@ export default function LearnerQuizView({
                 }));
             })
             .finally(() => {
-                // Always reset submitting and AI responding states when API call is done
+                // Only reset submitting state when API call is done
                 setIsSubmitting(false);
-                setIsAiResponding(false);
+
+                // If we never received any feedback, also reset the AI responding state
+                if (!receivedAnyFeedback) {
+                    setIsAiResponding(false);
+                }
             });
     }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId, isTestMode, chatHistories, storeChatHistory]);
 
