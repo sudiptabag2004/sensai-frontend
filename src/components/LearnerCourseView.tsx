@@ -278,19 +278,15 @@ export default function LearnerCourseView({
     };
 
     // Function to trigger confetti animation
-    const triggerConfetti = () => {
-        // Trigger confetti effect
+    const triggerConfetti = (isFullCompletion = true) => {
+        // Trigger confetti effect with different intensity based on completion type
         confetti({
-            particleCount: 100,
-            spread: 70,
+            particleCount: isFullCompletion ? 100 : 50,
+            spread: isFullCompletion ? 70 : 40,
             origin: { y: 0.6 },
             colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
             zIndex: 9999
         });
-
-        // Show success message
-        setSuccessMessage(getRandomMessage());
-        setShowSuccessMessage(true);
 
         // Play success sound
         setPlaySuccessSound(true);
@@ -299,11 +295,6 @@ export default function LearnerCourseView({
         setTimeout(() => {
             setPlaySuccessSound(false);
         }, 300);
-
-        // Hide success message after 3 seconds
-        setTimeout(() => {
-            setShowSuccessMessage(false);
-        }, 3000);
     };
 
     // Function to handle quiz/exam answer submission
@@ -354,7 +345,7 @@ export default function LearnerCourseView({
                 }
 
                 // Trigger confetti on quiz completion
-                triggerConfetti();
+                triggerConfetti(true); // Full celebration for single question quiz completion
             } else {
                 // For multi-question quiz/exam, check if all questions are now completed
                 const areAllQuestionsCompleted = allQuestions.every(
@@ -373,7 +364,10 @@ export default function LearnerCourseView({
                     }
 
                     // Trigger confetti when all questions are completed
-                    triggerConfetti();
+                    triggerConfetti(true); // Full celebration for completing entire quiz/exam
+                } else {
+                    // Trigger light confetti for individual question completion
+                    triggerConfetti(false); // Light celebration for single question completion
                 }
             }
         }
@@ -422,7 +416,7 @@ export default function LearnerCourseView({
             }
 
             // Trigger confetti animation on successful completion
-            triggerConfetti();
+            triggerConfetti(true);
 
             // Find the current module
             const currentModule = filteredModules.find(m => m.id === activeModuleId);
@@ -675,15 +669,6 @@ export default function LearnerCourseView({
                         <p className="text-gray-400 mb-8">
                             This course is still being crafted with care. Check back soon to begin your journey.
                         </p>
-                    </div>
-                </div>
-            )}
-
-            {/* Success Message Overlay */}
-            {showSuccessMessage && (
-                <div className="fixed inset-0 flex items-center justify-center z-[999] pointer-events-none">
-                    <div className="bg-black bg-opacity-70 text-white text-3xl font-light py-6 px-12 rounded-lg animate-bounce">
-                        {successMessage}
                     </div>
                 </div>
             )}
