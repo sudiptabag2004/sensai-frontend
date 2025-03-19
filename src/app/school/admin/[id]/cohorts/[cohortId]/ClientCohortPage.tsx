@@ -65,6 +65,34 @@ function InviteModal({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const inputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+    const [newlyAddedId, setNewlyAddedId] = useState<string | null>(null);
+
+    // Effect to focus and scroll to newly added inputs
+    useEffect(() => {
+        if (!newlyAddedId || !isOpen) return;
+
+        // Focus the input
+        const inputElement = inputRefs.current[newlyAddedId];
+        if (inputElement) {
+            setTimeout(() => {
+                inputElement.focus();
+
+                // Scroll the container to show the new input
+                if (scrollContainerRef.current) {
+                    const containerRect = scrollContainerRef.current.getBoundingClientRect();
+                    const inputRect = inputElement.getBoundingClientRect();
+
+                    // If the input is below the visible area, scroll to it
+                    if (inputRect.bottom > containerRect.bottom) {
+                        inputElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    }
+                }
+            }, 50); // Small delay to ensure the DOM is updated
+        }
+
+        // Reset the newly added id
+        setNewlyAddedId(null);
+    }, [newlyAddedId, isOpen]);
 
     if (!isOpen) return null;
 
@@ -199,6 +227,7 @@ function InviteModal({
                             const newId = Math.random().toString();
                             setEmailInputs([...emailInputs, { id: newId, email: '' }]);
                             setFocusedInputId(newId);
+                            setNewlyAddedId(newId);
                         }}
                         className={`flex items-center gap-2 text-gray-400 hover:text-white w-full py-3 px-4 rounded-lg transition-colors mt-2 cursor-pointer focus:outline-none hover:bg-[#111]`}
                     >
