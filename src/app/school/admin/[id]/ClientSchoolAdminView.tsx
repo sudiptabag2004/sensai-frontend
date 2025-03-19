@@ -11,7 +11,7 @@ import InviteMembersDialog from "@/components/InviteMembersDialog";
 import CreateCohortDialog from "@/components/CreateCohortDialog";
 import CreateCourseDialog from '@/components/CreateCourseDialog';
 import Toast from "@/components/Toast";
-import GenericConfirmationDialog from "@/components/GenericConfirmationDialog";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 // Define interfaces
 interface Course {
@@ -620,7 +620,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
             />
 
             {/* Delete Member Confirmation Dialog */}
-            <GenericConfirmationDialog
+            <ConfirmationDialog
                 show={isDeleteConfirmOpen}
                 title="Remove Member"
                 message={`Are you sure you want to remove ${memberToDelete?.email} from this organization?`}

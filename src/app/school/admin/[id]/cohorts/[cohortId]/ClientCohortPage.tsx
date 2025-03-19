@@ -1149,6 +1149,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                 confirmButtonText="Remove"
                 onConfirm={confirmDeleteMember}
                 onCancel={() => setIsDeleteConfirmOpen(false)}
+                type="delete"
             />
         </>
     );

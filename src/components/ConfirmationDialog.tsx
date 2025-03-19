@@ -1,64 +1,129 @@
 "use client";
 
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 
 interface ConfirmationDialogProps {
-    open: boolean;
-    title: string;
-    message: string;
-    confirmButtonText: string;
-    cancelButtonText?: string;
+    // Core props (required)
     onConfirm: () => void;
     onCancel: () => void;
+
+    // Visibility prop (with two possible names for backward compatibility)
+    open?: boolean;
+    show?: boolean;
+
+    // Content props
+    title?: string;
+    message?: string;
+
+    // Button text props
+    confirmButtonText?: string;
+    cancelButtonText?: string;
+
+    // State props
+    isLoading?: boolean;
+    errorMessage?: string | null;
+
+    // Type props for styling
+    type?: 'publish' | 'delete' | 'custom';
 }
 
 export default function ConfirmationDialog({
+    // Use either open or show prop for visibility
     open,
+    show,
+
+    // Content props with defaults
     title,
     message,
+
+    // Action handlers
+    onConfirm,
+    onCancel,
+
+    // Button text with defaults
     confirmButtonText,
     cancelButtonText = "Cancel",
-    onConfirm,
-    onCancel
+
+    // State props
+    isLoading = false,
+    errorMessage = null,
+
+    // Type with default
+    type = 'delete'
 }: ConfirmationDialogProps) {
-    if (!open) return null;
+    // Handle both 'open' and 'show' props for backward compatibility
+    const isVisible = open !== undefined ? open : (show !== undefined ? show : false);
+
+    if (!isVisible) return null;
+
+    // Default values based on type
+    const defaultTitle = type === 'publish' ? "Ready to publish?" : "Confirm deletion";
+    const defaultMessage = type === 'publish'
+        ? "Make sure your content is complete and reviewed for errors before publishing"
+        : "Are you sure you want to delete this item? This action cannot be undone.";
+    const defaultButtonText = type === 'publish' ? "Publish Now" : "Delete";
+
+    // Use provided values or defaults
+    const displayTitle = title || defaultTitle;
+    const displayMessage = message || defaultMessage;
+    const buttonText = confirmButtonText || defaultButtonText;
+
+    // Button styles based on type
+    const buttonBgColor =
+        type === 'publish' ? 'bg-green-700 hover:bg-green-800' :
+            type === 'delete' ? 'bg-red-600 hover:bg-red-700' :
+                'bg-blue-600 hover:bg-blue-700'; // Default for custom type
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div
+            className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={(e) => {
+                e.stopPropagation();
+                onCancel();
+            }}
+        >
             <div
-                className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl border border-gray-800"
-                onClick={e => e.stopPropagation()}
+                className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
             >
-                {/* Dialog Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-800">
-                    <h2 className="text-xl font-light text-white">{title}</h2>
-                    <button
-                        onClick={onCancel}
-                        className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
-                    >
-                        <X size={20} />
-                    </button>
-                </div>
-
-                {/* Dialog Content */}
                 <div className="p-6">
-                    <p className="text-gray-300">{message}</p>
+                    <h2 className="text-xl font-light text-white mb-4">{displayTitle}</h2>
+                    <p className="text-gray-300">{displayMessage}</p>
+                    {errorMessage && (
+                        <p className="mt-4 text-red-400 text-sm">{errorMessage}</p>
+                    )}
                 </div>
-
-                {/* Dialog Footer */}
-                <div className="flex justify-end gap-4 p-6 border-t border-gray-800">
+                <div className="flex justify-end gap-4 p-6">
                     <button
-                        onClick={onCancel}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onCancel();
+                        }}
                         className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                        disabled={isLoading}
                     >
                         {cancelButtonText}
                     </button>
                     <button
-                        onClick={onConfirm}
-                        className="px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-full hover:bg-red-700 transition-colors focus:outline-none cursor-pointer"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onConfirm();
+                        }}
+                        className={`px-6 py-2 ${buttonBgColor} text-white text-sm font-medium rounded-full transition-colors focus:outline-none cursor-pointer ${isLoading ? 'opacity-70' : ''}`}
+                        disabled={isLoading}
                     >
-                        {confirmButtonText}
+                        {isLoading ? (
+                            <div className="flex items-center justify-center">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                <span>{buttonText}</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center">
+                                {type === 'delete' && <Trash2 size={16} className="mr-2" />}
+                                {buttonText}
+                            </div>
+                        )}
                     </button>
                 </div>
             </div>
