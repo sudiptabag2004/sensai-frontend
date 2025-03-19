@@ -136,6 +136,9 @@ export default function CourseModuleList({
     // State to track deletion in progress
     const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
 
+    // State to track module deletion in progress
+    const [deletingModuleId, setDeletingModuleId] = useState<string | null>(null);
+
     // State to track task deletion confirmation
     const [taskToDelete, setTaskToDelete] = useState<{ moduleId: string, itemId: string } | null>(null);
 
@@ -280,9 +283,32 @@ export default function CourseModuleList({
     };
 
     // Function to handle module delete confirmation
-    const handleConfirmModuleDelete = () => {
+    const handleConfirmModuleDelete = async () => {
         if (moduleToDelete && onDeleteModule) {
-            onDeleteModule(moduleToDelete);
+            try {
+                setDeletingModuleId(moduleToDelete);
+
+                // Make the API call to delete the module (milestone)
+                const response = await fetch(`http://localhost:8001/milestones/${moduleToDelete}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to delete module: ${response.statusText}`);
+                }
+
+                // If the API call was successful, update the UI
+                onDeleteModule(moduleToDelete);
+
+            } catch (error) {
+                console.error('Error deleting module:', error);
+                // Could add a toast notification here for the error
+            } finally {
+                setDeletingModuleId(null);
+            }
         }
         setModuleToDelete(null);
     };
@@ -431,8 +457,13 @@ export default function CourseModuleList({
                                                     }}
                                                     className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
                                                     aria-label="Delete module"
+                                                    disabled={deletingModuleId === module.id}
                                                 >
-                                                    <Trash size={18} />
+                                                    {deletingModuleId === module.id ? (
+                                                        <div className="animate-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                                                    ) : (
+                                                        <Trash size={18} />
+                                                    )}
                                                 </button>
                                             </>
                                         )}
