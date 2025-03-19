@@ -8,9 +8,10 @@ import { useRouter } from "next/navigation";
 import CourseCard from "@/components/CourseCard";
 import CohortCard from "@/components/CohortCard";
 import InviteMembersDialog from "@/components/InviteMembersDialog";
-import ConfirmationDialog from "@/components/ConfirmationDialog";
 import CreateCohortDialog from "@/components/CreateCohortDialog";
 import CreateCourseDialog from '@/components/CreateCourseDialog';
+import Toast from "@/components/Toast";
+import GenericConfirmationDialog from "@/components/GenericConfirmationDialog";
 
 // Define interfaces
 interface Course {
@@ -57,6 +58,13 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
     const [isCreateCourseDialogOpen, setIsCreateCourseDialogOpen] = useState(false);
     const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
     const schoolNameRef = useRef<HTMLHeadingElement>(null);
+    // Add state for toast notifications
+    const [showToast, setShowToast] = useState(false);
+    const [toastMessage, setToastMessage] = useState({
+        title: '',
+        description: '',
+        emoji: ''
+    });
 
     // Initialize tab from URL hash
     useEffect(() => {
@@ -210,6 +218,22 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                 ...prev,
                 members: membersData
             } : null);
+
+            // Close the invite dialog
+            setIsInviteDialogOpen(false);
+
+            // Show toast notification
+            setToastMessage({
+                title: 'Growing the tribe',
+                description: `${emails.length} ${emails.length === 1 ? 'member' : 'members'} has been invited to your team`,
+                emoji: '🎉'
+            });
+            setShowToast(true);
+
+            // Automatically hide toast after a few seconds
+            setTimeout(() => {
+                setShowToast(false);
+            }, 3000);
 
         } catch (error) {
             console.error('Error inviting members:', error);
@@ -596,13 +620,13 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
             />
 
             {/* Delete Member Confirmation Dialog */}
-            <ConfirmationDialog
-                open={isDeleteConfirmOpen}
+            <GenericConfirmationDialog
+                show={isDeleteConfirmOpen}
                 title="Remove Member"
                 message={`Are you sure you want to remove ${memberToDelete?.email} from this organization?`}
-                confirmButtonText="Remove"
                 onConfirm={confirmDeleteMember}
                 onCancel={() => setIsDeleteConfirmOpen(false)}
+                type="delete"
             />
 
             {/* Create Cohort Dialog */}
@@ -617,6 +641,15 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                 open={isCreateCourseDialogOpen}
                 onClose={() => setIsCreateCourseDialogOpen(false)}
                 onCreateCourse={handleCreateCourse}
+            />
+
+            {/* Toast notification */}
+            <Toast
+                show={showToast}
+                title={toastMessage.title}
+                description={toastMessage.description}
+                emoji={toastMessage.emoji}
+                onClose={() => setShowToast(false)}
             />
         </>
     );

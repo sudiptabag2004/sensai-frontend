@@ -116,22 +116,11 @@ export default function InviteMembersDialog({ open, onClose, onInvite }: InviteM
             onClick={onClose}
         >
             <div
-                className="w-full max-w-2xl bg-[#1A1A1A] rounded-lg shadow-2xl border border-gray-800"
+                className="w-full max-w-lg bg-[#1A1A1A] rounded-lg shadow-2xl"
                 onClick={e => e.stopPropagation()}
             >
-                {/* Dialog Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-800">
-                    <h2 className="text-xl font-light text-white">Invite Members</h2>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
-                    >
-                        <X size={20} />
-                    </button>
-                </div>
-
                 {/* Dialog Content */}
-                <div className="px-6 py-4">
+                <div className="p-6 mt-4">
                     <div
                         ref={scrollContainerRef}
                         className="max-h-[300px] overflow-y-auto pr-2 space-y-2 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent"
@@ -181,7 +170,7 @@ export default function InviteMembersDialog({ open, onClose, onInvite }: InviteM
                     </div>
                     <button
                         onClick={addEmailRow}
-                        className="flex items-center gap-2 text-gray-400 hover:text-white w-full py-3 px-4 rounded-lg transition-colors mt-4 cursor-pointer focus:outline-none hover:bg-[#111]"
+                        className="flex items-center gap-2 text-gray-400 hover:text-white w-full py-3 px-4 rounded-lg transition-colors mt-2 cursor-pointer focus:outline-none hover:bg-[#111]"
                     >
                         <Plus size={20} />
                         <span>Add another email</span>
@@ -189,7 +178,7 @@ export default function InviteMembersDialog({ open, onClose, onInvite }: InviteM
                 </div>
 
                 {/* Dialog Footer */}
-                <div className="flex justify-end gap-4 px-6 py-4 border-t border-gray-800">
+                <div className="flex justify-end gap-4 px-6 py-4">
                     <button
                         onClick={onClose}
                         className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
@@ -200,7 +189,7 @@ export default function InviteMembersDialog({ open, onClose, onInvite }: InviteM
                         onClick={handleSubmit}
                         className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                     >
-                        Send Invites
+                        Invite
                     </button>
                 </div>
             </div>

@@ -15,7 +15,7 @@ import "./editor-styles.css";
 import BlockNoteEditor from "./BlockNoteEditor";
 // Import the LearnerQuizView component
 import LearnerQuizView from "./LearnerQuizView";
-import PublishConfirmationDialog from "./PublishConfirmationDialog";
+import ConfirmationDialog from "./ConfirmationDialog";
 
 // Define the editor handle with methods that can be called by parent components
 export interface QuizEditorHandle {
@@ -750,14 +750,15 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             )}
 
             {/* Publish Confirmation Dialog */}
-            <PublishConfirmationDialog
+            <ConfirmationDialog
                 show={showPublishConfirmation}
                 title="Ready to publish?"
                 message="After publishing, you won't be able to add or remove questions, but you can still edit existing ones"
                 onConfirm={handleConfirmPublish}
                 onCancel={handleCancelPublish}
-                isPublishing={isPublishing}
+                isLoading={isPublishing}
                 errorMessage={publishError}
+                type="publish"
             />
 
             {/* Quiz Controls - Hide in preview mode and when there are no questions */}

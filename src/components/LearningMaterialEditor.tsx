@@ -12,7 +12,7 @@ import "./editor-styles.css";
 
 // Import the BlockNoteEditor component
 import BlockNoteEditor from "./BlockNoteEditor";
-import PublishConfirmationDialog from "./PublishConfirmationDialog";
+import ConfirmationDialog from "./ConfirmationDialog";
 
 // Define the editor handle with methods that can be called by parent components
 export interface LearningMaterialEditorHandle {
@@ -375,14 +375,15 @@ const LearningMaterialEditor = forwardRef<LearningMaterialEditorHandle, Learning
             />
 
             {/* Publish Confirmation Dialog */}
-            <PublishConfirmationDialog
+            <ConfirmationDialog
                 show={showPublishConfirmation}
                 title="Ready to publish?"
                 message="Make sure your content is complete and reviewed for errors before publishing"
                 onConfirm={handleConfirmPublish}
                 onCancel={handleCancelPublish}
-                isPublishing={isPublishing}
+                isLoading={isPublishing}
                 errorMessage={publishError}
+                type="publish"
             />
         </div>
     );

@@ -7,7 +7,7 @@ import { QuizQuestion } from "./QuizEditor";
 import type { LearningMaterialEditorHandle } from "./LearningMaterialEditor";
 import type { QuizEditorHandle } from "./QuizEditor";
 import Toast from "./Toast";
-import PublishConfirmationDialog from "./PublishConfirmationDialog";
+import ConfirmationDialog from "./ConfirmationDialog";
 
 // Import TaskData from types
 interface TaskData {
