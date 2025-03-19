@@ -1557,7 +1557,7 @@ export default function CreateCourse() {
                                                 {showPublishDialog && (
                                                     <div
                                                         ref={dropdownRef}
-                                                        className="absolute top-full left-0 mt-2 w-[400px] bg-[#1A1A1A] border border-gray-800 rounded-lg shadow-xl z-50"
+                                                        className="absolute top-full left-0 mt-2 py-2 w-[400px] bg-[#1A1A1A] rounded-lg shadow-xl z-50"
                                                         onClick={(e) => e.stopPropagation()}
                                                     >
                                                         <div className="p-4 pb-2">
@@ -1570,7 +1570,7 @@ export default function CreateCourse() {
                                                                             <input
                                                                                 type="text"
                                                                                 placeholder="Search cohorts"
-                                                                                className="w-full bg-[#111] border border-gray-800 rounded-md px-3 py-2 text-white"
+                                                                                className="w-full bg-[#111] rounded-md px-3 py-2 text-white"
                                                                                 value={cohortSearchQuery}
                                                                                 onChange={handleCohortSearch}
                                                                             />

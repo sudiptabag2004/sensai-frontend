@@ -538,7 +538,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                         {cohort?.members?.filter(m => m.role === 'learner').length > 0 && (
                                             <div className="flex justify-start items-center mb-6">
                                                 <button
-                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                    className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                                                     onClick={() => setIsAddLearnersOpen(true)}
                                                 >
                                                     Add Learners
@@ -574,9 +574,9 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                         ) : (
                                             <div className="flex flex-col items-center justify-center py-20">
                                                 <h2 className="text-4xl font-light mb-4">Start building your cohort</h2>
-                                                <p className="text-gray-400 mb-8">Add learners to create an engaging learning community</p>
+                                                <p className="text-gray-400 mb-8">Create a group of learners who will take your course together</p>
                                                 <button
-                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                    className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                                                     onClick={() => setIsAddLearnersOpen(true)}
                                                 >
                                                     Add Learners
@@ -591,7 +591,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                         {cohort?.members?.filter(m => m.role === 'mentor').length > 0 && (
                                             <div className="flex justify-start items-center mb-6">
                                                 <button
-                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                    className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                                                     onClick={() => setIsAddMentorsOpen(true)}
                                                 >
                                                     Add Mentors
@@ -629,7 +629,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                                 <h2 className="text-4xl font-light mb-4">Guide your learners</h2>
                                                 <p className="text-gray-400 mb-8">Add mentors to support and inspire your learners</p>
                                                 <button
-                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                    className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                                                     onClick={() => setIsAddMentorsOpen(true)}
                                                 >
                                                     Add Mentors
@@ -646,7 +646,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                 <div className="relative w-full mb-4">
                                     <button
                                         data-dropdown-toggle="true"
-                                        className="flex items-center justify-center space-x-2 px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity cursor-pointer w-full"
+                                        className="flex items-center justify-center space-x-2 px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity cursor-pointer w-full"
                                         onClick={() => {
                                             setIsDropdownOpen(!isDropdownOpen);
                                             if (!isDropdownOpen) {
@@ -664,7 +664,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                         <div
                                             ref={dropdownRef}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="absolute top-full right-0 mt-2 w-[400px] bg-[#1A1A1A] rounded-lg shadow-xl z-50">
+                                            className="absolute top-full right-0 mt-2 py-2 w-[400px] bg-[#1A1A1A] rounded-lg shadow-xl z-50">
                                             <div className="p-4 pb-2">
                                                 {/* Only show search when there are available courses */}
                                                 {!(totalSchoolCourses === 0 || availableCourses.length === 0) && (
@@ -727,7 +727,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                                                 <p className="text-gray-400 text-sm">Create courses in your school that you can publish to your cohort</p>
                                                                 <Link
                                                                     href={`/school/admin/${schoolId}#courses`}
-                                                                    className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity"
+                                                                    className="mt-4 inline-block px-4 py-3 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity"
                                                                 >
                                                                     Go to School
                                                                 </Link>
@@ -739,7 +739,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                                                 <p className="text-gray-400 text-sm">All courses from your school have been added to this cohort</p>
                                                                 <Link
                                                                     href={`/school/admin/${schoolId}#courses`}
-                                                                    className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity cursor-pointer"
+                                                                    className="mt-4 inline-block px-4 py-3 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity cursor-pointer"
                                                                 >
                                                                     Create more courses
                                                                 </Link>
@@ -779,7 +779,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                                 {(filteredCourses.length > 0 || tempSelectedCourses.length > 0) && (
                                                     <div className="px-2 pt-4 pb-1">
                                                         <button
-                                                            className="w-full bg-white text-black py-3 rounded-md text-sm hover:bg-gray-200 transition-colors cursor-pointer"
+                                                            className="w-full bg-white text-black py-3 rounded-full text-sm hover:bg-gray-200 transition-colors cursor-pointer"
                                                             onClick={handleAddSelectedCourses}
                                                             disabled={isLoadingCourses}
                                                         >
@@ -984,7 +984,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                     }
                                 }}
                                 disabled={!emailInputs.some(input => input.email.trim() && !input.error) || isSubmitting}
-                                className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                                 {isSubmitting ? 'Inviting...' : 'Invite'}
                             </button>
@@ -1133,7 +1133,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                     }
                                 }}
                                 disabled={!emailInputs.some(input => input.email.trim() && !input.error) || isSubmitting}
-                                className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                                 {isSubmitting ? 'Adding...' : 'Add'}
                             </button>
