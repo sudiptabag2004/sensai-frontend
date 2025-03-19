@@ -20,31 +20,62 @@ export default function ClientLeaderboardView({
     const router = useRouter();
     const { user } = useAuth();
     const [cohortName, setCohortName] = useState<string>(initialCohortName || "Introduction to Programming");
-    const [performers, setPerformers] = useState<Performer[]>([
-        { name: "Ronak Shah", streakDays: 45, tasksSolved: 20, position: 1 },
-        { name: "Anshum Shailey", streakDays: 45, tasksSolved: 20, position: 2 },
-        { name: "Rishab Burman", streakDays: 45, tasksSolved: 20, position: 3 },
-        { name: "Priya Patel", streakDays: 42, tasksSolved: 18, position: 4 },
-        { name: "Aarav Kumar", streakDays: 40, tasksSolved: 18, position: 5 },
-        { name: "Neha Sharma", streakDays: 38, tasksSolved: 17, position: 6 },
-        { name: "Jane Cooper", streakDays: 35, tasksSolved: 15, position: 7 },
-        { name: "Alex Johnson", streakDays: 32, tasksSolved: 14, position: 8 },
-        { name: "Sam Taylor", streakDays: 30, tasksSolved: 13, position: 9 },
-        { name: "Morgan Lee", streakDays: 28, tasksSolved: 12, position: 10 },
-        { name: "Casey Kim", streakDays: 25, tasksSolved: 11, position: 11 },
-        { name: "Jordan Smith", streakDays: 22, tasksSolved: 10, position: 12 }
-    ]);
+    const [performers, setPerformers] = useState<Performer[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Simulate loading state for a brief moment
+    // Fetch leaderboard data
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setLoading(false);
-        }, 1000);
+        const fetchLeaderboardData = async () => {
+            if (!cohortId || !user?.id) return;
 
-        return () => clearTimeout(timer);
-    }, []);
+            setLoading(true);
+
+            try {
+                const response = await fetch(`http://localhost:8001/cohorts/${cohortId}/leaderboard`);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch leaderboard data: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Transform API response to match Performer interface
+                const performersData: Performer[] = data.stats.map((stat: any, index: number) => {
+                    const userName = [stat.user.first_name, stat.user.last_name].filter(Boolean).join(' ');
+                    return {
+                        name: userName,
+                        streakDays: stat.streak_count,
+                        tasksSolved: stat.tasks_completed,
+                        position: index + 1, // Position based on array order
+                        userId: stat.user.id // Keep track of user ID for identifying current user
+                    };
+                });
+
+                // Sort by tasks completed (desc) then streak days (desc)
+                performersData.sort((a, b) => {
+                    if (b.tasksSolved !== a.tasksSolved) {
+                        return b.tasksSolved - a.tasksSolved;
+                    }
+                    return b.streakDays - a.streakDays;
+                });
+
+                // Update positions after sorting
+                performersData.forEach((performer, index) => {
+                    performer.position = index + 1;
+                });
+
+                setPerformers(performersData);
+                setLoading(false);
+            } catch (error) {
+                console.error("Error fetching leaderboard data:", error);
+                setError("Failed to load leaderboard data. Please try again.");
+                setLoading(false);
+            }
+        };
+
+        fetchLeaderboardData();
+    }, [cohortId, user?.id]);
 
     // Function to get the appropriate badge SVG based on position
     const getPositionBadge = (position: number) => {
@@ -60,9 +91,12 @@ export default function ClientLeaderboardView({
 
     // Check if a performer is the current user
     const isCurrentUser = (performer: Performer) => {
-        // In a real implementation, this would check the user's ID
-        // For demo purposes, we'll mark Jane Cooper as the current user
-        return performer.name === "Jane Cooper";
+        return performer.userId === user?.id;
+    };
+
+    // Check if performer should show a medal (top 3 position AND streak > 0)
+    const shouldShowMedal = (performer: Performer) => {
+        return performer.position <= 3 && performer.streakDays > 0;
     };
 
     return (
@@ -72,7 +106,6 @@ export default function ClientLeaderboardView({
             <main className="container mx-auto px-4 py-8">
                 {/* Back button and page title */}
                 <div className="flex mb-8">
-
                     <div className="flex-1 text-center">
                         <h1 className="flex">
                             <span
@@ -104,6 +137,10 @@ export default function ClientLeaderboardView({
                             Try Again
                         </button>
                     </div>
+                ) : performers.length === 0 ? (
+                    <div className="text-center my-12">
+                        <p className="text-gray-400 mb-4">No leaderboard data available yet.</p>
+                    </div>
                 ) : (
                     <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
                         {/* Column Headers */}
@@ -123,7 +160,7 @@ export default function ClientLeaderboardView({
                                 >
                                     {/* Position Column */}
                                     <div className="col-span-1 flex justify-center">
-                                        {performer.position <= 3 ? (
+                                        {shouldShowMedal(performer) ? (
                                             <div className="w-10 h-10 flex items-center justify-center">
                                                 <Image
                                                     src={getPositionBadge(performer.position)!}

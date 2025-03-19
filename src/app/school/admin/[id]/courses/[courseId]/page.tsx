@@ -1457,7 +1457,7 @@ export default function CreateCourse() {
                             href={`/school/admin/${schoolId}#courses`}
                             className="flex items-center text-gray-400 hover:text-white transition-colors mb-4"
                         >
-                            <ArrowLeft size={16} className="mr-2" />
+                            <ArrowLeft size={16} className="mr-2 text-sm" />
                             Back To Courses
                         </Link>
 

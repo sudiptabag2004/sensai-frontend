@@ -10,6 +10,11 @@ import { Performer } from "./TopPerformers";
 const LAST_INCREMENT_DATE_KEY = 'streak_last_increment_date';
 const LAST_STREAK_COUNT_KEY = 'streak_last_count';
 
+interface Course {
+    id: number;
+    name: string;
+}
+
 interface LearnerCohortViewProps {
     courseTitle: string;
     modules: Module[];
@@ -21,6 +26,9 @@ interface LearnerCohortViewProps {
     currentUser?: Performer;
     completedTaskIds?: Record<string, boolean>;
     completedQuestionIds?: Record<string, Record<string, boolean>>;
+    courses?: Course[];
+    onCourseSelect?: (index: number) => void;
+    activeCourseIndex?: number;
 }
 
 interface StreakData {
@@ -38,7 +46,10 @@ export default function LearnerCohortView({
     performers = [],
     currentUser,
     completedTaskIds = {},
-    completedQuestionIds = {}
+    completedQuestionIds = {},
+    courses = [],
+    onCourseSelect,
+    activeCourseIndex = 0
 }: LearnerCohortViewProps) {
     // Add state to manage completed tasks and questions
     const [localCompletedTaskIds, setLocalCompletedTaskIds] = useState<Record<string, boolean>>(completedTaskIds);
@@ -221,32 +232,64 @@ export default function LearnerCohortView({
     // Determine if sidebar should be shown
     const showSidebar = cohortId || performers.length > 0;
 
+    // Handle course selection
+    const handleCourseSelect = (index: number) => {
+        if (onCourseSelect) {
+            onCourseSelect(index);
+        }
+    };
+
     return (
         <div className="bg-white dark:bg-black">
-            <div className="flex flex-col lg:flex-row gap-10">
-                {/* Main Content Column - LearnerCourseView */}
-                <div className={`${showSidebar ? 'w-full lg:w-2/3' : 'w-full'}`}>
-                    {courseTitle && (
-                        <h1 className="text-4xl font-light text-black dark:text-white mb-8">
-                            {courseTitle}
-                        </h1>
+            <div className="lg:flex lg:flex-row lg:justify-between">
+                {/* Left Column: Course Tabs and Course Content */}
+                <div className="lg:w-2/3 lg:pr-8">
+                    {/* Course Tabs */}
+                    {courses.length > 1 && (
+                        <div className="mb-8">
+                            <div className="inline-block border-b border-gray-800">
+                                <div className="flex space-x-1 overflow-x-auto pb-2">
+                                    {courses.map((course, index) => (
+                                        <button
+                                            key={course.id}
+                                            className={`px-4 py-2 rounded-t-lg text-sm font-light whitespace-nowrap transition-colors cursor-pointer ${index === activeCourseIndex
+                                                ? 'bg-gray-800 text-white'
+                                                : 'text-gray-400 hover:text-white hover:bg-gray-900'
+                                                }`}
+                                            onClick={() => handleCourseSelect(index)}
+                                        >
+                                            {course.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     )}
 
-                    <LearnerCourseView
-                        courseTitle=""
-                        modules={modules}
-                        completedTaskIds={localCompletedTaskIds}
-                        completedQuestionIds={localCompletedQuestionIds}
-                        onTaskComplete={handleTaskComplete}
-                        onQuestionComplete={handleQuestionComplete}
-                        onDialogClose={handleDialogClose}
-                    />
+                    {/* Course Content */}
+                    <div>
+                        {courseTitle && !courses.length && (
+                            <h1 className="text-4xl font-light text-black dark:text-white mb-8">
+                                {courseTitle}
+                            </h1>
+                        )}
+
+                        <LearnerCourseView
+                            courseTitle=""
+                            modules={modules}
+                            completedTaskIds={localCompletedTaskIds}
+                            completedQuestionIds={localCompletedQuestionIds}
+                            onTaskComplete={handleTaskComplete}
+                            onQuestionComplete={handleQuestionComplete}
+                            onDialogClose={handleDialogClose}
+                        />
+                    </div>
                 </div>
 
-                {/* Sidebar Column */}
+                {/* Right Column: Streak and Performers */}
                 {showSidebar && (
-                    <div className="w-full lg:w-1/3 space-y-6">
-                        {/* Always show streak component when not loading and cohort ID exists */}
+                    <div className="w-full lg:w-1/3 space-y-6 mt-6 lg:mt-0">
+                        {/* Streak component when not loading and cohort ID exists */}
                         {!isLoadingStreak && cohortId && (
                             <LearningStreak
                                 streakDays={streakCount}
@@ -254,14 +297,12 @@ export default function LearnerCohortView({
                             />
                         )}
 
-
                         <TopPerformers
                             performers={performers}
                             currentUser={currentUser}
                             schoolId={schoolId}
                             cohortId={cohortId}
                         />
-
                     </div>
                 )}
             </div>

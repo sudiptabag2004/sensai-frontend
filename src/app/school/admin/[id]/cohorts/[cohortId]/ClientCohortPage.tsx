@@ -705,8 +705,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                         {tab === 'learners' && (
                             <div>
                                 {cohort?.members?.filter(m => m.role === 'learner').length > 0 && (
-                                    <div className="flex justify-between items-center mb-6">
-                                        <div className="w-1"></div>
+                                    <div className="flex justify-start items-center mb-6">
                                         <button
                                             className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                                             onClick={() => setIsAddLearnersOpen(true)}
@@ -759,8 +758,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                         {tab === 'mentors' && (
                             <div>
                                 {cohort?.members?.filter(m => m.role === 'mentor').length > 0 && (
-                                    <div className="flex justify-between items-center mb-6">
-                                        <div className="w-1"></div>
+                                    <div className="flex justify-start items-center mb-6">
                                         <button
                                             className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                                             onClick={() => setIsAddMentorsOpen(true)}

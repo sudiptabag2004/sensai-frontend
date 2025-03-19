@@ -429,26 +429,6 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
                                     </div>
                                 ) : (
                                     <div className="w-full">
-                                        {/* Course Tabs - Only show if there are multiple courses */}
-                                        {courses.length > 1 && (
-                                            <div className="mb-8 border-b border-gray-800">
-                                                <div className="flex space-x-1 overflow-x-auto pb-2">
-                                                    {courses.map((course, index) => (
-                                                        <button
-                                                            key={course.id}
-                                                            className={`px-4 py-2 rounded-t-lg text-sm font-light whitespace-nowrap transition-colors cursor-pointer ${index === activeCourseIndex
-                                                                ? 'bg-gray-800 text-white'
-                                                                : 'text-gray-400 hover:text-white hover:bg-gray-900'
-                                                                }`}
-                                                            onClick={() => handleCourseSelect(index)}
-                                                        >
-                                                            {course.name}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
                                         {/* Course Content using LearnerCohortView */}
                                         <div className="w-full">
                                             {courses.length > 0 && (
@@ -464,6 +444,9 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
                                                         currentUser={leaderboardData.currentUser}
                                                         completedTaskIds={completedTaskIds}
                                                         completedQuestionIds={completedQuestionIds}
+                                                        courses={courses}
+                                                        onCourseSelect={handleCourseSelect}
+                                                        activeCourseIndex={activeCourseIndex}
                                                     />
                                                 </div>
                                             )}

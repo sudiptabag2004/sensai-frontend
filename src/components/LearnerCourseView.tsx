@@ -788,7 +788,7 @@ export default function LearnerCourseView({
                                     onClick={closeDialog}
                                     className="w-full flex items-center justify-center px-3 py-2 text-sm text-gray-300 hover:text-white bg-[#1A1A1A] hover:bg-[#222222] rounded transition-colors cursor-pointer"
                                 >
-                                    Back to Course
+                                    Back To Course
                                 </button>
                             </div>
                         </div>
