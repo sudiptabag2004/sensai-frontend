@@ -6,6 +6,8 @@ import dynamic from "next/dynamic";
 import { QuizQuestion } from "./QuizEditor";
 import type { LearningMaterialEditorHandle } from "./LearningMaterialEditor";
 import type { QuizEditorHandle } from "./QuizEditor";
+import Toast from "./Toast";
+import PublishConfirmationDialog from "./PublishConfirmationDialog";
 
 // Import TaskData from types
 interface TaskData {
@@ -108,6 +110,9 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
 
     // Track if we've already fetched the data to prevent infinite loops
     const [hasFetchedData, setHasFetchedData] = useState(false);
+
+    // Toast state
+    const [showToast, setShowToast] = useState(false);
 
     // Reset quiz preview mode when dialog is closed
     useEffect(() => {
@@ -233,6 +238,14 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     // Toggle quiz preview mode
     const toggleQuizPreviewMode = () => {
         setQuizPreviewMode(!quizPreviewMode);
+    };
+
+    // Handle showing and hiding toast
+    const displayToast = () => {
+        setShowToast(true);
+        setTimeout(() => {
+            setShowToast(false);
+        }, 3000); // Auto-hide after 3 seconds
     };
 
     return (
@@ -485,6 +498,9 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
 
                                         // Update will be handled by the parent component
                                         onPublishConfirm();
+
+                                        // Show toast notification
+                                        displayToast();
                                     }
                                     // Hide the publish confirmation dialog
                                     onSetShowPublishConfirmation(false);
@@ -576,6 +592,9 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                             // Pass the updated data to the parent component
                                             onPublishConfirm();
 
+                                            // Show toast notification
+                                            displayToast();
+
                                             // Log the updated state for debugging
                                             console.log("Quiz published successfully, updated activeItem:", activeItem);
                                         }
@@ -589,6 +608,15 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Toast notification */}
+            <Toast
+                show={showToast}
+                title="Published"
+                description={`Your ${activeItem?.type === 'material' ? 'learning material' : activeItem?.type === 'quiz' ? 'quiz' : 'exam'} has been published`}
+                emoji="🚀"
+                onClose={() => setShowToast(false)}
+            />
         </>
     );
 };

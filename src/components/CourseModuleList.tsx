@@ -322,7 +322,7 @@ export default function CourseModuleList({
                                                         e.stopPropagation();
                                                         saveModuleTitle(module.id);
                                                     }}
-                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-black dark:hover:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
+                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-black bg-white dark:bg-gray-300 hover:bg-gray-100 dark:hover:bg-gray-400 border border-gray-300 dark:border-black dark:hover:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
                                                     aria-label="Save module title"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
@@ -356,7 +356,7 @@ export default function CourseModuleList({
                                                             onEditModuleTitle(module.id);
                                                         }
                                                     }}
-                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-black dark:hover:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
+                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-black bg-white dark:bg-gray-300 hover:bg-gray-100 dark:hover:bg-gray-400 border border-gray-300 dark:border-black dark:hover:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
                                                     aria-label="Edit module title"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
