@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import LearnerCohortView from "@/components/LearnerCohortView";
+import LearnerCourseView from "@/components/LearnerCourseView";
 import { Module } from "@/types/course";
 
 interface ClientPreviewWrapperProps {
@@ -15,23 +15,18 @@ interface ClientPreviewWrapperProps {
 export default function ClientPreviewWrapper({
     courseTitle,
     modules,
+    isPreview,
     schoolId,
     cohortId
 }: ClientPreviewWrapperProps) {
-    // Client-side state and effects can be used here
-    // For example:
-    // const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
-
-    // useEffect(() => {
-    //   // Any client-side effects that were in the original component
-    // }, []);
-
+    // For preview mode, we use LearnerCourseView directly to ensure full-width display
+    // without the sidebar that LearnerCohortView would add
     return (
-        <LearnerCohortView
+        <LearnerCourseView
             courseTitle={courseTitle}
             modules={modules}
-            schoolId={schoolId}
-            cohortId={cohortId}
+            completedTaskIds={{}}
+            completedQuestionIds={{}}
         />
     );
 } 
