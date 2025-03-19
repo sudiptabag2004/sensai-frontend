@@ -122,6 +122,8 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
     // Store the original data for cancel functionality
     const originalQuestionsRef = useRef<QuizQuestion[]>([]);
+    // Add a ref to store the original title
+    const originalTitleRef = useRef<string>("");
 
     // Update questions when initialQuestions prop changes
     useEffect(() => {
@@ -157,6 +159,12 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         setQuestions(formattedQuestions);
         // Store the original questions for cancel operation
         originalQuestionsRef.current = JSON.parse(JSON.stringify(formattedQuestions));
+
+        // Store the original title if we have an activeItem with a title
+        const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
+        if (dialogTitleElement) {
+            originalTitleRef.current = dialogTitleElement.textContent || "";
+        }
     }, [initialQuestions]);
 
     // Current question index
@@ -654,11 +662,10 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         // Restore the original questions
         setQuestions(JSON.parse(JSON.stringify(originalQuestionsRef.current)));
 
-        // Return the original title to the dialog header if needed
+        // Return the original title to the dialog header
         const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
-        if (dialogTitleElement) {
-            // Here you would set the original title if you were storing it
-            // For now, this is a placeholder
+        if (dialogTitleElement && originalTitleRef.current) {
+            dialogTitleElement.textContent = originalTitleRef.current;
         }
     };
 
