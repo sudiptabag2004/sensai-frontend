@@ -796,10 +796,45 @@ export default function LearnerQuizView({
         });
     }, [currentQuestionIndex]); // Only re-focus when changing questions
 
+    // Custom styles for the pulsating animation and hidden scrollbar
+    const customStyles = `
+    @keyframes pulsate {
+      0% {
+        transform: scale(0.9);
+        opacity: 0.8;
+      }
+      50% {
+        transform: scale(1.1);
+        opacity: 0.6;
+      }
+      100% {
+        transform: scale(0.9);
+        opacity: 0.8;
+      }
+    }
+    
+    .pulsating-circle {
+      animation: pulsate 1.5s ease-in-out infinite;
+    }
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+    
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .hide-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+    `;
+
     return (
         <div className={`w-full h-full ${className}`}>
-            {/* Add the styles */}
-            <style jsx>{styles}</style>
+            {/* Add the custom styles */}
+            <style jsx>{customStyles}</style>
 
             <div className="flex h-full bg-[#111111] rounded-md overflow-hidden">
                 {/* Left side - Question (50%) */}
@@ -849,12 +884,12 @@ export default function LearnerQuizView({
                     </div>
                 </div>
 
-                {/* Right side - Chat (50%) */}
-                <div className="w-1/2 p-6 flex flex-col bg-[#111111] relative">
-                    {/* Chat history or empty state message */}
-                    <div className="flex-1 mb-4 relative">
+                {/* Right side - Chat (50%) - Updated with fixed layout */}
+                <div className="w-1/2 flex flex-col bg-[#111111] h-full overflow-hidden">
+                    {/* Chat history area with fixed height and scrolling */}
+                    <div className="flex-1 flex flex-col px-6 py-6 overflow-hidden">
                         {currentChatHistory.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full w-full absolute inset-0 px-4">
+                            <div className="flex flex-col items-center justify-center h-full w-full">
                                 <h2 className="text-4xl font-light text-white mb-6 text-center">
                                     {taskType === 'exam' ? 'Ready for a challenge?' : 'Ready to test your knowledge?'}
                                 </h2>
@@ -868,16 +903,16 @@ export default function LearnerQuizView({
                         ) : (
                             <div
                                 ref={chatContainerRef}
-                                className="h-full overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
+                                className="h-full overflow-y-auto w-full hide-scrollbar"
                             >
-                                <div className="flex flex-col space-y-4">
+                                <div className="flex flex-col space-y-4 pr-2">
                                     {currentChatHistory.map((message) => (
                                         <div
                                             key={message.id}
                                             className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[80%] rounded-2xl px-4 py-2 ${message.sender === 'user' ? 'bg-[#333333] text-white' : 'bg-[#1A1A1A] text-white'
+                                                className={`max-w-[75%] rounded-2xl px-4 py-2 ${message.sender === 'user' ? 'bg-[#333333] text-white' : 'bg-[#1A1A1A] text-white'
                                                     }`}
                                             >
                                                 <p className="text-sm">{message.content}</p>
@@ -900,38 +935,40 @@ export default function LearnerQuizView({
                         )}
                     </div>
 
-                    {/* Input area or message for exam */}
-                    {!(taskType === 'exam' && completedQuestionIds[validQuestions[currentQuestionIndex]?.id]) && (
-                        /* Input area - same for both states */
-                        <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                placeholder="Type your answer here"
-                                className="flex-1 bg-transparent border-none px-6 py-4 text-white focus:outline-none"
-                                value={currentAnswer}
-                                onChange={handleInputChange}
-                                onKeyPress={handleKeyPress}
-                                autoFocus={!readOnly}
-                                disabled={false} // Never disable the input field
-                            />
-                            <button
-                                className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
-                                onClick={handleSubmitAnswer}
-                                disabled={!currentAnswer.trim() || isSubmitting || isAiResponding}
-                                aria-label="Submit answer"
-                                type="button"
-                            >
-                                {isSubmitting ? (
-                                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                )}
-                            </button>
-                        </div>
-                    )}
+                    {/* Input area with fixed position at bottom */}
+                    <div className="px-6 pb-6 pt-2 bg-[#111111]">
+                        {!(taskType === 'exam' && completedQuestionIds[validQuestions[currentQuestionIndex]?.id]) && (
+                            /* Input area - same for both states */
+                            <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    placeholder="Type your answer here"
+                                    className="flex-1 bg-transparent border-none px-6 py-4 text-white focus:outline-none"
+                                    value={currentAnswer}
+                                    onChange={handleInputChange}
+                                    onKeyPress={handleKeyPress}
+                                    autoFocus={!readOnly}
+                                    disabled={false} // Never disable the input field
+                                />
+                                <button
+                                    className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
+                                    onClick={handleSubmitAnswer}
+                                    disabled={!currentAnswer.trim() || isSubmitting || isAiResponding}
+                                    aria-label="Submit answer"
+                                    type="button"
+                                >
+                                    {isSubmitting ? (
+                                        <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
