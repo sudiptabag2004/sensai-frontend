@@ -71,8 +71,8 @@ export default function ConfirmationDialog({
 
     // Button styles based on type
     const buttonBgColor =
-        type === 'publish' ? 'bg-green-700 hover:bg-green-800' :
-            type === 'delete' ? 'bg-red-600 hover:bg-red-700' :
+        type === 'publish' ? 'bg-green-800 hover:bg-green-900' :
+            type === 'delete' ? 'bg-red-800 hover:bg-red-900' :
                 'bg-blue-600 hover:bg-blue-700'; // Default for custom type
 
     return (

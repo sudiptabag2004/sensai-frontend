@@ -3,6 +3,7 @@ import { ChevronUp, ChevronDown, ChevronRight, ChevronDown as ChevronDownExpand,
 import { Module, ModuleItem } from "@/types/course";
 import { QuizQuestion } from "@/components/QuizEditor"; // Import needed types directly
 import CourseItemDialog from "@/components/CourseItemDialog";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { TaskData } from "@/types";
 
 // Use the local Module and ModuleItem types to match the page component exactly
@@ -128,6 +129,9 @@ export default function CourseModuleList({
 
     // Track completed items - initialize with completedTaskIds prop
     const [completedItems, setCompletedItems] = useState<Record<string, boolean>>(completedTaskIds);
+
+    // State to track module deletion confirmation
+    const [moduleToDelete, setModuleToDelete] = useState<string | null>(null);
 
     // Update completedItems when completedTaskIds changes
     useEffect(() => {
@@ -257,6 +261,19 @@ export default function CourseModuleList({
         } finally {
             setDeletingTaskId(null);
         }
+    };
+
+    // Function to handle module delete confirmation
+    const handleConfirmModuleDelete = () => {
+        if (moduleToDelete && onDeleteModule) {
+            onDeleteModule(moduleToDelete);
+        }
+        setModuleToDelete(null);
+    };
+
+    // Function to cancel module deletion
+    const handleCancelModuleDelete = () => {
+        setModuleToDelete(null);
     };
 
     return (
@@ -394,9 +411,7 @@ export default function CourseModuleList({
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        if (onDeleteModule) {
-                                                            onDeleteModule(module.id);
-                                                        }
+                                                        setModuleToDelete(module.id);
                                                     }}
                                                     className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
                                                     aria-label="Delete module"
@@ -662,6 +677,17 @@ export default function CourseModuleList({
                 onDialogTitleChange={handleDialogTitleChange}
                 onQuizContentChange={handleQuizContentChange}
                 focusEditor={focusEditor}
+            />
+
+            {/* Module deletion confirmation dialog */}
+            <ConfirmationDialog
+                open={moduleToDelete !== null}
+                title="Are you sure you want to delete this module?"
+                message="All tasks within this module will be permanently removed. This action cannot be undone."
+                confirmButtonText="Delete Module"
+                onConfirm={handleConfirmModuleDelete}
+                onCancel={handleCancelModuleDelete}
+                type="delete"
             />
         </>
     );
