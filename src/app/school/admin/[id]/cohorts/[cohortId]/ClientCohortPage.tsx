@@ -492,7 +492,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                 </Link>
 
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center">
+                                    <div className="flex items-center flex-1">
                                         <div className="w-12 h-12 bg-purple-700 rounded-lg flex items-center justify-center mr-4">
                                             <Layers size={24} className="text-white" />
                                         </div>
@@ -502,311 +502,321 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                             </h1>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
 
-                                    <div className="relative">
+                        {/* Two-column layout */}
+                        <div className="flex flex-col lg:flex-row gap-8">
+                            {/* Left column - Learners and Mentors */}
+                            <div className="w-full lg:w-5/6">
+                                <div className="mb-8">
+                                    <div className="flex border-b border-gray-800">
                                         <button
-                                            data-dropdown-toggle="true"
-                                            className="flex items-center space-x-2 px-6 py-2 bg-transparent border text-white border-gray-700 rounded-full hover:bg-gray-900 transition-colors cursor-pointer"
-                                            onClick={() => {
-                                                setIsDropdownOpen(!isDropdownOpen);
-                                                if (!isDropdownOpen) {
-                                                    // Reset the temporary selected courses when opening the dropdown
-                                                    setTempSelectedCourses([]);
-                                                    fetchAvailableCourses();
-                                                }
-                                            }}
+                                            className={`px-4 py-2 font-light cursor-pointer ${tab === 'learners' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
+                                            onClick={() => setTab('learners')}
                                         >
-                                            <Plus size={16} />
-                                            <span>Link Course</span>
+                                            <div className="flex items-center">
+                                                <Users size={16} className="mr-2" />
+                                                Learners
+                                            </div>
                                         </button>
+                                        <button
+                                            className={`px-4 py-2 font-light cursor-pointer ${tab === 'mentors' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
+                                            onClick={() => setTab('mentors')}
+                                        >
+                                            <div className="flex items-center">
+                                                <BookOpen size={16} className="mr-2" />
+                                                Mentors
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
 
-                                        {isDropdownOpen && (
-                                            <div
-                                                ref={dropdownRef}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="absolute top-full right-0 mt-2 w-[400px] bg-[#1A1A1A] border border-gray-800 rounded-lg shadow-xl z-50">
-                                                <div className="p-4 pb-2">
-                                                    {/* Only show search when there are available courses */}
-                                                    {!(totalSchoolCourses === 0 || availableCourses.length === 0) && (
-                                                        <div className="relative">
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Search courses"
-                                                                className="w-full bg-[#111] border border-gray-800 rounded-md px-3 py-2 text-white"
-                                                                value={courseSearchQuery}
-                                                                onChange={handleCourseSearch}
-                                                            />
-                                                        </div>
-                                                    )}
+                                {tab === 'learners' && (
+                                    <div>
+                                        {cohort?.members?.filter(m => m.role === 'learner').length > 0 && (
+                                            <div className="flex justify-start items-center mb-6">
+                                                <button
+                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                    onClick={() => setIsAddLearnersOpen(true)}
+                                                >
+                                                    Add Learners
+                                                </button>
+                                            </div>
+                                        )}
 
-                                                    {/* Show temporarily selected courses right below the search bar */}
-                                                    {tempSelectedCourses.length > 0 && (
-                                                        <div className="mt-3 flex flex-wrap gap-2">
-                                                            {tempSelectedCourses.map(course => (
-                                                                <div
-                                                                    key={course.id}
-                                                                    className="flex items-center bg-[#222] px-3 py-1 rounded-full"
-                                                                >
-                                                                    <span className="text-white text-sm font-light mr-2">{course.name}</span>
+                                        {cohort?.members?.filter(m => m.role === 'learner').length > 0 ? (
+                                            <div className="overflow-hidden rounded-lg border border-gray-800">
+                                                <table className="min-w-full divide-y divide-gray-800">
+                                                    <thead className="bg-gray-900">
+                                                        <tr>
+                                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="bg-[#111] divide-y divide-gray-800">
+                                                        {cohort?.members?.filter(member => member.role === 'learner').map(learner => (
+                                                            <tr key={learner.id}>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 flex justify-between items-center">
+                                                                    {learner.email}
                                                                     <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            removeTempCourse(course.id);
-                                                                        }}
-                                                                        className="text-gray-400 hover:text-white cursor-pointer"
+                                                                        onClick={() => handleDeleteMember(learner)}
+                                                                        className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
                                                                     >
-                                                                        <X size={14} />
+                                                                        <Trash2 size={16} />
                                                                     </button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="max-h-72 overflow-y-auto py-2 px-2">
-                                                    {isLoadingCourses ? (
-                                                        <div className="flex justify-center items-center py-6">
-                                                            <div className="w-8 h-8 border-2 border-t-purple-500 border-r-purple-500 border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-                                                        </div>
-                                                    ) : courseError ? (
-                                                        <div className="p-4 text-center">
-                                                            <p className="text-red-400 mb-2">{courseError}</p>
-                                                            <button
-                                                                className="text-purple-400 hover:text-purple-300 cursor-pointer"
-                                                                onClick={fetchAvailableCourses}
-                                                            >
-                                                                Try again
-                                                            </button>
-                                                        </div>
-                                                    ) : filteredCourses.length === 0 ? (
-                                                        <div className="p-4 text-center">
-                                                            {totalSchoolCourses === 0 ? (
-                                                                // School has no courses at all
-                                                                <>
-                                                                    <h3 className="text-lg font-light mb-1">No courses available</h3>
-                                                                    <p className="text-gray-400 text-sm">Create courses in your school that you can publish to your cohort</p>
-                                                                    <Link
-                                                                        href={`/school/admin/${schoolId}#courses`}
-                                                                        className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity"
-                                                                    >
-                                                                        Go to School
-                                                                    </Link>
-                                                                </>
-                                                            ) : availableCourses.length === 0 ? (
-                                                                // All school courses are already in the cohort
-                                                                <>
-                                                                    <h3 className="text-lg font-light mb-1">No courses left</h3>
-                                                                    <p className="text-gray-400 text-sm">All courses from your school have been added to this cohort</p>
-                                                                    <Link
-                                                                        href={`/school/admin/${schoolId}#courses`}
-                                                                        className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity cursor-pointer"
-                                                                    >
-                                                                        Create more courses
-                                                                    </Link>
-                                                                </>
-                                                            ) : tempSelectedCourses.length > 0 ? (
-                                                                // All available courses have been temporarily selected
-                                                                <>
-                                                                    <h3 className="text-lg font-light mb-1">All courses selected</h3>
-                                                                    <p className="text-gray-400 text-sm">You have selected all available courses</p>
-                                                                </>
-                                                            ) : (
-                                                                // Search returned no results
-                                                                <>
-                                                                    <h3 className="text-lg font-light mb-1">No matching courses</h3>
-                                                                    <p className="text-gray-400 text-sm">Try a different search term</p>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="space-y-0.5">
-                                                            {filteredCourses.map(course => (
-                                                                <div
-                                                                    key={course.id}
-                                                                    className="flex items-center px-3 py-1.5 hover:bg-[#222] rounded-md cursor-pointer"
-                                                                    onClick={() => selectCourse(course)}
-                                                                >
-                                                                    <div className="w-6 h-6 bg-purple-900 rounded-md flex items-center justify-center mr-2">
-                                                                        <BookOpen size={14} className="text-white" />
-                                                                    </div>
-                                                                    <p className="text-white text-sm font-light">{course.name}</p>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Add button at the end of the list */}
-                                                    {(filteredCourses.length > 0 || tempSelectedCourses.length > 0) && (
-                                                        <div className="px-2 pt-4 pb-1">
-                                                            <button
-                                                                className="w-full bg-white text-black py-3 rounded-md text-sm hover:bg-gray-200 transition-colors cursor-pointer"
-                                                                onClick={handleAddSelectedCourses}
-                                                                disabled={isLoadingCourses}
-                                                            >
-                                                                {isLoadingCourses ? "Linking..." : "Link courses with cohort"}
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center py-20">
+                                                <h2 className="text-4xl font-light mb-4">Start building your cohort</h2>
+                                                <p className="text-gray-400 mb-8">Add learners to create an engaging learning community</p>
+                                                <button
+                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                    onClick={() => setIsAddLearnersOpen(true)}
+                                                >
+                                                    Add Learners
+                                                </button>
                                             </div>
                                         )}
                                     </div>
-                                </div>
-                            </div>
-                        </div>
+                                )}
 
-                        {/* Display selected courses */}
-                        {cohort?.courses && cohort.courses.length > 0 && (
-                            <>
-                                <h2 className="mt-4 mb-3 text-sm font-light">Courses</h2>
-                                <div className="flex flex-wrap gap-3">
-                                    {cohort.courses.map(course => (
+                                {tab === 'mentors' && (
+                                    <div>
+                                        {cohort?.members?.filter(m => m.role === 'mentor').length > 0 && (
+                                            <div className="flex justify-start items-center mb-6">
+                                                <button
+                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                    onClick={() => setIsAddMentorsOpen(true)}
+                                                >
+                                                    Add Mentors
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {cohort?.members?.filter(m => m.role === 'mentor').length > 0 ? (
+                                            <div className="overflow-hidden rounded-lg border border-gray-800">
+                                                <table className="min-w-full divide-y divide-gray-800">
+                                                    <thead className="bg-gray-900">
+                                                        <tr>
+                                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="bg-[#111] divide-y divide-gray-800">
+                                                        {cohort?.members?.filter(member => member.role === 'mentor').map(mentor => (
+                                                            <tr key={mentor.id}>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 flex justify-between items-center">
+                                                                    {mentor.email}
+                                                                    <button
+                                                                        onClick={() => handleDeleteMember(mentor)}
+                                                                        className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center py-20">
+                                                <h2 className="text-4xl font-light mb-4">Guide your learners</h2>
+                                                <p className="text-gray-400 mb-8">Add mentors to support and inspire your learners</p>
+                                                <button
+                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                    onClick={() => setIsAddMentorsOpen(true)}
+                                                >
+                                                    Add Mentors
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Right column - Courses */}
+                            <div className="w-full lg:w-1/6">
+                                {/* Link Course button */}
+                                <div className="relative w-full mb-4">
+                                    <button
+                                        data-dropdown-toggle="true"
+                                        className="flex items-center justify-center space-x-2 px-6 py-2 bg-transparent border text-white border-gray-700 rounded-full hover:bg-gray-900 transition-colors cursor-pointer w-full"
+                                        onClick={() => {
+                                            setIsDropdownOpen(!isDropdownOpen);
+                                            if (!isDropdownOpen) {
+                                                // Reset the temporary selected courses when opening the dropdown
+                                                setTempSelectedCourses([]);
+                                                fetchAvailableCourses();
+                                            }
+                                        }}
+                                    >
+                                        <Plus size={16} />
+                                        <span>Link Course</span>
+                                    </button>
+
+                                    {isDropdownOpen && (
                                         <div
-                                            key={course.id}
-                                            className="flex items-center bg-[#222] px-4 py-2 rounded-full group hover:bg-[#333] transition-colors"
-                                        >
-                                            <span className="text-white text-sm font-light mr-3">{course.name}</span>
-                                            <button
-                                                onClick={() => removeCourseFromCohort(course.id)}
-                                                className="text-gray-400 hover:text-white cursor-pointer"
-                                                aria-label="Remove course from cohort"
-                                            >
-                                                <X size={16} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        )}
+                                            ref={dropdownRef}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="absolute top-full right-0 mt-2 w-[400px] bg-[#1A1A1A] border border-gray-800 rounded-lg shadow-xl z-50">
+                                            <div className="p-4 pb-2">
+                                                {/* Only show search when there are available courses */}
+                                                {!(totalSchoolCourses === 0 || availableCourses.length === 0) && (
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search courses"
+                                                            className="w-full bg-[#111] border border-gray-800 rounded-md px-3 py-2 text-white"
+                                                            value={courseSearchQuery}
+                                                            onChange={handleCourseSearch}
+                                                        />
+                                                    </div>
+                                                )}
 
-                        <div className="mt-8 mb-8">
-                            <div className="flex border-b border-gray-800">
-                                <button
-                                    className={`px-4 py-2 font-light cursor-pointer ${tab === 'learners' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
-                                    onClick={() => setTab('learners')}
-                                >
-                                    <div className="flex items-center">
-                                        <Users size={16} className="mr-2" />
-                                        Learners
+                                                {/* Show temporarily selected courses right below the search bar */}
+                                                {tempSelectedCourses.length > 0 && (
+                                                    <div className="mt-3 flex flex-wrap gap-2">
+                                                        {tempSelectedCourses.map(course => (
+                                                            <div
+                                                                key={course.id}
+                                                                className="flex items-center bg-[#222] px-3 py-1 rounded-full"
+                                                            >
+                                                                <span className="text-white text-sm font-light mr-2">{course.name}</span>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        removeTempCourse(course.id);
+                                                                    }}
+                                                                    className="text-gray-400 hover:text-white cursor-pointer"
+                                                                >
+                                                                    <X size={14} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="max-h-72 overflow-y-auto py-2 px-2">
+                                                {isLoadingCourses ? (
+                                                    <div className="flex justify-center items-center py-6">
+                                                        <div className="w-8 h-8 border-2 border-t-purple-500 border-r-purple-500 border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+                                                    </div>
+                                                ) : courseError ? (
+                                                    <div className="p-4 text-center">
+                                                        <p className="text-red-400 mb-2">{courseError}</p>
+                                                        <button
+                                                            className="text-purple-400 hover:text-purple-300 cursor-pointer"
+                                                            onClick={fetchAvailableCourses}
+                                                        >
+                                                            Try again
+                                                        </button>
+                                                    </div>
+                                                ) : filteredCourses.length === 0 ? (
+                                                    <div className="p-4 text-center">
+                                                        {totalSchoolCourses === 0 ? (
+                                                            // School has no courses at all
+                                                            <>
+                                                                <h3 className="text-lg font-light mb-1">No courses available</h3>
+                                                                <p className="text-gray-400 text-sm">Create courses in your school that you can publish to your cohort</p>
+                                                                <Link
+                                                                    href={`/school/admin/${schoolId}#courses`}
+                                                                    className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity"
+                                                                >
+                                                                    Go to School
+                                                                </Link>
+                                                            </>
+                                                        ) : availableCourses.length === 0 ? (
+                                                            // All school courses are already in the cohort
+                                                            <>
+                                                                <h3 className="text-lg font-light mb-1">No courses left</h3>
+                                                                <p className="text-gray-400 text-sm">All courses from your school have been added to this cohort</p>
+                                                                <Link
+                                                                    href={`/school/admin/${schoolId}#courses`}
+                                                                    className="mt-4 inline-block px-4 py-2 text-sm bg-white text-black rounded-full hover:opacity-90 transition-opacity cursor-pointer"
+                                                                >
+                                                                    Create more courses
+                                                                </Link>
+                                                            </>
+                                                        ) : tempSelectedCourses.length > 0 ? (
+                                                            // All available courses have been temporarily selected
+                                                            <>
+                                                                <h3 className="text-lg font-light mb-1">All courses selected</h3>
+                                                                <p className="text-gray-400 text-sm">You have selected all available courses</p>
+                                                            </>
+                                                        ) : (
+                                                            // Search returned no results
+                                                            <>
+                                                                <h3 className="text-lg font-light mb-1">No matching courses</h3>
+                                                                <p className="text-gray-400 text-sm">Try a different search term</p>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-0.5">
+                                                        {filteredCourses.map(course => (
+                                                            <div
+                                                                key={course.id}
+                                                                className="flex items-center px-3 py-1.5 hover:bg-[#222] rounded-md cursor-pointer"
+                                                                onClick={() => selectCourse(course)}
+                                                            >
+                                                                <div className="w-6 h-6 bg-purple-900 rounded-md flex items-center justify-center mr-2">
+                                                                    <BookOpen size={14} className="text-white" />
+                                                                </div>
+                                                                <p className="text-white text-sm font-light">{course.name}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Add button at the end of the list */}
+                                                {(filteredCourses.length > 0 || tempSelectedCourses.length > 0) && (
+                                                    <div className="px-2 pt-4 pb-1">
+                                                        <button
+                                                            className="w-full bg-white text-black py-3 rounded-md text-sm hover:bg-gray-200 transition-colors cursor-pointer"
+                                                            onClick={handleAddSelectedCourses}
+                                                            disabled={isLoadingCourses}
+                                                        >
+                                                            {isLoadingCourses ? "Linking..." : "Link courses with cohort"}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Display selected courses */}
+                                {cohort?.courses && cohort.courses.length > 0 && (
+                                    <div>
+                                        <h2 className="mb-3 text-sm font-light">Courses</h2>
+                                        <div className="flex flex-wrap gap-3">
+                                            {cohort.courses.map(course => (
+                                                <div
+                                                    key={course.id}
+                                                    className="flex items-center bg-[#222] px-4 py-2 rounded-full group hover:bg-[#333] transition-colors"
+                                                >
+                                                    <span className="text-white text-sm font-light mr-3">{course.name}</span>
+                                                    <button
+                                                        onClick={() => removeCourseFromCohort(course.id)}
+                                                        className="text-gray-400 hover:text-white cursor-pointer"
+                                                        aria-label="Remove course from cohort"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </button>
-                                <button
-                                    className={`px-4 py-2 font-light cursor-pointer ${tab === 'mentors' ? 'text-white border-b-2 border-white' : 'text-gray-400 hover:text-white'}`}
-                                    onClick={() => setTab('mentors')}
-                                >
-                                    <div className="flex items-center">
-                                        <BookOpen size={16} className="mr-2" />
-                                        Mentors
-                                    </div>
-                                </button>
+                                )}
                             </div>
                         </div>
-
-                        {tab === 'learners' && (
-                            <div>
-                                {cohort?.members?.filter(m => m.role === 'learner').length > 0 && (
-                                    <div className="flex justify-start items-center mb-6">
-                                        <button
-                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                            onClick={() => setIsAddLearnersOpen(true)}
-                                        >
-                                            Add Learners
-                                        </button>
-                                    </div>
-                                )}
-
-                                {cohort?.members?.filter(m => m.role === 'learner').length > 0 ? (
-                                    <div className="overflow-hidden rounded-lg border border-gray-800">
-                                        <table className="min-w-full divide-y divide-gray-800">
-                                            <thead className="bg-gray-900">
-                                                <tr>
-                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-[#111] divide-y divide-gray-800">
-                                                {cohort?.members?.filter(member => member.role === 'learner').map(learner => (
-                                                    <tr key={learner.id}>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 flex justify-between items-center">
-                                                            {learner.email}
-                                                            <button
-                                                                onClick={() => handleDeleteMember(learner)}
-                                                                className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center py-20">
-                                        <h2 className="text-4xl font-light mb-4">Start building your cohort</h2>
-                                        <p className="text-gray-400 mb-8">Add learners to create an engaging learning community</p>
-                                        <button
-                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                            onClick={() => setIsAddLearnersOpen(true)}
-                                        >
-                                            Add Learners
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {tab === 'mentors' && (
-                            <div>
-                                {cohort?.members?.filter(m => m.role === 'mentor').length > 0 && (
-                                    <div className="flex justify-start items-center mb-6">
-                                        <button
-                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                            onClick={() => setIsAddMentorsOpen(true)}
-                                        >
-                                            Add Mentors
-                                        </button>
-                                    </div>
-                                )}
-
-                                {cohort?.members?.filter(m => m.role === 'mentor').length > 0 ? (
-                                    <div className="overflow-hidden rounded-lg border border-gray-800">
-                                        <table className="min-w-full divide-y divide-gray-800">
-                                            <thead className="bg-gray-900">
-                                                <tr>
-                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-[#111] divide-y divide-gray-800">
-                                                {cohort?.members?.filter(member => member.role === 'mentor').map(mentor => (
-                                                    <tr key={mentor.id}>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 flex justify-between items-center">
-                                                            {mentor.email}
-                                                            <button
-                                                                onClick={() => handleDeleteMember(mentor)}
-                                                                className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center py-20">
-                                        <h2 className="text-4xl font-light mb-4">Guide your learners</h2>
-                                        <p className="text-gray-400 mb-8">Add mentors to support and inspire your learners</p>
-                                        <button
-                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                                            onClick={() => setIsAddMentorsOpen(true)}
-                                        >
-                                            Add Mentors
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </main>
                 </div>
             </div>
