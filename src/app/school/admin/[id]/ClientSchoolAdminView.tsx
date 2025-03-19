@@ -459,8 +459,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                 <div>
                                     {school.courses.length > 0 ? (
                                         <>
-                                            <div className="flex justify-between items-center mb-6">
-                                                <div className="w-1"></div> {/* Empty div to maintain spacing */}
+                                            <div className="flex justify-start items-center mb-6">
                                                 <button
                                                     onClick={() => setIsCreateCourseDialogOpen(true)}
                                                     className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity inline-block cursor-pointer"
@@ -500,10 +499,9 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                 <div>
                                     {school.cohorts.length > 0 ? (
                                         <>
-                                            <div className="flex justify-between items-center mb-6">
-                                                <div className="w-1"></div> {/* Empty div to maintain spacing */}
+                                            <div className="flex justify-start items-center mb-6">
                                                 <button
-                                                    className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                    className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                                                     onClick={() => {
                                                         setIsCreateCohortDialogOpen(true);
                                                     }}
@@ -527,7 +525,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                                             <h2 className="text-4xl font-light mb-4">Bring your courses to life with cohorts</h2>
                                             <p className="text-gray-400 mb-8">Create groups of learners and assign them courses to learn together</p>
                                             <button
-                                                className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                                className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                                                 onClick={() => {
                                                     setIsCreateCohortDialogOpen(true);
                                                 }}
@@ -542,10 +540,9 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                             {/* Team Tab */}
                             {activeTab === 'members' && (
                                 <div>
-                                    <div className="flex justify-between items-center mb-6">
-                                        <div className="w-1"></div> {/* Empty div to maintain spacing */}
+                                    <div className="flex justify-start items-center mb-6">
                                         <button
-                                            className="px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                            className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
                                             onClick={() => setIsInviteDialogOpen(true)}
                                         >
                                             Invite Members
