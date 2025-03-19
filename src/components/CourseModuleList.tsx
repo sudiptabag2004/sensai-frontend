@@ -133,6 +133,12 @@ export default function CourseModuleList({
     // State to track module deletion confirmation
     const [moduleToDelete, setModuleToDelete] = useState<string | null>(null);
 
+    // State to track deletion in progress
+    const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+
+    // State to track task deletion confirmation
+    const [taskToDelete, setTaskToDelete] = useState<{ moduleId: string, itemId: string } | null>(null);
+
     // Update completedItems when completedTaskIds changes
     useEffect(() => {
         // Only update the state if the values are actually different
@@ -142,9 +148,6 @@ export default function CourseModuleList({
             setCompletedItems(completedTaskIds);
         }
     }, [completedTaskIds, completedItems]);
-
-    // State to track deletion in progress
-    const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
 
     // Function to toggle item completion
     const toggleItemCompletion = (itemId: string, e: React.MouseEvent) => {
@@ -261,6 +264,19 @@ export default function CourseModuleList({
         } finally {
             setDeletingTaskId(null);
         }
+    };
+
+    // Function to handle task delete confirmation
+    const handleConfirmTaskDelete = () => {
+        if (taskToDelete) {
+            handleDeleteTask(taskToDelete.moduleId, taskToDelete.itemId);
+        }
+        setTaskToDelete(null);
+    };
+
+    // Function to cancel task deletion
+    const handleCancelTaskDelete = () => {
+        setTaskToDelete(null);
     };
 
     // Function to handle module delete confirmation
@@ -564,7 +580,7 @@ export default function CourseModuleList({
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if (onDeleteItem) {
-                                                                handleDeleteTask(module.id, item.id);
+                                                                setTaskToDelete({ moduleId: module.id, itemId: item.id });
                                                             }
                                                         }}
                                                         className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
@@ -687,6 +703,17 @@ export default function CourseModuleList({
                 confirmButtonText="Delete Module"
                 onConfirm={handleConfirmModuleDelete}
                 onCancel={handleCancelModuleDelete}
+                type="delete"
+            />
+
+            {/* Task deletion confirmation dialog */}
+            <ConfirmationDialog
+                open={taskToDelete !== null}
+                title="Are you sure you want to delete this task?"
+                message="This task will be permanently removed. This action cannot be undone."
+                confirmButtonText="Delete Task"
+                onConfirm={handleConfirmTaskDelete}
+                onCancel={handleCancelTaskDelete}
                 type="delete"
             />
         </>
