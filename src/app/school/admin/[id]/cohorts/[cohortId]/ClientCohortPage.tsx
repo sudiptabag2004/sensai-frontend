@@ -297,6 +297,10 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
     const [toastDescription, setToastDescription] = useState('');
     const [toastEmoji, setToastEmoji] = useState('');
 
+    // Add two new state variables, below existing state variables like isDeleteConfirmOpen
+    const [isCourseUnlinkConfirmOpen, setIsCourseUnlinkConfirmOpen] = useState(false);
+    const [courseToUnlink, setCourseToUnlink] = useState<Course | null>(null);
+
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             const target = event.target as Node;
@@ -452,10 +456,46 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                         setFilteredCourses(prev => [...prev, removedCourse]);
                     }
                 }
+
+                // Show success toast
+                setToastTitle('Course unlinked');
+                setToastDescription(`"${removedCourse?.name}" has been removed from this cohort`);
+                setToastEmoji('📚');
+                setShowToast(true);
+
+                // Hide toast after 5 seconds
+                setTimeout(() => {
+                    setShowToast(false);
+                }, 5000);
             }
         } catch (error) {
             console.error("Error removing course from cohort:", error);
+
+            // Show error toast
+            setToastTitle('Error');
+            let errorMessage = 'Failed to unlink course. Please try again.';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            setToastDescription(errorMessage);
+            setToastEmoji('❌');
+            setShowToast(true);
+
+            // Hide toast after 5 seconds
+            setTimeout(() => {
+                setShowToast(false);
+            }, 5000);
+        } finally {
+            // Reset state
+            setCourseToUnlink(null);
+            setIsCourseUnlinkConfirmOpen(false);
         }
+    };
+
+    // New function to initiate the course unlinking process with confirmation
+    const initiateCourseUnlink = (course: Course) => {
+        setCourseToUnlink(course);
+        setIsCourseUnlinkConfirmOpen(true);
     };
 
     // Function to handle the Add button click - this will make the API calls
@@ -1117,7 +1157,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                                 >
                                                     <span className="text-white text-sm font-light mr-3">{course.name}</span>
                                                     <button
-                                                        onClick={() => removeCourseFromCohort(course.id)}
+                                                        onClick={() => initiateCourseUnlink(course)}
                                                         className="text-gray-400 hover:text-white cursor-pointer"
                                                         aria-label="Remove course from cohort"
                                                     >
@@ -1159,6 +1199,18 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                 confirmButtonText="Remove"
                 onConfirm={confirmDeleteMember}
                 onCancel={() => setIsDeleteConfirmOpen(false)}
+                type="delete"
+            />
+
+            {/* Add the course unlinking confirmation dialog near the other dialog components
+            at the end of the component, before the final Toast component */}
+            <ConfirmationDialog
+                open={isCourseUnlinkConfirmOpen}
+                title="Remove Course From Cohort"
+                message={`Are you sure you want to remove "${courseToUnlink?.name}" from this cohort? Learners will no longer have access to this course`}
+                confirmButtonText="Remove"
+                onConfirm={() => courseToUnlink && removeCourseFromCohort(courseToUnlink.id)}
+                onCancel={() => setIsCourseUnlinkConfirmOpen(false)}
                 type="delete"
             />
 

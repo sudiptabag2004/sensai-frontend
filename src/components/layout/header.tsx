@@ -225,7 +225,7 @@ export function Header({
 
                         {/* Profile dropdown menu */}
                         {profileMenuOpen && (
-                            <div className="absolute right-0 mt-2 w-64 bg-[#111111] rounded-md shadow-lg py-1 z-10 border border-gray-800">
+                            <div className="absolute right-0 mt-2 w-64 bg-[#111111] rounded-md shadow-lg py-1 z-10">
                                 <div className="px-4 py-3 border-b border-gray-800">
                                     <div className="flex items-center">
                                         <div className="w-10 h-10 rounded-full bg-purple-700 flex items-center justify-center mr-3">

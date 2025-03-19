@@ -11,6 +11,7 @@ import { useRouter, useParams } from "next/navigation";
 import CourseModuleList, { LocalModule } from "@/components/CourseModuleList";
 import CourseItemDialog from "@/components/CourseItemDialog";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
+import Toast from "@/components/Toast";
 
 // Dynamically import the editor components
 const DynamicLearningMaterialEditor = dynamic(
@@ -140,8 +141,13 @@ export default function CreateCourse() {
     const [totalSchoolCohorts, setTotalSchoolCohorts] = useState<number>(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
     // Add state for cohort removal confirmation
-    const [cohortToRemove, setCohortToRemove] = useState<number | null>(null);
+    const [cohortToRemove, setCohortToRemove] = useState<{ id: number, name: string } | null>(null);
     const [showRemoveCohortConfirmation, setShowRemoveCohortConfirmation] = useState(false);
+    // Add state for toast notifications
+    const [showToast, setShowToast] = useState(false);
+    const [toastTitle, setToastTitle] = useState('');
+    const [toastDescription, setToastDescription] = useState('');
+    const [toastEmoji, setToastEmoji] = useState('');
 
     // Fetch course details from the backend
     useEffect(() => {
@@ -1388,8 +1394,16 @@ export default function CreateCourse() {
             // Refresh the displayed cohorts
             fetchCourseCohorts();
 
-            // You could add a toast notification here
-            console.log("Course published successfully to selected cohorts");
+            // Show success toast
+            setToastTitle('Course published');
+            setToastDescription('Course published successfully to selected cohorts');
+            setToastEmoji('🎉');
+            setShowToast(true);
+
+            // Hide toast after 5 seconds
+            setTimeout(() => {
+                setShowToast(false);
+            }, 5000);
         } catch (error) {
             console.error("Error publishing course:", error);
             setCohortError("Failed to publish course. Please try again later.");
@@ -1419,8 +1433,8 @@ export default function CreateCourse() {
     };
 
     // Add a new function to initiate cohort removal with confirmation
-    const initiateCohortRemoval = (cohortId: number) => {
-        setCohortToRemove(cohortId);
+    const initiateCohortRemoval = (cohortId: number, cohortName: string) => {
+        setCohortToRemove({ id: cohortId, name: cohortName });
         setShowRemoveCohortConfirmation(true);
     };
 
@@ -1441,6 +1455,17 @@ export default function CreateCourse() {
                 throw new Error(`Failed to remove cohort from course: ${response.status}`);
             }
 
+            // Show success toast
+            setToastTitle('Cohort unlinked');
+            setToastDescription(`This course has been removed from "${cohortToRemove?.name}"`);
+            setToastEmoji('🔓');
+            setShowToast(true);
+
+            // Hide toast after 5 seconds
+            setTimeout(() => {
+                setShowToast(false);
+            }, 5000);
+
             // Refresh the displayed cohorts
             fetchCourseCohorts();
 
@@ -1449,7 +1474,21 @@ export default function CreateCourse() {
             setCohortToRemove(null);
         } catch (error) {
             console.error("Error removing cohort from course:", error);
-            // You might want to show an error message to the user here
+
+            // Show error toast
+            setToastTitle('Error');
+            let errorMessage = 'Failed to unlink cohort. Please try again.';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            setToastDescription(errorMessage);
+            setToastEmoji('❌');
+            setShowToast(true);
+
+            // Hide toast after 5 seconds
+            setTimeout(() => {
+                setShowToast(false);
+            }, 5000);
 
             // Reset the confirmation state even on error
             setShowRemoveCohortConfirmation(false);
@@ -1770,7 +1809,7 @@ export default function CreateCourse() {
                                     >
                                         <span className="text-white text-sm font-light mr-3">{cohort.name}</span>
                                         <button
-                                            onClick={() => initiateCohortRemoval(cohort.id)}
+                                            onClick={() => initiateCohortRemoval(cohort.id, cohort.name)}
                                             className="text-gray-400 hover:text-white cursor-pointer"
                                             aria-label="Remove cohort from course"
                                         >
@@ -1787,15 +1826,24 @@ export default function CreateCourse() {
             {/* Confirmation Dialog for Cohort Removal */}
             <ConfirmationDialog
                 open={showRemoveCohortConfirmation}
-                title="Remove Course from Cohort"
-                message="This will remove this course from the selected cohort. Learners in this cohort will no longer have access to this course. Do you want to continue?"
-                onConfirm={() => cohortToRemove !== null && removeCohortFromCourse(cohortToRemove)}
+                title="Remove Course From Cohort"
+                message={`Are you sure you want to remove this course from "${cohortToRemove?.name}"? Learners in that cohort will no longer have access to this course`}
+                onConfirm={() => cohortToRemove && removeCohortFromCourse(cohortToRemove.id)}
                 onCancel={() => {
                     setShowRemoveCohortConfirmation(false);
                     setCohortToRemove(null);
                 }}
                 confirmButtonText="Remove"
                 type="delete"
+            />
+
+            {/* Toast notification */}
+            <Toast
+                show={showToast}
+                title={toastTitle}
+                description={toastDescription}
+                emoji={toastEmoji}
+                onClose={() => setShowToast(false)}
             />
         </div>
     );
