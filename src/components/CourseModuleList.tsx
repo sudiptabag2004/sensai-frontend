@@ -483,12 +483,8 @@ export default function CourseModuleList({
                                     {module.items.map((item, itemIndex) => (
                                         <div
                                             key={item.id}
-                                            className={`flex items-center group hover:bg-gray-50 dark:hover:bg-gray-900 p-2 rounded-md cursor-pointer transition-colors relative mt-2 ${completedItems[item.id] ? "opacity-60" : ""
-                                                }`}
+                                            className={`flex items-center group p-2 rounded-md cursor-pointer transition-all relative mt-2 hover:bg-gray-800/30 dark:hover:bg-gray-700/50 ${completedItems[item.id] ? "opacity-60" : ""}`}
                                             onClick={() => onOpenItem && onOpenItem(module.id, item.id)}
-                                            style={{
-                                                "--hover-bg-color": "#2A2A2A"
-                                            } as React.CSSProperties}
                                         >
                                             <div className={`flex items-center mr-2 ${completedItems[item.id]
                                                 ? "text-gray-400"
