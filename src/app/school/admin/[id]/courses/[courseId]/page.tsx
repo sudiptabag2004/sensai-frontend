@@ -10,6 +10,7 @@ import { Header } from "@/components/layout/header";
 import { useRouter, useParams } from "next/navigation";
 import CourseModuleList, { LocalModule } from "@/components/CourseModuleList";
 import CourseItemDialog from "@/components/CourseItemDialog";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 // Dynamically import the editor components
 const DynamicLearningMaterialEditor = dynamic(
@@ -138,6 +139,9 @@ export default function CreateCourse() {
     // Add state to track total cohorts in the school
     const [totalSchoolCohorts, setTotalSchoolCohorts] = useState<number>(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    // Add state for cohort removal confirmation
+    const [cohortToRemove, setCohortToRemove] = useState<number | null>(null);
+    const [showRemoveCohortConfirmation, setShowRemoveCohortConfirmation] = useState(false);
 
     // Fetch course details from the backend
     useEffect(() => {
@@ -1414,6 +1418,13 @@ export default function CreateCourse() {
         }
     };
 
+    // Add a new function to initiate cohort removal with confirmation
+    const initiateCohortRemoval = (cohortId: number) => {
+        setCohortToRemove(cohortId);
+        setShowRemoveCohortConfirmation(true);
+    };
+
+    // Modify the existing removeCohortFromCourse function to handle the actual removal
     const removeCohortFromCourse = async (cohortId: number) => {
         try {
             const response = await fetch(`http://localhost:8001/courses/${courseId}/cohorts`, {
@@ -1432,9 +1443,17 @@ export default function CreateCourse() {
 
             // Refresh the displayed cohorts
             fetchCourseCohorts();
+
+            // Reset the confirmation state
+            setShowRemoveCohortConfirmation(false);
+            setCohortToRemove(null);
         } catch (error) {
             console.error("Error removing cohort from course:", error);
             // You might want to show an error message to the user here
+
+            // Reset the confirmation state even on error
+            setShowRemoveCohortConfirmation(false);
+            setCohortToRemove(null);
         }
     };
 
@@ -1751,7 +1770,7 @@ export default function CreateCourse() {
                                     >
                                         <span className="text-white text-sm font-light mr-3">{cohort.name}</span>
                                         <button
-                                            onClick={() => removeCohortFromCourse(cohort.id)}
+                                            onClick={() => initiateCohortRemoval(cohort.id)}
                                             className="text-gray-400 hover:text-white cursor-pointer"
                                             aria-label="Remove cohort from course"
                                         >
@@ -1764,6 +1783,20 @@ export default function CreateCourse() {
                     )}
                 </div>
             )}
+
+            {/* Confirmation Dialog for Cohort Removal */}
+            <ConfirmationDialog
+                open={showRemoveCohortConfirmation}
+                title="Remove Course from Cohort"
+                message="This will remove this course from the selected cohort. Learners in this cohort will no longer have access to this course. Do you want to continue?"
+                onConfirm={() => cohortToRemove !== null && removeCohortFromCourse(cohortToRemove)}
+                onCancel={() => {
+                    setShowRemoveCohortConfirmation(false);
+                    setCohortToRemove(null);
+                }}
+                confirmButtonText="Remove"
+                type="delete"
+            />
         </div>
     );
 }
