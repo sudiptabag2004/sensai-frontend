@@ -228,19 +228,23 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
 
     // Function to handle closing the dialog
     const handleCloseRequest = () => {
-        // Skip confirmation for draft learning materials with no content and unchanged title
-        if (activeItem?.status === 'draft' && activeItem.type === 'material') {
-            // Check if the editor has any content using the ref
-            const hasContent = learningMaterialEditorRef.current?.hasContent() || false;
+        // Skip confirmation for draft items with no content and unchanged title
+        if (activeItem?.status === 'draft') {
+            // Check if the editor/quiz has any content using the appropriate ref
+            const hasContent = activeItem.type === 'material'
+                ? learningMaterialEditorRef.current?.hasContent() || false
+                : quizEditorRef.current?.hasContent() || false;
 
             // Check if the title has been changed from default
             const titleElement = dialogTitleRef.current;
             const currentTitle = titleElement?.textContent || '';
-            const defaultTitle = "New Learning Material";
-            const isTitleChanged = currentTitle !== defaultTitle && currentTitle.trim() !== '';
 
-            console.log('hasContent', hasContent);
-            console.log('isTitleChanged', isTitleChanged);
+            // Set default title based on item type
+            let defaultTitle = "New Learning Material";
+            if (activeItem.type === 'quiz') defaultTitle = "New Quiz";
+            if (activeItem.type === 'exam') defaultTitle = "New Exam";
+
+            const isTitleChanged = currentTitle !== defaultTitle && currentTitle.trim() !== '';
 
             // If there's no content and title hasn't changed, close without confirmation
             if (!hasContent && !isTitleChanged) {
@@ -252,7 +256,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
             }
         }
 
-        // For other cases (quizzes, exams, or learning materials with content)
+        // For other cases (items with content or changed titles)
         // If the item is a draft, show confirmation dialog
         if (activeItem?.status === 'draft') {
             setShowCloseConfirmation(true);

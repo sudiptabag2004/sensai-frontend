@@ -21,6 +21,7 @@ import ConfirmationDialog from "./ConfirmationDialog";
 export interface QuizEditorHandle {
     save: () => Promise<void>;
     cancel: () => void;
+    hasContent: () => boolean;
 }
 
 export interface QuizQuestionConfig {
@@ -664,7 +665,8 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     // Expose methods via the forwarded ref
     useImperativeHandle(ref, () => ({
         save: handleSave,
-        cancel: handleCancel
+        cancel: handleCancel,
+        hasContent: () => questions.length > 0
     }));
 
     // Update current question index when the question changes in preview mode
