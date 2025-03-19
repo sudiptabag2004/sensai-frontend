@@ -12,6 +12,7 @@ import CourseModuleList, { LocalModule } from "@/components/CourseModuleList";
 import CourseItemDialog from "@/components/CourseItemDialog";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import Toast from "@/components/Toast";
+import CoursePublishSuccessBanner from "@/components/CoursePublishSuccessBanner";
 
 // Dynamically import the editor components
 const DynamicLearningMaterialEditor = dynamic(
@@ -149,6 +150,13 @@ export default function CreateCourse() {
         title: '',
         description: '',
         emoji: ''
+    });
+
+    // Add state for celebratory banner
+    const [showCelebratoryBanner, setShowCelebratoryBanner] = useState(false);
+    const [celebrationDetails, setCelebrationDetails] = useState({
+        cohortCount: 0,
+        cohortNames: [] as string[]
     });
 
     // Fetch course details from the backend
@@ -1399,6 +1407,8 @@ export default function CreateCourse() {
 
             // Extract all cohort IDs from the selected cohorts
             const cohortIds = tempSelectedCohorts.map(cohort => cohort.id);
+            // Extract cohort names for the celebration banner
+            const cohortNames = tempSelectedCohorts.map(cohort => cohort.name);
 
             // Make a single API call with all cohort IDs
             const response = await fetch(`http://localhost:8001/courses/${courseId}/cohorts`, {
@@ -1416,25 +1426,21 @@ export default function CreateCourse() {
                 throw new Error(`Failed to publish course: ${response.status}`);
             }
 
-            // Close the dialog and show a success message
+            // Close the dialog and update cohort details for the celebration
             setShowPublishDialog(false);
+            setCelebrationDetails({
+                cohortCount: tempSelectedCohorts.length,
+                cohortNames: cohortNames
+            });
+
+            // Show the celebratory banner instead of a toast
+            setShowCelebratoryBanner(true);
+
+            // Clear temp selection
             setTempSelectedCohorts([]);
 
             // Refresh the displayed cohorts
             fetchCourseCohorts();
-
-            // Show success toast
-            setToast({
-                show: true,
-                title: 'Course published',
-                description: 'Course published successfully to selected cohorts',
-                emoji: '🎉'
-            });
-
-            // Auto-hide toast after 5 seconds
-            setTimeout(() => {
-                setToast(prev => ({ ...prev, show: false }));
-            }, 5000);
         } catch (error) {
             console.error("Error publishing course:", error);
             setCohortError("Failed to publish course. Please try again later.");
@@ -1530,6 +1536,11 @@ export default function CreateCourse() {
     // Add toast close handler
     const handleCloseToast = () => {
         setToast(prev => ({ ...prev, show: false }));
+    };
+
+    // Add handler for closing the celebratory banner
+    const closeCelebratoryBanner = () => {
+        setShowCelebratoryBanner(false);
     };
 
     return (
@@ -1880,6 +1891,14 @@ export default function CreateCourse() {
                 description={toast.description}
                 emoji={toast.emoji}
                 onClose={handleCloseToast}
+            />
+
+            {/* Celebratory Banner for course publication */}
+            <CoursePublishSuccessBanner
+                isOpen={showCelebratoryBanner}
+                onClose={closeCelebratoryBanner}
+                cohortCount={celebrationDetails.cohortCount}
+                cohortNames={celebrationDetails.cohortNames}
             />
         </div>
     );
