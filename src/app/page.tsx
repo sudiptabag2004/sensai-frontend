@@ -67,7 +67,6 @@ export default function Home() {
 
   // Update school state based on API data
   useEffect(() => {
-    console.log(schools)
     if (schools && schools.length > 0) {
       setHasSchool(true);
       setSchoolId(schools[0].id);

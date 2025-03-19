@@ -65,10 +65,35 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
         },
+        "gradient-fade": {
+          "0%": { opacity: 0 },
+          "20%": { opacity: 0.6 },
+          "80%": { opacity: 0.6 },
+          "100%": { opacity: 0 }
+        },
+        "celebration-reveal": {
+          "0%": { opacity: 0, transform: "translateY(20px)" },
+          "20%": { opacity: 1, transform: "translateY(0)" },
+          "80%": { opacity: 1, transform: "translateY(0)" },
+          "100%": { opacity: 0, transform: "translateY(-20px)" }
+        },
+        "gradient-x": {
+          "0%, 100%": { 
+            backgroundPosition: "0% 50%",
+            backgroundSize: "200% 200%"
+          },
+          "50%": { 
+            backgroundPosition: "100% 50%",
+            backgroundSize: "200% 200%"
+          }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "gradient-fade": "gradient-fade 3.5s ease-in-out forwards",
+        "celebration-reveal": "celebration-reveal 3.5s ease-in-out forwards",
+        "gradient-x": "gradient-x 3s ease infinite",
       },
     },
   },
