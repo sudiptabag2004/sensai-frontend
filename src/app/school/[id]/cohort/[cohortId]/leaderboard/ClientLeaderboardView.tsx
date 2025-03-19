@@ -6,14 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/layout/header";
-
-interface Performer {
-    id: number;
-    name: string;
-    completionPercentage: number;
-    tasksSolved: number;
-    position: number;
-}
+import { Performer } from "@/components/TopPerformers";
 
 export default function ClientLeaderboardView({
     schoolId,
@@ -28,18 +21,18 @@ export default function ClientLeaderboardView({
     const { user } = useAuth();
     const [cohortName, setCohortName] = useState<string>(initialCohortName || "Introduction to Programming");
     const [performers, setPerformers] = useState<Performer[]>([
-        { id: 1, name: "Ronak Shah", completionPercentage: 45, tasksSolved: 20, position: 1 },
-        { id: 2, name: "Anshum Shailey", completionPercentage: 45, tasksSolved: 20, position: 2 },
-        { id: 3, name: "Rishab Burman", completionPercentage: 45, tasksSolved: 20, position: 3 },
-        { id: 4, name: "Priya Patel", completionPercentage: 42, tasksSolved: 18, position: 4 },
-        { id: 5, name: "Aarav Kumar", completionPercentage: 40, tasksSolved: 18, position: 5 },
-        { id: 6, name: "Neha Sharma", completionPercentage: 38, tasksSolved: 17, position: 6 },
-        { id: 7, name: "Jane Cooper", completionPercentage: 35, tasksSolved: 15, position: 7 },
-        { id: 8, name: "Alex Johnson", completionPercentage: 32, tasksSolved: 14, position: 8 },
-        { id: 9, name: "Sam Taylor", completionPercentage: 30, tasksSolved: 13, position: 9 },
-        { id: 10, name: "Morgan Lee", completionPercentage: 28, tasksSolved: 12, position: 10 },
-        { id: 11, name: "Casey Kim", completionPercentage: 25, tasksSolved: 11, position: 11 },
-        { id: 12, name: "Jordan Smith", completionPercentage: 22, tasksSolved: 10, position: 12 }
+        { name: "Ronak Shah", streakDays: 45, tasksSolved: 20, position: 1 },
+        { name: "Anshum Shailey", streakDays: 45, tasksSolved: 20, position: 2 },
+        { name: "Rishab Burman", streakDays: 45, tasksSolved: 20, position: 3 },
+        { name: "Priya Patel", streakDays: 42, tasksSolved: 18, position: 4 },
+        { name: "Aarav Kumar", streakDays: 40, tasksSolved: 18, position: 5 },
+        { name: "Neha Sharma", streakDays: 38, tasksSolved: 17, position: 6 },
+        { name: "Jane Cooper", streakDays: 35, tasksSolved: 15, position: 7 },
+        { name: "Alex Johnson", streakDays: 32, tasksSolved: 14, position: 8 },
+        { name: "Sam Taylor", streakDays: 30, tasksSolved: 13, position: 9 },
+        { name: "Morgan Lee", streakDays: 28, tasksSolved: 12, position: 10 },
+        { name: "Casey Kim", streakDays: 25, tasksSolved: 11, position: 11 },
+        { name: "Jordan Smith", streakDays: 22, tasksSolved: 10, position: 12 }
     ]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -123,9 +116,9 @@ export default function ClientLeaderboardView({
 
                         {/* Performers List */}
                         <div className="divide-y divide-gray-800">
-                            {performers.map((performer) => (
+                            {performers.map((performer, index) => (
                                 <div
-                                    key={performer.id}
+                                    key={index}
                                     className={`grid grid-cols-12 gap-2 px-4 py-4 items-center ${isCurrentUser(performer) ? 'bg-gray-900/20' : ''}`}
                                 >
                                     {/* Position Column */}
@@ -165,7 +158,7 @@ export default function ClientLeaderboardView({
 
                                     {/* Completion Column */}
                                     <div className="col-span-3 lg:col-span-2 text-center text-gray-400">
-                                        {performer.completionPercentage}%
+                                        {performer.streakDays} Days
                                     </div>
 
                                     {/* Tasks Solved Column */}

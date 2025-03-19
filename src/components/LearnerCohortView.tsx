@@ -4,17 +4,11 @@ import LearningStreak from "./LearningStreak";
 import TopPerformers from "./TopPerformers";
 import { Module } from "@/types/course";
 import { useAuth } from "@/lib/auth";
+import { Performer } from "./TopPerformers";
 
 // Constants for localStorage keys
 const LAST_INCREMENT_DATE_KEY = 'streak_last_increment_date';
 const LAST_STREAK_COUNT_KEY = 'streak_last_count';
-
-interface Performer {
-    name: string;
-    completionPercentage: number;
-    tasksSolved: number;
-    position: number;
-}
 
 interface LearnerCohortViewProps {
     courseTitle: string;
@@ -260,14 +254,14 @@ export default function LearnerCohortView({
                             />
                         )}
 
-                        {performers.length > 0 && (
-                            <TopPerformers
-                                performers={performers}
-                                currentUser={currentUser}
-                                schoolId={schoolId}
-                                cohortId={cohortId}
-                            />
-                        )}
+
+                        <TopPerformers
+                            performers={performers}
+                            currentUser={currentUser}
+                            schoolId={schoolId}
+                            cohortId={cohortId}
+                        />
+
                     </div>
                 )}
             </div>
