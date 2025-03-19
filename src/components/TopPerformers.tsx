@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { User, ChevronRight, ArrowRight, RefreshCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -29,8 +30,19 @@ export default function TopPerformers({
     const router = useRouter();
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
-    const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+    const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
     const refreshButtonRef = useRef<HTMLButtonElement>(null);
+
+    // Update tooltip position based on button position
+    useEffect(() => {
+        if (showTooltip && refreshButtonRef.current) {
+            const rect = refreshButtonRef.current.getBoundingClientRect();
+            setTooltipPosition({
+                top: rect.top - 10, // Position above the button with some spacing
+                left: rect.left + rect.width / 2, // Center horizontally
+            });
+        }
+    }, [showTooltip]);
 
     // Function to get the appropriate badge SVG based on position
     const getPositionBadge = (position: number) => {
@@ -58,23 +70,6 @@ export default function TopPerformers({
         }
     };
 
-    // Update tooltip position when button is hovered
-    const updateTooltipPosition = () => {
-        if (refreshButtonRef.current) {
-            const rect = refreshButtonRef.current.getBoundingClientRect();
-            setTooltipPosition({
-                x: rect.left + rect.width / 2,
-                y: rect.top - 10
-            });
-        }
-    };
-
-    // Show tooltip and update its position
-    const handleShowTooltip = () => {
-        updateTooltipPosition();
-        setShowTooltip(true);
-    };
-
     // Function to handle refresh click with visual feedback
     const handleRefresh = async (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent click from bubbling to parent elements
@@ -98,19 +93,34 @@ export default function TopPerformers({
         }
     };
 
-    // Update tooltip position if window is resized
-    useEffect(() => {
-        if (showTooltip) {
-            const handleResize = () => {
-                updateTooltipPosition();
-            };
+    // Create tooltip portal
+    const renderTooltipPortal = () => {
+        if (!showTooltip || typeof document === 'undefined') return null;
 
-            window.addEventListener('resize', handleResize);
-            return () => {
-                window.removeEventListener('resize', handleResize);
-            };
-        }
-    }, [showTooltip]);
+        return createPortal(
+            <div
+                className="fixed px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap"
+                style={{
+                    top: `${tooltipPosition.top}px`,
+                    left: `${tooltipPosition.left}px`,
+                    transform: 'translate(-50%, -100%)',
+                    zIndex: 9999
+                }}
+            >
+                Refresh
+                <div
+                    className="absolute w-2 h-2 bg-gray-800 rotate-45"
+                    style={{
+                        top: '100%',
+                        left: '50%',
+                        marginTop: '-4px',
+                        marginLeft: '-4px'
+                    }}
+                ></div>
+            </div>,
+            document.body
+        );
+    };
 
     return (
         <div className="bg-white dark:bg-[#121212] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -121,9 +131,9 @@ export default function TopPerformers({
                         <button
                             ref={refreshButtonRef}
                             onClick={handleRefresh}
-                            onMouseEnter={handleShowTooltip}
+                            onMouseEnter={() => setShowTooltip(true)}
                             onMouseLeave={() => setShowTooltip(false)}
-                            onFocus={handleShowTooltip}
+                            onFocus={() => setShowTooltip(true)}
                             onBlur={() => setShowTooltip(false)}
                             className="group p-1.5 rounded-md transition-all duration-200 
                             bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 text-gray-700 dark:text-gray-200 cursor-pointer"
@@ -136,18 +146,8 @@ export default function TopPerformers({
                             />
                         </button>
 
-                        {/* Custom tooltip with safer positioning */}
-                        {showTooltip && (
-                            <div
-                                className="fixed px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap z-50 transform -translate-x-1/2"
-                                style={{
-                                    left: `${tooltipPosition.x}px`,
-                                    top: `${tooltipPosition.y}px`
-                                }}
-                            >
-                                Refresh
-                            </div>
-                        )}
+                        {/* Render tooltip via portal */}
+                        {renderTooltipPortal()}
                     </div>
                     <button
                         onClick={navigateToLeaderboard}
