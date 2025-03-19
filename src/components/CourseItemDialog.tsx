@@ -17,16 +17,6 @@ interface TaskData {
     status: string;
 }
 
-// Define the API response question interface
-interface APIQuestionResponse {
-    id: number;
-    blocks: any[];
-    answer?: string;
-    type: string;
-    input_type: string;
-    response_type: string;
-}
-
 // Dynamically import the editor components
 const DynamicLearningMaterialEditor = dynamic(
     () => import("./LearningMaterialEditor"),
@@ -95,21 +85,12 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     onQuizContentChange,
     focusEditor,
 }) => {
-    // Add refs for the editor components - moved to top with other hooks
+    // Add refs for the editor components
     const learningMaterialEditorRef = useRef<LearningMaterialEditorHandle>(null);
     const quizEditorRef = useRef<QuizEditorHandle>(null);
 
     // State to track preview mode for quizzes
     const [quizPreviewMode, setQuizPreviewMode] = useState(false);
-
-    // State to track loading state for task details
-    const [isLoadingTaskDetails, setIsLoadingTaskDetails] = useState(false);
-
-    // Local state to store fetched questions
-    const [localQuestions, setLocalQuestions] = useState<QuizQuestion[]>([]);
-
-    // Track if we've already fetched the data to prevent infinite loops
-    const [hasFetchedData, setHasFetchedData] = useState(false);
 
     // Toast state
     const [showToast, setShowToast] = useState(false);
@@ -120,114 +101,59 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     // Add a new state variable to track which type of confirmation is being shown
     const [confirmationType, setConfirmationType] = useState<'publish' | 'edit' | 'draft'>('draft');
 
+    // State to track if quiz/exam has questions (for publish/preview button visibility)
+    const [hasQuizQuestions, setHasQuizQuestions] = useState(false);
+
+    // Add effect to log when hasQuizQuestions changes
+    useEffect(() => {
+        console.log('hasQuizQuestions updated:', hasQuizQuestions);
+    }, [hasQuizQuestions]);
+
     // Reset quiz preview mode when dialog is closed
     useEffect(() => {
         if (!isOpen) {
             setQuizPreviewMode(false);
-        }
-    }, [isOpen]);
 
-    // Reset questions for draft quizzes/exams immediately when dialog opens
-    // This useEffect runs before all others with the highest priority
-    useEffect(() => {
-        if (isOpen && activeItem &&
-            (activeItem.type === 'quiz' || activeItem.type === 'exam') &&
-            activeItem.status === 'draft') {
+            // Make sure to clear questions from active item when the dialog closes for draft quizzes/exams
+            if (activeItem &&
+                (activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+                activeItem.status === 'draft') {
 
-            console.log('Resetting draft quiz questions');
-
-            // Clear questions from activeItem - this must happen before any render
-            if (activeItem) {
-                // Make sure to set to an empty array, not undefined or null
+                console.log('Cleaning up draft quiz questions on dialog close');
                 activeItem.questions = [];
             }
-
-            // Also reset local state
-            setLocalQuestions([]);
-
-            // Update parent component via callback
-            if (onQuizContentChange) {
-                onQuizContentChange([]);
-            }
-        }
-    }, [isOpen]); // Only depend on isOpen to ensure this runs whenever dialog opens
-
-    // Fetch task details for published quizzes
-    useEffect(() => {
-        const fetchTaskDetails = async () => {
-            // Only fetch if we haven't already and the item is a published quiz/exam
-            if (isOpen &&
-                activeItem &&
+        } else if (isOpen) {
+            // When dialog opens, ensure hasQuizQuestions is correctly initialized
+            // For draft quizzes, always start with false (no questions)
+            if (activeItem &&
                 (activeItem.type === 'quiz' || activeItem.type === 'exam') &&
-                activeItem.status === 'published' &&
-                activeItem.id &&
-                !hasFetchedData) {
+                activeItem.status === 'draft') {
 
-                setIsLoadingTaskDetails(true);
+                // Reset to false when dialog opens for draft quizzes
+                setHasQuizQuestions(false);
 
-                try {
-                    const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}`);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch task details');
-                    }
+                // Also ensure activeItem.questions is cleared
+                console.log('Clearing questions for draft quiz on dialog open');
+                activeItem.questions = [];
+            } else if (activeItem &&
+                (activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+                activeItem.status === 'published') {
 
-                    const data = await response.json();
-
-                    // Update the questions with the fetched data
-                    if (data && data.questions && data.questions.length > 0) {
-                        const updatedQuestions = data.questions.map((question: APIQuestionResponse) => ({
-                            id: String(question.id),
-                            content: question.blocks || [],
-                            config: {
-                                inputType: question.input_type || 'text',
-                                responseStyle: question.response_type === 'chat' ? 'coach' : 'evaluator',
-                                evaluationCriteria: [],
-                                correctAnswer: question.answer || ''
-                            }
-                        }));
-
-                        // Update local state instead of modifying activeItem directly
-                        setLocalQuestions(updatedQuestions);
-
-                        // Only update the activeItem once
-                        if (activeItem) {
-                            activeItem.questions = updatedQuestions;
-                        }
-
-                        // Notify parent component about the update
-                        if (onQuizContentChange) {
-                            onQuizContentChange(updatedQuestions);
-                        }
-
-                        // Mark that we've fetched the data
-                        setHasFetchedData(true);
-                    }
-                } catch (error) {
-                    console.error('Error fetching task details:', error);
-                } finally {
-                    setIsLoadingTaskDetails(false);
-                }
+                // For published quizzes, initialize based on actual data
+                // Will be updated when data is loaded by the QuizEditor
+                setHasQuizQuestions(activeItem.questions && activeItem.questions.length > 0);
+            } else {
+                // For materials, always true
+                setHasQuizQuestions(true);
             }
-        };
-
-        fetchTaskDetails();
-    }, [isOpen, activeItem?.id, activeItem?.type, activeItem?.status, hasFetchedData, onQuizContentChange]);
-
-    // Reset state when dialog closes
-    useEffect(() => {
-        if (!isOpen) {
-            setHasFetchedData(false);
-            setLocalQuestions([]);
         }
-    }, [isOpen]);
+    }, [isOpen, activeItem]);
 
     // Bail early if dialog isn't open or there's no active item
     if (!isOpen || !activeItem) return null;
 
-    // Check if the quiz has questions
-    const hasQuizQuestions = activeItem?.type === 'quiz' || activeItem?.type === 'exam'
-        ? (localQuestions.length > 0 || (activeItem?.questions && activeItem.questions.length > 0))
-        : true; // Always true for non-quiz items
+    // Check if the quiz has questions using the local state variable
+    // For non-quiz items, this is always true
 
     // Function to handle closing the dialog
     const handleCloseRequest = () => {
@@ -577,86 +503,78 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                 }}
                             />
                         ) : activeItem?.type === 'quiz' || activeItem?.type === 'exam' ? (
-                            isLoadingTaskDetails ? (
-                                <div className="flex items-center justify-center h-full w-full">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
-                                </div>
-                            ) : (
-                                <DynamicQuizEditor
-                                    ref={quizEditorRef}
-                                    initialQuestions={
-                                        // For published quizzes, use fetched data
-                                        activeItem.status === 'published' ?
-                                            (localQuestions.length > 0 ? localQuestions : (activeItem?.questions || [])) :
-                                            // For draft quizzes, always start with either the local state or empty
-                                            (activeItem.status === 'draft' ? (localQuestions || []) : (activeItem?.questions || []))
+                            <DynamicQuizEditor
+                                ref={quizEditorRef}
+                                key={`quiz-${activeItem.id}-${isEditMode}`}
+                                onChange={(questions) => {
+                                    // Track if there are questions for publish/preview button visibility
+                                    setHasQuizQuestions(questions.length > 0);
+
+                                    // Keep activeItem.questions updated for component state consistency
+                                    if (activeItem) {
+                                        activeItem.questions = questions;
                                     }
-                                    onChange={(questions) => {
-                                        // Update both local state and activeItem
-                                        setLocalQuestions(questions);
+
+                                    // Notify parent component
+                                    onQuizContentChange(questions);
+                                }}
+                                isPreviewMode={quizPreviewMode}
+                                readOnly={activeItem.status === 'published' && !isEditMode}
+                                onPublish={onPublishConfirm}
+                                taskId={activeItem.id}
+                                status={activeItem.status}
+                                taskType={activeItem.type as 'quiz' | 'exam'}
+                                showPublishConfirmation={showPublishConfirmation}
+                                onPublishCancel={onPublishCancel}
+                                onSaveSuccess={(updatedData) => {
+                                    // Handle save success
+                                    if (updatedData) {
+                                        console.log("Received updated data in CourseItemDialog after save:", updatedData);
+
+                                        // Update the activeItem with the updated title and questions
                                         if (activeItem) {
-                                            activeItem.questions = questions;
-                                        }
-                                        onQuizContentChange(questions);
-                                    }}
-                                    isPreviewMode={quizPreviewMode}
-                                    readOnly={activeItem.status === 'published' && !isEditMode}
-                                    onPublish={onPublishConfirm}
-                                    taskId={activeItem.id}
-                                    status={activeItem.status}
-                                    taskType={activeItem.type as 'quiz' | 'exam'}
-                                    showPublishConfirmation={showPublishConfirmation}
-                                    onPublishCancel={onPublishCancel}
-                                    onSaveSuccess={(updatedData) => {
-                                        // Handle save success
-                                        if (updatedData) {
-                                            console.log("Received updated data in CourseItemDialog after save:", updatedData);
+                                            activeItem.title = updatedData.title;
 
-                                            // Update the activeItem with the updated title and questions
-                                            if (activeItem) {
-                                                activeItem.title = updatedData.title;
-
-                                                if (updatedData.questions) {
-                                                    activeItem.questions = updatedData.questions;
-                                                }
+                                            if (updatedData.questions) {
+                                                activeItem.questions = updatedData.questions;
                                             }
-
-                                            // Call onSaveItem to exit edit mode
-                                            onSaveItem();
                                         }
-                                    }}
-                                    onPublishSuccess={(updatedData) => {
-                                        // Handle publish success
-                                        if (updatedData) {
-                                            console.log("Received updated data in CourseItemDialog:", updatedData);
 
-                                            // Properly update the UI state first
-                                            // This will transform the publish button to edit button
-                                            if (activeItem && updatedData.status === 'published') {
-                                                activeItem.status = 'published';
-                                                activeItem.title = updatedData.title;
+                                        // Call onSaveItem to exit edit mode
+                                        onSaveItem();
+                                    }
+                                }}
+                                onPublishSuccess={(updatedData) => {
+                                    // Handle publish success
+                                    if (updatedData) {
+                                        console.log("Received updated data in CourseItemDialog:", updatedData);
 
-                                                if (updatedData.questions) {
-                                                    activeItem.questions = updatedData.questions;
-                                                }
+                                        // Properly update the UI state first
+                                        // This will transform the publish button to edit button
+                                        if (activeItem && updatedData.status === 'published') {
+                                            activeItem.status = 'published';
+                                            activeItem.title = updatedData.title;
+
+                                            if (updatedData.questions) {
+                                                activeItem.questions = updatedData.questions;
                                             }
-
-                                            // Update will be handled by the parent component
-                                            // Pass the updated data to the parent component
-                                            onPublishConfirm();
-
-                                            // Show toast notification
-                                            displayToast();
-
-                                            // Log the updated state for debugging
-                                            console.log("Quiz published successfully, updated activeItem:", activeItem);
                                         }
 
-                                        // Hide the publish confirmation dialog
-                                        onSetShowPublishConfirmation(false);
-                                    }}
-                                />
-                            )
+                                        // Update will be handled by the parent component
+                                        // Pass the updated data to the parent component
+                                        onPublishConfirm();
+
+                                        // Show toast notification
+                                        displayToast();
+
+                                        // Log the updated state for debugging
+                                        console.log("Quiz published successfully, updated activeItem:", activeItem);
+                                    }
+
+                                    // Hide the publish confirmation dialog
+                                    onSetShowPublishConfirmation(false);
+                                }}
+                            />
                         ) : null}
                     </div>
                 </div>

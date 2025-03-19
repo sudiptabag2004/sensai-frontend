@@ -341,9 +341,8 @@ export default function LearnerQuizView({
             const newIndex = currentQuestionIndex - 1;
             setCurrentQuestionIndex(newIndex);
             setCurrentAnswer(""); // Reset answer when changing questions
-            // No need to reset submission status as we're tracking per question
 
-            // Notify parent component about question change
+            // Always notify parent component about question change
             if (onQuestionChange && validQuestions[newIndex]) {
                 onQuestionChange(validQuestions[newIndex].id);
             }
@@ -356,9 +355,8 @@ export default function LearnerQuizView({
             const newIndex = currentQuestionIndex + 1;
             setCurrentQuestionIndex(newIndex);
             setCurrentAnswer(""); // Reset answer when changing questions
-            // No need to reset submission status as we're tracking per question
 
-            // Notify parent component about question change
+            // Always notify parent component about question change
             if (onQuestionChange && validQuestions[newIndex]) {
                 onQuestionChange(validQuestions[newIndex].id);
             }

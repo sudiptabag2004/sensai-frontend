@@ -29,6 +29,7 @@ export interface QuizQuestionConfig {
     responseStyle: 'coach' | 'examiner' | 'evaluator';
     evaluationCriteria: string[];
     correctAnswer?: string;
+    correctAnswerBlocks?: any[];
     codeLanguage?: string; // For code input type
     audioMaxDuration?: number; // For audio input type in seconds
 }
@@ -40,7 +41,7 @@ export interface QuizQuestion {
 }
 
 export interface QuizEditorProps {
-    initialQuestions?: QuizQuestion[];
+    initialQuestions?: QuizQuestion[]; // Kept for backward compatibility but not used anymore
     onChange?: (questions: QuizQuestion[]) => void;
     isDarkMode?: boolean;
     className?: string;
@@ -59,6 +60,16 @@ export interface QuizEditorProps {
     onQuestionChange?: (questionId: string) => void;
     onSubmitAnswer?: (questionId: string, answer: string) => void;
     userId?: string;
+}
+
+// Define the API response question interface
+interface APIQuestionResponse {
+    id: number;
+    blocks: any[];
+    answer?: string;
+    type: string;
+    input_type: string;
+    response_type: string;
 }
 
 // Default configuration for new questions
@@ -98,7 +109,7 @@ const extractTextFromBlocks = (blocks: any[]): string => {
 };
 
 const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
-    initialQuestions = [],
+    initialQuestions = [], // Not used anymore - kept for backward compatibility
     onChange,
     isDarkMode = true,
     className = "",
@@ -118,62 +129,123 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     onSubmitAnswer,
     userId,
 }, ref) => {
-    // Initialize questions state
-    const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
+    // For published quizzes/exams: data is always fetched from the API
+    // For draft quizzes/exams: always start with empty questions
+    // initialQuestions prop is no longer used
+
+    // Initialize questions state - always start with empty array
+    const [questions, setQuestions] = useState<QuizQuestion[]>([]);
     // Store the original data for cancel functionality
     const originalQuestionsRef = useRef<QuizQuestion[]>([]);
     // Add a ref to store the original title
     const originalTitleRef = useRef<string>("");
 
-    // Update questions when initialQuestions prop changes
+    // Add loading state for fetching questions
+    const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+    // Track if data has been fetched to prevent infinite loops
+    const [hasFetchedData, setHasFetchedData] = useState(false);
+
+    // Make sure we reset questions when component mounts for draft quizzes
     useEffect(() => {
-        if (!initialQuestions || initialQuestions.length === 0) {
+        if (status === 'draft') {
+            console.log('Initializing empty questions array for draft quiz');
             setQuestions([]);
-            return;
         }
+    }, [status]);
 
-        // Ensure each question has the required properties
-        const formattedQuestions = initialQuestions.map(q => {
-            // Handle potential different formats from API
-            const questionContent = Array.isArray(q.content) ? q.content :
-                (q as any).blocks ? (q as any).blocks : [];
+    // Fetch quiz/exam questions from API when the component mounts for published quizzes only
+    useEffect(() => {
+        const fetchQuestions = async () => {
+            // Only fetch if we have a taskId, the status is published, and we haven't already fetched
+            if (taskId && status === 'published' && !hasFetchedData) {
+                setIsLoadingQuestions(true);
 
-            // Handle potential different config formats
-            const correctAnswer = q.config?.correctAnswer ||
-                (q as any).answer || '';
+                try {
+                    const response = await fetch(`http://localhost:8001/tasks/${taskId}`);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch task details');
+                    }
 
-            return {
-                id: q.id || `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                content: questionContent,
-                config: {
-                    inputType: q.config?.inputType || 'text',
-                    responseStyle: q.config?.responseStyle || 'coach',
-                    evaluationCriteria: q.config?.evaluationCriteria || [],
-                    correctAnswer: correctAnswer,
-                    codeLanguage: q.config?.codeLanguage || '',
-                    audioMaxDuration: q.config?.audioMaxDuration || 60
+                    const data = await response.json();
+
+                    // Update the questions with the fetched data
+                    if (data && data.questions && data.questions.length > 0) {
+                        const updatedQuestions = data.questions.map((question: APIQuestionResponse) => ({
+                            id: String(question.id),
+                            content: question.blocks || [],
+                            config: {
+                                inputType: question.input_type || 'text',
+                                responseStyle: question.response_type === 'chat' ? 'coach' : 'evaluator',
+                                evaluationCriteria: [],
+                                correctAnswer: question.answer || '',
+                                correctAnswerBlocks: question.blocks || []
+                            }
+                        }));
+
+                        // Update questions state
+                        setQuestions(updatedQuestions);
+
+                        // Notify parent component about the update, but only once and after our state is updated
+                        if (onChange) {
+                            // Use setTimeout to break the current render cycle
+                            setTimeout(() => {
+                                onChange(updatedQuestions);
+                            }, 0);
+                        }
+
+                        // Store the original data for cancel operation
+                        originalQuestionsRef.current = JSON.parse(JSON.stringify(updatedQuestions));
+                    }
+
+                    // Mark that we've fetched the data - do this regardless of whether questions were found
+                    setHasFetchedData(true);
+                } catch (error) {
+                    console.error('Error fetching quiz questions:', error);
+                    // Even on error, mark as fetched to prevent infinite retry loops
+                    setHasFetchedData(true);
+                } finally {
+                    setIsLoadingQuestions(false);
                 }
-            };
-        });
+            }
+        };
 
-        setQuestions(formattedQuestions);
-        // Store the original questions for cancel operation
-        originalQuestionsRef.current = JSON.parse(JSON.stringify(formattedQuestions));
+        fetchQuestions();
+    }, [taskId, status, hasFetchedData, onChange]);
 
-        // Store the original title if we have an activeItem with a title
+    // Reset hasFetchedData when taskId changes
+    useEffect(() => {
+        setHasFetchedData(false);
+    }, [taskId]);
+
+    // Cleanup effect - clear questions when component unmounts or taskId changes
+    useEffect(() => {
+        // Return cleanup function
+        return () => {
+            // Clear questions state and refs when component unmounts
+            setQuestions([]);
+            originalQuestionsRef.current = [];
+        };
+    }, [taskId]);
+
+    // Store the original title when it changes in the dialog (for cancel operation)
+    useEffect(() => {
         const dialogTitleElement = document.querySelector('.dialog-content-editor')?.parentElement?.querySelector('h2');
         if (dialogTitleElement) {
             originalTitleRef.current = dialogTitleElement.textContent || "";
         }
-    }, [initialQuestions]);
+    }, []);
 
     // Current question index
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
     // Internal state to track the current question ID for preview mode
-    const [activeQuestionId, setActiveQuestionId] = useState<string | undefined>(
-        currentQuestionId || (questions.length > 0 ? questions[0]?.id : undefined)
-    );
+    const [activeQuestionId, setActiveQuestionId] = useState<string | undefined>(() => {
+        // Initialize with currentQuestionId if provided, otherwise use first question id if questions exist
+        if (currentQuestionId) {
+            return currentQuestionId;
+        }
+        return questions.length > 0 ? questions[0]?.id : undefined;
+    });
 
     // Update current question index when currentQuestionId changes
     useEffect(() => {
@@ -181,15 +253,15 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             const index = questions.findIndex(q => q.id === currentQuestionId);
             if (index !== -1) {
                 setCurrentQuestionIndex(index);
-                setActiveQuestionId(currentQuestionId);
             }
         }
     }, [currentQuestionId, questions]);
 
-    // Update activeQuestionId when currentQuestionIndex changes
+    // Update activeQuestionId when currentQuestionIndex changes in preview mode
     useEffect(() => {
         if (questions.length > 0 && currentQuestionIndex >= 0 && currentQuestionIndex < questions.length) {
-            setActiveQuestionId(questions[currentQuestionIndex].id);
+            const newActiveId = questions[currentQuestionIndex].id;
+            setActiveQuestionId(newActiveId);
         }
     }, [currentQuestionIndex, questions]);
 
@@ -304,15 +376,27 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
     // Handle correct answer content change
     const handleCorrectAnswerContentChange = useCallback((content: any[]) => {
-        // Simply store the content in the editor without processing
-        // The actual text extraction will happen during save/publish
+        if (questions.length === 0) return;
 
-        // Instead of processing on every keystroke, we do nothing here
-        // This allows normal typing behavior without state updates interrupting input
+        // Store the raw content blocks instead of extracting text
+        const updatedQuestions = [...questions];
+        updatedQuestions[currentQuestionIndex] = {
+            ...updatedQuestions[currentQuestionIndex],
+            config: {
+                ...updatedQuestions[currentQuestionIndex].config,
+                correctAnswerBlocks: content, // Store raw blocks
+                correctAnswer: updatedQuestions[currentQuestionIndex].config.correctAnswer // Keep existing text value
+            }
+        };
 
-        // Note: We intentionally don't call handleCorrectAnswerChange here
-        // The correctAnswer will be extracted when saving or publishing
-    }, []);
+        // Update questions state
+        setQuestions(updatedQuestions);
+
+        // Notify parent component
+        if (onChange) {
+            onChange(updatedQuestions);
+        }
+    }, [questions, currentQuestionIndex, onChange]);
 
     // Add a new question
     const addQuestion = useCallback(() => {
@@ -353,11 +437,11 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             setCurrentQuestionIndex(newIndex);
 
             // Call the onQuestionChange callback if provided
-            if (onQuestionChange && questions[newIndex]) {
+            if (onQuestionChange && questions[newIndex] && !isPreviewMode) {
                 onQuestionChange(questions[newIndex].id);
             }
         }
-    }, [currentQuestionIndex, onQuestionChange, questions]);
+    }, [currentQuestionIndex, onQuestionChange, questions, isPreviewMode]);
 
     // Navigate to next question
     const goToNextQuestion = useCallback(() => {
@@ -368,11 +452,11 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             setCurrentQuestionIndex(newIndex);
 
             // Call the onQuestionChange callback if provided
-            if (onQuestionChange && questions[newIndex]) {
+            if (onQuestionChange && questions[newIndex] && !isPreviewMode) {
                 onQuestionChange(questions[newIndex].id);
             }
         }
-    }, [currentQuestionIndex, questions.length, onQuestionChange, questions]);
+    }, [currentQuestionIndex, questions.length, onQuestionChange, questions, isPreviewMode]);
 
     // Delete current question
     const deleteQuestion = useCallback(() => {
@@ -467,7 +551,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
             // Format questions for the API
             const formattedQuestions = questions.map((question, index) => {
-                // Extract correct answer text directly from the editor if we're on the current question
+                // Extract correct answer text only at publish time
                 let correctAnswerText = question.config.correctAnswer || "";
 
                 // If this is the current question, extract the text from the editor
@@ -477,23 +561,13 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                         if (blocks && blocks.length > 0) {
                             // Use the helper function to extract text from all blocks
                             correctAnswerText = extractTextFromBlocks(blocks);
-
-                            // Update the question in state so it has the correct value
-                            const updatedQuestions = [...questions];
-                            updatedQuestions[currentQuestionIndex] = {
-                                ...updatedQuestions[currentQuestionIndex],
-                                config: {
-                                    ...updatedQuestions[currentQuestionIndex].config,
-                                    correctAnswer: correctAnswerText
-                                }
-                            };
-
-                            // Update the questions state
-                            setQuestions(updatedQuestions);
                         }
                     } catch (e) {
                         console.error("Error extracting text from correct answer editor:", e);
                     }
+                } else if (question.config.correctAnswerBlocks) {
+                    // For other questions, extract from stored blocks if available
+                    correctAnswerText = extractTextFromBlocks(question.config.correctAnswerBlocks);
                 }
 
                 console.log(`Question ${question.id} - Correct answer: "${correctAnswerText}"`);
@@ -580,7 +654,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
             // Format questions for the API
             const formattedQuestions = questions.map((question, index) => {
-                // Extract correct answer text directly from the editor if we're on the current question
+                // Extract correct answer text only at save time
                 let correctAnswerText = question.config.correctAnswer || "";
 
                 // If this is the current question, extract the text from the editor
@@ -590,23 +664,13 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                         if (blocks && blocks.length > 0) {
                             // Use the helper function to extract text from all blocks
                             correctAnswerText = extractTextFromBlocks(blocks);
-
-                            // Update the question in state so it has the correct value
-                            const updatedQuestions = [...questions];
-                            updatedQuestions[currentQuestionIndex] = {
-                                ...updatedQuestions[currentQuestionIndex],
-                                config: {
-                                    ...updatedQuestions[currentQuestionIndex].config,
-                                    correctAnswer: correctAnswerText
-                                }
-                            };
-
-                            // Update the questions state
-                            setQuestions(updatedQuestions);
                         }
                     } catch (e) {
                         console.error("Error extracting text from correct answer editor:", e);
                     }
+                } else if (question.config.correctAnswerBlocks) {
+                    // For other questions, extract from stored blocks if available
+                    correctAnswerText = extractTextFromBlocks(question.config.correctAnswerBlocks);
                 }
 
                 return {
@@ -677,22 +741,6 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         hasContent: () => questions.length > 0
     }));
 
-    // Update current question index when the question changes in preview mode
-    useEffect(() => {
-        if (isPreviewMode && activeQuestionId && questions.length > 0) {
-            const index = questions.findIndex(q => q.id === activeQuestionId);
-            if (index !== -1 && index !== currentQuestionIndex) {
-                setCurrentQuestionIndex(index);
-
-                // Also ensure the parent component is notified of the change
-                // Only necessary when the change originated from within this component
-                if (onQuestionChange && !currentQuestionId) {
-                    onQuestionChange(activeQuestionId);
-                }
-            }
-        }
-    }, [activeQuestionId, isPreviewMode, questions, currentQuestionIndex, onQuestionChange, currentQuestionId]);
-
     // Memoize the LearnerQuizView component to prevent unnecessary re-renders
     const MemoizedLearnerQuizView = useMemo(() => {
         return (
@@ -705,18 +753,18 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 taskType={taskType}
                 currentQuestionId={activeQuestionId}
                 onQuestionChange={(questionId) => {
-                    // Update our internal state
-                    setActiveQuestionId(questionId);
-                    // Also pass the change up to the parent component
-                    if (onQuestionChange) {
-                        onQuestionChange(questionId);
+                    // Find the index for this question ID
+                    const index = questions.findIndex(q => q.id === questionId);
+                    if (index !== -1) {
+                        // Update our internal state
+                        setCurrentQuestionIndex(index);
                     }
                 }}
                 userId={userId}
                 isTestMode={true}
             />
         );
-    }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, onQuestionChange, userId]);
+    }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, userId]);
 
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
@@ -770,6 +818,13 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 errorMessage={publishError}
                 type="publish"
             />
+
+            {/* Loading indicator */}
+            {isLoadingQuestions && (
+                <div className="absolute inset-0 bg-[#1A1A1A] bg-opacity-80 z-10 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                </div>
+            )}
 
             {/* Quiz Controls - Hide in preview mode and when there are no questions */}
             {!isPreviewMode && questions.length > 0 && (
@@ -910,12 +965,12 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                         >
                                             <BlockNoteEditor
                                                 key={`correct-answer-editor-${currentQuestionIndex}`}
-                                                initialContent={currentQuestionConfig.correctAnswer ? [
+                                                initialContent={currentQuestionConfig.correctAnswerBlocks || (currentQuestionConfig.correctAnswer ? [
                                                     {
                                                         type: "paragraph",
                                                         content: currentQuestionConfig.correctAnswer
                                                     }
-                                                ] : []}
+                                                ] : [])}
                                                 onChange={handleCorrectAnswerContentChange}
                                                 isDarkMode={isDarkMode}
                                                 readOnly={readOnly}
