@@ -265,7 +265,7 @@ export default function CourseModuleList({
                 {modules.map((module, index) => (
                     <div
                         key={module.id}
-                        className="border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
+                        className="border border-gray-200 dark:border-none rounded-lg hover:border-gray-300 transition-colors"
                         style={{ backgroundColor: module.backgroundColor }}
                     >
                         <div className="flex flex-col">
@@ -322,7 +322,7 @@ export default function CourseModuleList({
                                                         e.stopPropagation();
                                                         saveModuleTitle(module.id);
                                                     }}
-                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
+                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-black dark:hover:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
                                                     aria-label="Save module title"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
@@ -337,7 +337,7 @@ export default function CourseModuleList({
                                                         e.stopPropagation();
                                                         cancelModuleEditing(module.id);
                                                     }}
-                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
+                                                    className="px-3 py-1 text-sm text-gray-300 hover:text-white transition-colors focus:outline-none cursor-pointer flex items-center"
                                                     aria-label="Cancel editing"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
@@ -356,7 +356,7 @@ export default function CourseModuleList({
                                                             onEditModuleTitle(module.id);
                                                         }
                                                     }}
-                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
+                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-black dark:hover:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
                                                     aria-label="Edit module title"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
@@ -479,7 +479,7 @@ export default function CourseModuleList({
                         {/* Module content - only visible when expanded */}
                         {getIsExpanded(module.id) && (
                             <div className="px-4 pb-4">
-                                <div className="pl-6 border-l border-gray-200 dark:border-gray-800 ml-2 space-y-2">
+                                <div className="pl-6 border-l border-gray-200 dark:border-gray-400 ml-2 space-y-2">
                                     {module.items.map((item, itemIndex) => (
                                         <div
                                             key={item.id}
@@ -602,7 +602,7 @@ export default function CourseModuleList({
                                                         }
                                                     }
                                                 }}
-                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors cursor-pointer"
+                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
                                             >
                                                 <Plus size={14} className="mr-1" />
                                                 Learning Material
@@ -617,7 +617,7 @@ export default function CourseModuleList({
                                                         }
                                                     }
                                                 }}
-                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors cursor-pointer"
+                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
                                             >
                                                 <Plus size={14} className="mr-1" />
                                                 Quiz
@@ -632,7 +632,7 @@ export default function CourseModuleList({
                                                         }
                                                     }
                                                 }}
-                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-800 rounded-full transition-colors cursor-pointer"
+                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
                                             >
                                                 <Plus size={14} className="mr-1" />
                                                 Exam
