@@ -7,6 +7,7 @@ import { QuizQuestion } from "./QuizEditor";
 import type { LearningMaterialEditorHandle } from "./LearningMaterialEditor";
 import type { QuizEditorHandle } from "./QuizEditor";
 import Toast from "./Toast";
+import ConfirmationDialog from "./ConfirmationDialog";
 
 // Import TaskData from types
 interface TaskData {
@@ -112,6 +113,9 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
 
     // Toast state
     const [showToast, setShowToast] = useState(false);
+
+    // Add state for close confirmation dialog
+    const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
 
     // Reset quiz preview mode when dialog is closed
     useEffect(() => {
@@ -222,15 +226,64 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
         ? (localQuestions.length > 0 || (activeItem?.questions && activeItem.questions.length > 0))
         : true; // Always true for non-quiz items
 
-    // Handle backdrop click to close dialog
-    const handleDialogBackdropClick = (e: React.MouseEvent) => {
-        // Only close if clicking directly on the backdrop, not on the dialog content
-        if (dialogContentRef.current && !dialogContentRef.current.contains(e.target as Node)) {
-            // Reset publish confirmation status before closing
+    // Function to handle closing the dialog
+    const handleCloseRequest = () => {
+        // Skip confirmation for draft learning materials with no content and unchanged title
+        if (activeItem?.status === 'draft' && activeItem.type === 'material') {
+            // Check if the editor has any content using the ref
+            const hasContent = learningMaterialEditorRef.current?.hasContent() || false;
+
+            // Check if the title has been changed from default
+            const titleElement = dialogTitleRef.current;
+            const currentTitle = titleElement?.textContent || '';
+            const defaultTitle = "New Learning Material";
+            const isTitleChanged = currentTitle !== defaultTitle && currentTitle.trim() !== '';
+
+            console.log('hasContent', hasContent);
+            console.log('isTitleChanged', isTitleChanged);
+
+            // If there's no content and title hasn't changed, close without confirmation
+            if (!hasContent && !isTitleChanged) {
+                if (showPublishConfirmation) {
+                    onSetShowPublishConfirmation(false);
+                }
+                onClose();
+                return;
+            }
+        }
+
+        // For other cases (quizzes, exams, or learning materials with content)
+        // If the item is a draft, show confirmation dialog
+        if (activeItem?.status === 'draft') {
+            setShowCloseConfirmation(true);
+        } else {
+            // If it's a published item, just close
             if (showPublishConfirmation) {
                 onSetShowPublishConfirmation(false);
             }
             onClose();
+        }
+    };
+
+    // Handle confirmed close action
+    const handleConfirmClose = () => {
+        setShowCloseConfirmation(false);
+        if (showPublishConfirmation) {
+            onSetShowPublishConfirmation(false);
+        }
+        onClose();
+    };
+
+    // Handle cancel close action
+    const handleCancelClose = () => {
+        setShowCloseConfirmation(false);
+    };
+
+    // Handle backdrop click to close dialog
+    const handleDialogBackdropClick = (e: React.MouseEvent) => {
+        // Only close if clicking directly on the backdrop, not on the dialog content
+        if (dialogContentRef.current && !dialogContentRef.current.contains(e.target as Node)) {
+            handleCloseRequest();
         }
     };
 
@@ -442,13 +495,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
 
                         {/* Close button */}
                         <button
-                            onClick={() => {
-                                // Reset publish confirmation status before closing
-                                if (showPublishConfirmation) {
-                                    onSetShowPublishConfirmation(false);
-                                }
-                                onClose();
-                            }}
+                            onClick={handleCloseRequest}
                             className="ml-2 p-2 text-gray-400 hover:text-white rounded-full hover:bg-[#333333] transition-colors cursor-pointer"
                             aria-label="Close dialog"
                         >
@@ -607,6 +654,18 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Close confirmation dialog */}
+            <ConfirmationDialog
+                open={showCloseConfirmation}
+                title="Unsaved Changes"
+                message="If you do not publish, all your progress will be lost. Are you sure you want to leave?"
+                confirmButtonText="Discard Changes"
+                cancelButtonText="Continue Editing"
+                onConfirm={handleConfirmClose}
+                onCancel={handleCancelClose}
+                type="delete"
+            />
 
             {/* Toast notification */}
             <Toast

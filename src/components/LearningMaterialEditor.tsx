@@ -18,6 +18,7 @@ import ConfirmationDialog from "./ConfirmationDialog";
 export interface LearningMaterialEditorHandle {
     save: () => Promise<void>;
     cancel: () => void;
+    hasContent: () => boolean;
 }
 
 interface LearningMaterialEditorProps {
@@ -349,7 +350,33 @@ const LearningMaterialEditor = forwardRef<LearningMaterialEditorHandle, Learning
     // Expose methods via the forwarded ref
     useImperativeHandle(ref, () => ({
         save: handleSave,
-        cancel: handleCancel
+        cancel: handleCancel,
+        hasContent: () => {
+            // Check if the editor has any content using the editorContent state
+            // This is the same content that gets used when publishing
+            if (!editorContent || editorContent.length === 0) return false;
+
+            // Check if there are any blocks beyond the first default paragraph
+            if (editorContent.length > 1) return true;
+
+            // If there's only one block, check if it has actual content
+            if (editorContent.length === 1) {
+                const block = editorContent[0];
+                // Use stringify to check if there's actual content
+                const blockContent = JSON.stringify(block.content);
+                // Check if it's not just an empty paragraph
+                if (blockContent &&
+                    blockContent !== '{}' &&
+                    blockContent !== '[]' &&
+                    blockContent !== 'null' &&
+                    blockContent !== '{"text":[]}' &&
+                    blockContent !== '{"text":""}') {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }));
 
     if (isLoading) {

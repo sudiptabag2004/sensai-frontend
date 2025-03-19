@@ -833,6 +833,7 @@ export default function CreateCourse() {
 
     // Close the dialog
     const closeDialog = () => {
+        // Dialog confirmation is handled by CourseItemDialog component
         setIsDialogOpen(false);
         setActiveItem(null);
         setActiveModuleId(null);
