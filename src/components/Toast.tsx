@@ -25,7 +25,7 @@ const Toast: React.FC<ToastProps> = ({
             </div>
             <div>
                 <h3 className="font-medium text-base">{title}</h3>
-                <p className="text-sm text-gray-600">{description}</p>
+                <p className="text-sm text-gray-600 mt-0.5 leading-tight">{description}</p>
             </div>
             <button
                 onClick={onClose}

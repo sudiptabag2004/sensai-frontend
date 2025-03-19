@@ -278,6 +278,19 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                 members: membersData
             } : null);
 
+            // Show toast notification for successful deletion
+            setToastMessage({
+                title: 'Member removed',
+                description: `${memberToDelete.email} has been removed from your team`,
+                emoji: '✓'
+            });
+            setShowToast(true);
+
+            // Automatically hide toast after a few seconds
+            setTimeout(() => {
+                setShowToast(false);
+            }, 3000);
+
         } catch (error) {
             console.error('Error deleting member:', error);
             // Here you would typically show an error message to the user
@@ -624,6 +637,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                 show={isDeleteConfirmOpen}
                 title="Remove Member"
                 message={`Are you sure you want to remove ${memberToDelete?.email} from this organization?`}
+                confirmButtonText="Remove"
                 onConfirm={confirmDeleteMember}
                 onCancel={() => setIsDeleteConfirmOpen(false)}
                 type="delete"
