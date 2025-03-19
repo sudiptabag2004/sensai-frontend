@@ -509,7 +509,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                         {/* Two-column layout */}
                         <div className="flex flex-col lg:flex-row gap-8">
                             {/* Left column - Learners and Mentors */}
-                            <div className="w-full lg:w-5/6">
+                            <div className="w-full lg:w-4/5 pr-12">
                                 <div className="mb-8">
                                     <div className="flex border-b border-gray-800">
                                         <button
@@ -641,12 +641,12 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                             </div>
 
                             {/* Right column - Courses */}
-                            <div className="w-full lg:w-1/6">
+                            <div className="w-full lg:w-1/5">
                                 {/* Link Course button */}
                                 <div className="relative w-full mb-4">
                                     <button
                                         data-dropdown-toggle="true"
-                                        className="flex items-center justify-center space-x-2 px-6 py-2 bg-transparent border text-white border-gray-700 rounded-full hover:bg-gray-900 transition-colors cursor-pointer w-full"
+                                        className="flex items-center justify-center space-x-2 px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity cursor-pointer w-full"
                                         onClick={() => {
                                             setIsDropdownOpen(!isDropdownOpen);
                                             if (!isDropdownOpen) {
@@ -664,7 +664,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                         <div
                                             ref={dropdownRef}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="absolute top-full right-0 mt-2 w-[400px] bg-[#1A1A1A] border border-gray-800 rounded-lg shadow-xl z-50">
+                                            className="absolute top-full right-0 mt-2 w-[400px] bg-[#1A1A1A] rounded-lg shadow-xl z-50">
                                             <div className="p-4 pb-2">
                                                 {/* Only show search when there are available courses */}
                                                 {!(totalSchoolCourses === 0 || availableCourses.length === 0) && (
@@ -672,7 +672,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                                                         <input
                                                             type="text"
                                                             placeholder="Search courses"
-                                                            className="w-full bg-[#111] border border-gray-800 rounded-md px-3 py-2 text-white"
+                                                            className="w-full bg-[#111] rounded-md px-3 py-2 text-white"
                                                             value={courseSearchQuery}
                                                             onChange={handleCourseSearch}
                                                         />

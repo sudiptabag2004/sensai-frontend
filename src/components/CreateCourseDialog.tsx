@@ -42,19 +42,8 @@ export default function CreateCourseDialog({ open, onClose, onCreateCourse }: Cr
                 className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl"
                 onClick={e => e.stopPropagation()}
             >
-                {/* Dialog Header */}
-                <div className="flex items-center justify-end p-6">
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
-                        disabled={isLoading}
-                    >
-                        <X size={20} />
-                    </button>
-                </div>
-
                 {/* Dialog Content */}
-                <div className="p-6">
+                <div className="p-6 mt-4">
                     <div className="space-y-4">
                         <div>
                             <input
