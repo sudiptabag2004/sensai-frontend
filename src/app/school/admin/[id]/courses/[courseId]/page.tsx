@@ -144,10 +144,12 @@ export default function CreateCourse() {
     const [cohortToRemove, setCohortToRemove] = useState<{ id: number, name: string } | null>(null);
     const [showRemoveCohortConfirmation, setShowRemoveCohortConfirmation] = useState(false);
     // Add state for toast notifications
-    const [showToast, setShowToast] = useState(false);
-    const [toastTitle, setToastTitle] = useState('');
-    const [toastDescription, setToastDescription] = useState('');
-    const [toastEmoji, setToastEmoji] = useState('');
+    const [toast, setToast] = useState({
+        show: false,
+        title: '',
+        description: '',
+        emoji: ''
+    });
 
     // Fetch course details from the backend
     useEffect(() => {
@@ -1053,12 +1055,38 @@ export default function CreateCourse() {
                 // If successful, update the state
                 updateModuleTitle(moduleId, newTitle);
                 console.log("Module title updated successfully");
+
+                // Show toast notification
+                setToast({
+                    show: true,
+                    title: 'A makeover',
+                    description: `Module name updated successfully`,
+                    emoji: '✨'
+                });
+
+                // Auto-hide toast after 3 seconds
+                setTimeout(() => {
+                    setToast(prev => ({ ...prev, show: false }));
+                }, 3000);
             } catch (error) {
                 console.error("Error updating module title:", error);
 
                 // Still update the local state even if the API call fails
                 // This provides a better user experience while allowing for retry later
                 updateModuleTitle(moduleId, newTitle);
+
+                // Show error toast
+                setToast({
+                    show: true,
+                    title: 'Update Failed',
+                    description: 'Failed to update module title, but changes were saved locally',
+                    emoji: '⚠️'
+                });
+
+                // Auto-hide toast after 3 seconds
+                setTimeout(() => {
+                    setToast(prev => ({ ...prev, show: false }));
+                }, 3000);
             }
         }
 
@@ -1395,14 +1423,16 @@ export default function CreateCourse() {
             fetchCourseCohorts();
 
             // Show success toast
-            setToastTitle('Course published');
-            setToastDescription('Course published successfully to selected cohorts');
-            setToastEmoji('🎉');
-            setShowToast(true);
+            setToast({
+                show: true,
+                title: 'Course published',
+                description: 'Course published successfully to selected cohorts',
+                emoji: '🎉'
+            });
 
-            // Hide toast after 5 seconds
+            // Auto-hide toast after 5 seconds
             setTimeout(() => {
-                setShowToast(false);
+                setToast(prev => ({ ...prev, show: false }));
             }, 5000);
         } catch (error) {
             console.error("Error publishing course:", error);
@@ -1456,14 +1486,16 @@ export default function CreateCourse() {
             }
 
             // Show success toast
-            setToastTitle('Cohort unlinked');
-            setToastDescription(`This course has been removed from "${cohortToRemove?.name}"`);
-            setToastEmoji('🔓');
-            setShowToast(true);
+            setToast({
+                show: true,
+                title: 'Cohort unlinked',
+                description: `This course has been removed from "${cohortToRemove?.name}"`,
+                emoji: '🔓'
+            });
 
-            // Hide toast after 5 seconds
+            // Auto-hide toast after 5 seconds
             setTimeout(() => {
-                setShowToast(false);
+                setToast(prev => ({ ...prev, show: false }));
             }, 5000);
 
             // Refresh the displayed cohorts
@@ -1476,24 +1508,27 @@ export default function CreateCourse() {
             console.error("Error removing cohort from course:", error);
 
             // Show error toast
-            setToastTitle('Error');
-            let errorMessage = 'Failed to unlink cohort. Please try again.';
-            if (error instanceof Error) {
-                errorMessage = error.message;
-            }
-            setToastDescription(errorMessage);
-            setToastEmoji('❌');
-            setShowToast(true);
+            setToast({
+                show: true,
+                title: 'Error',
+                description: 'Failed to unlink cohort. Please try again.',
+                emoji: '❌'
+            });
 
-            // Hide toast after 5 seconds
+            // Auto-hide toast after 5 seconds
             setTimeout(() => {
-                setShowToast(false);
+                setToast(prev => ({ ...prev, show: false }));
             }, 5000);
 
             // Reset the confirmation state even on error
             setShowRemoveCohortConfirmation(false);
             setCohortToRemove(null);
         }
+    };
+
+    // Add toast close handler
+    const handleCloseToast = () => {
+        setToast(prev => ({ ...prev, show: false }));
     };
 
     return (
@@ -1839,11 +1874,11 @@ export default function CreateCourse() {
 
             {/* Toast notification */}
             <Toast
-                show={showToast}
-                title={toastTitle}
-                description={toastDescription}
-                emoji={toastEmoji}
-                onClose={() => setShowToast(false)}
+                show={toast.show}
+                title={toast.title}
+                description={toast.description}
+                emoji={toast.emoji}
+                onClose={handleCloseToast}
             />
         </div>
     );
