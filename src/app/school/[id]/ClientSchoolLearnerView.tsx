@@ -447,6 +447,11 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
                                                         courses={courses}
                                                         onCourseSelect={handleCourseSelect}
                                                         activeCourseIndex={activeCourseIndex}
+                                                        onRefreshLeaderboard={() => {
+                                                            if (activeCohort) {
+                                                                return fetchLeaderboardData(activeCohort.id);
+                                                            }
+                                                        }}
                                                     />
                                                 </div>
                                             )}

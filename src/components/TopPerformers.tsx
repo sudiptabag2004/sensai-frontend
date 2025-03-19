@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { User, ChevronRight, ArrowRight } from "lucide-react";
+import { User, ChevronRight, ArrowRight, RefreshCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export interface Performer {
@@ -16,15 +16,21 @@ interface TopPerformersProps {
     currentUser?: Performer; // Current logged-in user data
     schoolId?: string; // School ID for navigation
     cohortId?: string; // Cohort ID for navigation
+    onRefresh?: () => Promise<void> | void; // Function to refresh leaderboard data
 }
 
 export default function TopPerformers({
     performers,
     currentUser,
     schoolId,
-    cohortId
+    cohortId,
+    onRefresh
 }: TopPerformersProps) {
     const router = useRouter();
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [showTooltip, setShowTooltip] = useState(false);
+    const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+    const refreshButtonRef = useRef<HTMLButtonElement>(null);
 
     // Function to get the appropriate badge SVG based on position
     const getPositionBadge = (position: number) => {
@@ -52,19 +58,107 @@ export default function TopPerformers({
         }
     };
 
+    // Update tooltip position when button is hovered
+    const updateTooltipPosition = () => {
+        if (refreshButtonRef.current) {
+            const rect = refreshButtonRef.current.getBoundingClientRect();
+            setTooltipPosition({
+                x: rect.left + rect.width / 2,
+                y: rect.top - 10
+            });
+        }
+    };
+
+    // Show tooltip and update its position
+    const handleShowTooltip = () => {
+        updateTooltipPosition();
+        setShowTooltip(true);
+    };
+
+    // Function to handle refresh click with visual feedback
+    const handleRefresh = async (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent click from bubbling to parent elements
+
+        if (onRefresh && !isRefreshing) {
+            setIsRefreshing(true);
+            try {
+                console.log("Refreshing leaderboard data...");
+                await Promise.resolve(onRefresh());
+                console.log("Leaderboard refresh complete!");
+            } catch (error) {
+                console.error("Error refreshing leaderboard:", error);
+            } finally {
+                // Reset refreshing state after a short delay to show animation
+                setTimeout(() => {
+                    setIsRefreshing(false);
+                }, 500);
+            }
+        } else if (!onRefresh) {
+            console.warn("No onRefresh function provided to TopPerformers component");
+        }
+    };
+
+    // Update tooltip position if window is resized
+    useEffect(() => {
+        if (showTooltip) {
+            const handleResize = () => {
+                updateTooltipPosition();
+            };
+
+            window.addEventListener('resize', handleResize);
+            return () => {
+                window.removeEventListener('resize', handleResize);
+            };
+        }
+    }, [showTooltip]);
+
     return (
         <div className="bg-white dark:bg-[#121212] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-[#FFF3D8] dark:bg-[#2A2000] flex justify-between items-center">
                 <h3 className="text-lg font-light text-black dark:text-white">Top Performers</h3>
-                <button
-                    onClick={navigateToLeaderboard}
-                    className="group px-2.5 py-1 text-sm font-light rounded-md transition-all duration-200 flex items-center 
-                    bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 text-gray-700 dark:text-gray-200 cursor-pointer"
-                    aria-label="See all performers"
-                >
-                    <span>See All</span>
-                    <ChevronRight size={16} className="ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
-                </button>
+                <div className="flex items-center space-x-2">
+                    <div className="relative">
+                        <button
+                            ref={refreshButtonRef}
+                            onClick={handleRefresh}
+                            onMouseEnter={handleShowTooltip}
+                            onMouseLeave={() => setShowTooltip(false)}
+                            onFocus={handleShowTooltip}
+                            onBlur={() => setShowTooltip(false)}
+                            className="group p-1.5 rounded-md transition-all duration-200 
+                            bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 text-gray-700 dark:text-gray-200 cursor-pointer"
+                            aria-label="Refresh leaderboard"
+                            disabled={isRefreshing}
+                        >
+                            <RefreshCcw
+                                size={16}
+                                className={`transition-all duration-200 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-90'}`}
+                            />
+                        </button>
+
+                        {/* Custom tooltip with safer positioning */}
+                        {showTooltip && (
+                            <div
+                                className="fixed px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap z-50 transform -translate-x-1/2"
+                                style={{
+                                    left: `${tooltipPosition.x}px`,
+                                    top: `${tooltipPosition.y}px`
+                                }}
+                            >
+                                Refresh
+                            </div>
+                        )}
+                    </div>
+                    <button
+                        onClick={navigateToLeaderboard}
+                        className="group px-2.5 py-1 text-sm font-light rounded-md transition-all duration-200 flex items-center 
+                        bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 text-gray-700 dark:text-gray-200 cursor-pointer"
+                        aria-label="See all performers"
+                    >
+                        <span>See All</span>
+                        <ChevronRight size={16} className="ml-1 transition-transform duration-200 group-hover:translate-x-0.5" />
+                    </button>
+                </div>
             </div>
 
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
