@@ -5,15 +5,31 @@ interface CoursePublishSuccessBannerProps {
     onClose: () => void;
     cohortCount: number;
     cohortNames?: string[];
+    courseCount?: number;
+    courseNames?: string[];
+    // Source indicates where the banner was triggered from
+    source?: 'course' | 'cohort';
 }
 
 const CoursePublishSuccessBanner: React.FC<CoursePublishSuccessBannerProps> = ({
     isOpen,
     onClose,
     cohortCount,
-    cohortNames = []
+    cohortNames = [],
+    courseCount = 0,
+    courseNames = [],
+    source = 'course' // Default to course page as the source
 }) => {
     if (!isOpen) return null;
+
+    // Determine message based on source
+    const isCohortSource = source === 'cohort';
+    const title = isCohortSource
+        ? "Courses are now live"
+        : "Your course is now live";
+    const description = isCohortSource
+        ? `Learners in this cohort will now see ${courseCount === 1 ? "this course" : `these courses`} on their home page`
+        : `Learners in ${cohortCount === 1 ? "this cohort" : "these cohorts"} will now see this course on their home page`;
 
     return (
         <div className="fixed inset-0 flex items-center justify-center z-50">
@@ -50,11 +66,11 @@ const CoursePublishSuccessBanner: React.FC<CoursePublishSuccessBannerProps> = ({
                 {/* Right panel - Text */}
                 <div className="w-2/3 bg-white flex flex-col justify-between p-12">
                     <div className="mb-auto">
-                        <h2 className="text-3xl font-light text-black mb-6 animate-slideUp">Your course is now live</h2>
+                        <h2 className="text-3xl font-light text-black mb-6 animate-slideUp">{title}</h2>
 
                         <div className="pl-3 border-l-2 border-gray-200 animate-slideUp" style={{ animationDelay: '0.2s' }}>
                             <p className="text-gray-600 text-sm">
-                                Learners in {cohortCount === 1 ? "this cohort" : "these cohorts"} will now see this course on their home page
+                                {description}
                             </p>
                         </div>
                     </div>
@@ -65,7 +81,7 @@ const CoursePublishSuccessBanner: React.FC<CoursePublishSuccessBannerProps> = ({
                             onClick={onClose}
                             className="w-full py-3 border border-black text-black font-medium rounded-md hover:bg-black hover:text-white transition-colors duration-300 cursor-pointer group"
                         >
-                            Back to Course
+                            {isCohortSource ? "Back to Cohort" : "Back to Course"}
                         </button>
                     </div>
                 </div>

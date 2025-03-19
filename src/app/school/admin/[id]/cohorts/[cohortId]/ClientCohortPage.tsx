@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import Toast from "@/components/Toast";
+import CoursePublishSuccessBanner from "@/components/CoursePublishSuccessBanner";
 
 interface Course {
     id: number;
@@ -301,6 +302,13 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
     const [isCourseUnlinkConfirmOpen, setIsCourseUnlinkConfirmOpen] = useState(false);
     const [courseToUnlink, setCourseToUnlink] = useState<Course | null>(null);
 
+    // Add state for course publish success banner
+    const [showCoursePublishBanner, setShowCoursePublishBanner] = useState(false);
+    const [courseLinkDetails, setCourseLinkDetails] = useState({
+        courseCount: 0,
+        courseNames: [] as string[]
+    });
+
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             const target = event.target as Node;
@@ -558,6 +566,15 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                 prev.filter(c => !tempSelectedCourses.some(tc => tc.id === c.id))
             );
 
+            // Set course link details for success banner
+            setCourseLinkDetails({
+                courseCount: tempSelectedCourses.length,
+                courseNames: tempSelectedCourses.map(course => course.name)
+            });
+
+            // Show success banner
+            setShowCoursePublishBanner(true);
+
             // Clear temporary selection
             setTempSelectedCourses([]);
 
@@ -570,6 +587,11 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
         } finally {
             setIsLoadingCourses(false);
         }
+    };
+
+    // Add a function to close the course publish banner
+    const closeCoursePublishBanner = () => {
+        setShowCoursePublishBanner(false);
     };
 
     useEffect(() => {
@@ -1221,6 +1243,17 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                 description={toastDescription}
                 emoji={toastEmoji}
                 onClose={() => setShowToast(false)}
+            />
+
+            {/* Add CoursePublishSuccessBanner component before the final closing tag */}
+            <CoursePublishSuccessBanner
+                isOpen={showCoursePublishBanner}
+                onClose={closeCoursePublishBanner}
+                cohortCount={1}
+                cohortNames={[cohort?.name || '']}
+                courseCount={courseLinkDetails.courseCount}
+                courseNames={courseLinkDetails.courseNames}
+                source="cohort"
             />
         </>
     );
