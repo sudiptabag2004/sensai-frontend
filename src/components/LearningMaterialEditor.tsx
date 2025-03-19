@@ -81,7 +81,7 @@ const LearningMaterialEditor = forwardRef<LearningMaterialEditorHandle, Learning
     const [isPublishing, setIsPublishing] = useState(false);
     const [publishError, setPublishError] = useState<string | null>(null);
     const [taskData, setTaskData] = useState<TaskData | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [editorContent, setEditorContent] = useState<any[]>([]);
 
     // Reference to the editor instance

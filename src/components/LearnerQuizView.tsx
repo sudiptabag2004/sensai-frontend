@@ -159,11 +159,18 @@ export default function LearnerQuizView({
 
     // Update completedQuestionIds when the prop changes
     useEffect(() => {
-        setCompletedQuestionIds(prev => ({
-            ...prev,
-            ...initialCompletedQuestionIds
-        }));
-    }, [initialCompletedQuestionIds]);
+        // To avoid infinite update loops, only update if there are actual differences
+        const hasChanges = Object.keys(initialCompletedQuestionIds).some(id =>
+            initialCompletedQuestionIds[id] !== completedQuestionIds[id]
+        );
+
+        if (hasChanges) {
+            setCompletedQuestionIds(prev => ({
+                ...prev,
+                ...initialCompletedQuestionIds
+            }));
+        }
+    }, [initialCompletedQuestionIds, completedQuestionIds]);
 
     // State to track which questions are currently being submitted (waiting for API response)
     const [pendingSubmissionQuestionIds, setPendingSubmissionQuestionIds] = useState<Record<string, boolean>>({});
