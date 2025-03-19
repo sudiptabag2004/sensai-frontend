@@ -116,6 +116,7 @@ function InviteModal({
                 onClose();
             } catch (error) {
                 console.error(`Failed to add ${role}s:`, error);
+                // Errors are now handled in the parent component through the rejected Promise
             }
         }
     };
@@ -656,6 +657,23 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
             }, 5000);
         } catch (error) {
             console.error(`Failed to add ${role}s:`, error);
+
+            // Show error toast
+            setToastTitle('Error');
+            // Extract error message from the error object
+            let errorMessage = 'Failed to add members. Please try again.';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            setToastDescription(errorMessage);
+            setToastEmoji('❌');
+            setShowToast(true);
+
+            // Hide toast after 5 seconds
+            setTimeout(() => {
+                setShowToast(false);
+            }, 5000);
+
             throw error;
         } finally {
             setIsSubmitting(false);
@@ -678,7 +696,23 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to add members: ${response.status}`);
+                // Try to extract more detailed error message from response
+                let errorText = 'Failed to add members. Please try again.';
+                try {
+                    const errorData = await response.json();
+                    if (errorData.detail) {
+                        // Use the specific detail message from the API
+                        errorText = errorData.detail;
+                    } else if (errorData.message) {
+                        errorText = errorData.message;
+                    } else if (errorData.error) {
+                        errorText = errorData.error;
+                    }
+                } catch (parseError) {
+                    // If parsing JSON fails, use default error message
+                    console.error('Could not parse error response:', parseError);
+                }
+                throw new Error(errorText);
             }
 
             const cohortResponse = await fetch(`http://localhost:8001/cohorts/${cohortId}`);

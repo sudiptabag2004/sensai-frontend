@@ -1679,11 +1679,11 @@ export default function CreateCourse() {
                                                             {(filteredCohorts.length > 0 || tempSelectedCohorts.length > 0) && (
                                                                 <div className="px-2 pt-4 pb-1">
                                                                     <button
-                                                                        className="w-full bg-[#016037] text-white py-3 rounded-md text-sm hover:bg-[#017045] transition-colors cursor-pointer"
+                                                                        className="w-full bg-[#016037] text-white py-3 rounded-full text-sm hover:bg-[#017045] transition-colors cursor-pointer"
                                                                         onClick={publishCourseToSelectedCohorts}
                                                                         disabled={isLoadingCohorts}
                                                                     >
-                                                                        {isLoadingCohorts ? "Publishing..." : `Publish to cohorts`}
+                                                                        {isLoadingCohorts ? "Publishing..." : `Publish course to cohorts`}
                                                                     </button>
                                                                 </div>
                                                             )}
