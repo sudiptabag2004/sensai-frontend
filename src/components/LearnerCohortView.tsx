@@ -268,7 +268,7 @@ export default function LearnerCohortView({
 
                     {/* Course Content */}
                     <div>
-                        {courseTitle && !courses.length && (
+                        {courseTitle && (
                             <h1 className="text-4xl font-light text-black dark:text-white mb-8">
                                 {courseTitle}
                             </h1>

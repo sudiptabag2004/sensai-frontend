@@ -91,7 +91,7 @@ export default function ClientLeaderboardView({
 
     // Check if a performer is the current user
     const isCurrentUser = (performer: Performer) => {
-        return performer.userId === user?.id;
+        return performer.userId === parseInt(user.id)
     };
 
     // Check if performer should show a medal (top 3 position AND streak > 0)
@@ -156,7 +156,7 @@ export default function ClientLeaderboardView({
                             {performers.map((performer, index) => (
                                 <div
                                     key={index}
-                                    className={`grid grid-cols-12 gap-2 px-4 py-4 items-center ${isCurrentUser(performer) ? 'bg-gray-900/20' : ''}`}
+                                    className={`grid grid-cols-12 gap-2 px-4 py-4 items-center ${isCurrentUser(performer) ? 'bg-blue-900/20' : ''}`}
                                 >
                                     {/* Position Column */}
                                     <div className="col-span-1 flex justify-center">
@@ -186,7 +186,7 @@ export default function ClientLeaderboardView({
                                         <div className="font-medium text-white flex items-center">
                                             {performer.name}
                                             {isCurrentUser(performer) && (
-                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900/30 text-blue-400">
+                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900/30 dark:bg-blue-900/30 text-blue-400 dark:text-blue-400">
                                                     You
                                                 </span>
                                             )}
