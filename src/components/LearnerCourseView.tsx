@@ -546,9 +546,6 @@ export default function LearnerCourseView({
                 // Navigate to the next task in the same module
                 const nextTask = currentModule.items[currentTaskIndex + 1];
                 openTaskItem(activeModuleId, nextTask.id);
-            } else {
-                // This was the last task in the module, close the dialog
-                closeDialog();
             }
         } catch (error) {
             console.error("Error marking task as complete:", error);
