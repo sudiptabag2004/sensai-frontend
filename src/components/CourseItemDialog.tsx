@@ -94,12 +94,17 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
 
     // Toast state
     const [showToast, setShowToast] = useState(false);
+    const [toastTitle, setToastTitle] = useState("Published");
+    const [toastDescription, setToastDescription] = useState("");
 
     // Add state for close confirmation dialog
     const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
 
     // Add a new state variable to track which type of confirmation is being shown
     const [confirmationType, setConfirmationType] = useState<'publish' | 'edit' | 'draft'>('draft');
+
+    // Add state for save confirmation dialog
+    const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
     // State to track if quiz/exam has questions (for publish/preview button visibility)
     const [hasQuizQuestions, setHasQuizQuestions] = useState(false);
@@ -257,11 +262,40 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     };
 
     // Handle showing and hiding toast
-    const displayToast = () => {
+    const displayToast = (title: string, description: string) => {
+        setToastTitle(title);
+        setToastDescription(description);
         setShowToast(true);
         setTimeout(() => {
             setShowToast(false);
         }, 3000); // Auto-hide after 3 seconds
+    };
+
+    // Handle save button click - show confirmation
+    const handleSaveClick = () => {
+        setShowSaveConfirmation(true);
+    };
+
+    // Handle confirmed save action
+    const handleConfirmSave = () => {
+        setShowSaveConfirmation(false);
+
+        // Execute the actual save action based on item type
+        if (activeItem?.type === 'material') {
+            // Use the ref to call save directly
+            learningMaterialEditorRef.current?.save();
+        } else if (activeItem?.type === 'quiz' || activeItem?.type === 'exam') {
+            // Use the ref to call save directly
+            quizEditorRef.current?.save();
+        } else {
+            // For other item types, use the original save function
+            onSaveItem();
+        }
+    };
+
+    // Handle cancel save action
+    const handleCancelSave = () => {
+        setShowSaveConfirmation(false);
     };
 
     return (
@@ -387,18 +421,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                             {activeItem?.status === 'published' && isEditMode ? (
                                 <>
                                     <button
-                                        onClick={() => {
-                                            if (activeItem?.type === 'material') {
-                                                // Use the ref to call save directly
-                                                learningMaterialEditorRef.current?.save();
-                                            } else if (activeItem?.type === 'quiz' || activeItem?.type === 'exam') {
-                                                // Use the ref to call save directly
-                                                quizEditorRef.current?.save();
-                                            } else {
-                                                // For other item types, use the original save function
-                                                onSaveItem();
-                                            }
-                                        }}
+                                        onClick={handleSaveClick}
                                         className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
                                         aria-label="Save changes"
                                     >
@@ -479,7 +502,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                         onPublishConfirm();
 
                                         // Show toast notification
-                                        displayToast();
+                                        displayToast("Published", `Your learning material has been published`);
                                     }
                                     // Hide the publish confirmation dialog
                                     onSetShowPublishConfirmation(false);
@@ -499,6 +522,9 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
 
                                         // Call the parent's save function
                                         onSaveItem();
+
+                                        // Show toast notification for save success
+                                        displayToast("Saved", `Your learning material has been updated`);
                                     }
                                 }}
                             />
@@ -542,6 +568,9 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
 
                                         // Call onSaveItem to exit edit mode
                                         onSaveItem();
+
+                                        // Show toast notification for save success
+                                        displayToast("Saved", `Your ${activeItem.type} has been updated`);
                                     }
                                 }}
                                 onPublishSuccess={(updatedData) => {
@@ -565,7 +594,8 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                         onPublishConfirm();
 
                                         // Show toast notification
-                                        displayToast();
+                                        const itemTypeName = activeItem.type === 'quiz' ? 'quiz' : 'exam';
+                                        displayToast("Published", `Your ${itemTypeName} has been published`);
 
                                         // Log the updated state for debugging
                                         console.log("Quiz published successfully, updated activeItem:", activeItem);
@@ -596,11 +626,23 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                 type="delete"
             />
 
+            {/* Save confirmation dialog */}
+            <ConfirmationDialog
+                open={showSaveConfirmation}
+                title="Ready to save changes"
+                message="These changes will be reflected to learners immediately after saving. Are you sure you want to proceed?"
+                confirmButtonText="Save"
+                cancelButtonText="Continue Editing"
+                onConfirm={handleConfirmSave}
+                onCancel={handleCancelSave}
+                type="publish"
+            />
+
             {/* Toast notification */}
             <Toast
                 show={showToast}
-                title="Published"
-                description={`Your ${activeItem?.type === 'material' ? 'learning material' : activeItem?.type === 'quiz' ? 'quiz' : 'exam'} has been published`}
+                title={toastTitle}
+                description={toastDescription}
                 emoji="🚀"
                 onClose={() => setShowToast(false)}
             />
