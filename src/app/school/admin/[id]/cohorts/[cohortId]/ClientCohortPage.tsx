@@ -625,8 +625,35 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
                 members: prev.members.filter(member => member.id !== memberToDelete.id)
             } : null);
 
+            // Show success toast
+            setToastTitle('Scaling it down');
+            setToastDescription(`Removed ${memberToDelete.email} from the cohort`);
+            setToastEmoji(memberToDelete.role === 'learner' ? '👋' : '👨‍🏫');
+            setShowToast(true);
+
+            // Hide toast after 5 seconds
+            setTimeout(() => {
+                setShowToast(false);
+            }, 5000);
+
         } catch (error) {
             console.error('Error deleting member:', error);
+
+            // Show error toast
+            setToastTitle('Error');
+            let errorMessage = 'Failed to remove member. Please try again.';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            setToastDescription(errorMessage);
+            setToastEmoji('❌');
+            setShowToast(true);
+
+            // Hide toast after 5 seconds
+            setTimeout(() => {
+                setShowToast(false);
+            }, 5000);
+
             throw error;
         } finally {
             setIsDeleteConfirmOpen(false);
@@ -639,7 +666,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
         try {
             await addMembers(emails, emails.map(() => role));
 
-            setToastTitle('Success');
+            setToastTitle('Bumping it up');
 
             // Show success toast based on role
             if (role === 'learner') {
