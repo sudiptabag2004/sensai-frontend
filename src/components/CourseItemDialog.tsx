@@ -443,41 +443,20 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                 </button>
                             )}
 
-                            {/* Publish button for quizzes */}
-                            {activeItem?.status === 'draft' && hasQuizQuestions && activeItem?.type === 'quiz' && (
-                                <button
-                                    onClick={() => onSetShowPublishConfirmation(true)}
-                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
-                                    aria-label="Publish quiz"
-                                >
-                                    <Sparkles size={16} className="mr-2" />
-                                    Publish
-                                </button>
-                            )}
-
-                            {/* Publish button for exams */}
-                            {activeItem?.status === 'draft' && hasQuizQuestions && activeItem?.type === 'exam' && (
-                                <button
-                                    onClick={() => onSetShowPublishConfirmation(true)}
-                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
-                                    aria-label="Publish exam"
-                                >
-                                    <Sparkles size={16} className="mr-2" />
-                                    Publish
-                                </button>
-                            )}
-
-                            {/* Publish button for learning materials */}
-                            {activeItem?.status === 'draft' && activeItem?.type === 'material' && (
-                                <button
-                                    onClick={() => onSetShowPublishConfirmation(true)}
-                                    className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
-                                    aria-label="Publish item"
-                                >
-                                    <Sparkles size={16} className="mr-2" />
-                                    Publish
-                                </button>
-                            )}
+                            {/* Publish button for all item types */}
+                            {activeItem?.status === 'draft' &&
+                                ((activeItem?.type === 'quiz' && hasQuizQuestions) ||
+                                    (activeItem?.type === 'exam' && hasQuizQuestions) ||
+                                    activeItem?.type === 'material') && (
+                                    <button
+                                        onClick={() => onSetShowPublishConfirmation(true)}
+                                        className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-green-500 hover:bg-[#222222] focus:border-green-500 active:border-green-500 rounded-full transition-colors cursor-pointer"
+                                        aria-label={`Publish ${activeItem?.type}`}
+                                    >
+                                        <Sparkles size={16} className="mr-2" />
+                                        Publish
+                                    </button>
+                                )}
 
                             {activeItem?.status === 'published' && isEditMode ? (
                                 <>

@@ -659,6 +659,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     const handleCancel = () => {
         if (originalQuestionsRef.current.length === 0) return;
 
+        console.log('Original questions:', originalQuestionsRef.current);
         // Restore the original questions
         setQuestions(JSON.parse(JSON.stringify(originalQuestionsRef.current)));
 
