@@ -117,6 +117,9 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     // Add state for close confirmation dialog
     const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
 
+    // Add a new state variable to track which type of confirmation is being shown
+    const [confirmationType, setConfirmationType] = useState<'publish' | 'edit' | 'draft'>('draft');
+
     // Reset quiz preview mode when dialog is closed
     useEffect(() => {
         if (!isOpen) {
@@ -228,7 +231,16 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
 
     // Function to handle closing the dialog
     const handleCloseRequest = () => {
-        // Skip confirmation for draft items with no content and unchanged title
+        // Case 1: Published learning material in edit mode 
+        if (activeItem?.status === 'published' && isEditMode) {
+            // For X button and backdrop click, we want to close the entire dialog after confirmation
+            // Use a different confirmation type to differentiate from the Cancel button
+            setConfirmationType('draft'); // Use 'draft' type since it already closes the dialog
+            setShowCloseConfirmation(true);
+            return;
+        }
+
+        // Case 2: Draft items (check for content)
         if (activeItem?.status === 'draft') {
             // Check if the editor/quiz has any content using the appropriate ref
             const hasContent = activeItem.type === 'material'
@@ -254,28 +266,50 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                 onClose();
                 return;
             }
+
+            // Set confirmation type for draft items
+            setConfirmationType('draft');
+            setShowCloseConfirmation(true);
+            return;
         }
 
-        // For other cases (items with content or changed titles)
-        // If the item is a draft, show confirmation dialog
-        if (activeItem?.status === 'draft') {
-            setShowCloseConfirmation(true);
-        } else {
-            // If it's a published item, just close
-            if (showPublishConfirmation) {
-                onSetShowPublishConfirmation(false);
-            }
-            onClose();
+        // Case 3: Published items not in edit mode - just close
+        if (showPublishConfirmation) {
+            onSetShowPublishConfirmation(false);
         }
+        onClose();
+    };
+
+    // Add a handler for the Cancel button in published items' edit mode
+    const handleCancelEditClick = () => {
+        // Show confirmation for published items in edit mode
+        setConfirmationType('edit');
+        setShowCloseConfirmation(true);
     };
 
     // Handle confirmed close action
     const handleConfirmClose = () => {
         setShowCloseConfirmation(false);
-        if (showPublishConfirmation) {
-            onSetShowPublishConfirmation(false);
+
+        if (confirmationType === 'edit') {
+            // For published items in edit mode, just exit edit mode without closing the dialog
+            if (activeItem?.type === 'material') {
+                // Use the ref to call cancel directly to revert any changes
+                learningMaterialEditorRef.current?.cancel();
+            } else if (activeItem?.type === 'quiz' || activeItem?.type === 'exam') {
+                // Use the ref to call cancel directly to revert any changes
+                quizEditorRef.current?.cancel();
+            }
+
+            // Exit edit mode but keep the dialog open
+            onCancelEditMode();
+        } else {
+            // For other confirmation types (draft items or X button click), close the entire dialog
+            if (showPublishConfirmation) {
+                onSetShowPublishConfirmation(false);
+            }
+            onClose();
         }
-        onClose();
     };
 
     // Handle cancel close action
@@ -467,17 +501,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                         Save
                                     </button>
                                     <button
-                                        onClick={() => {
-                                            if (activeItem?.type === 'material') {
-                                                // Use the ref to call cancel directly
-                                                learningMaterialEditorRef.current?.cancel();
-                                            } else if (activeItem?.type === 'quiz' || activeItem?.type === 'exam') {
-                                                // Use the ref to call cancel directly
-                                                quizEditorRef.current?.cancel();
-                                            }
-                                            // Always call the parent's cancel function
-                                            onCancelEditMode();
-                                        }}
+                                        onClick={handleCancelEditClick}
                                         className="flex items-center px-4 py-2 text-sm text-white bg-transparent border !border-gray-500 hover:bg-[#222222] focus:border-gray-500 active:border-gray-500 rounded-full transition-colors cursor-pointer"
                                         aria-label="Cancel editing"
                                     >
@@ -662,10 +686,14 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
             {/* Close confirmation dialog */}
             <ConfirmationDialog
                 open={showCloseConfirmation}
-                title="Unsaved Changes"
-                message="If you do not publish, all your progress will be lost. Are you sure you want to leave?"
-                confirmButtonText="Discard Changes"
-                cancelButtonText="Continue Editing"
+                title={confirmationType === 'edit' ? "Unsaved Changes" : "Unsaved Changes"}
+                message={
+                    confirmationType === 'edit'
+                        ? "All your unsaved changes will be lost if you leave without saving. Are you sure you want to leave?"
+                        : "If you do not publish, all your progress will be lost. Are you sure you want to leave?"
+                }
+                confirmButtonText={confirmationType === 'edit' ? "Discard Changes" : "Discard Changes"}
+                cancelButtonText={confirmationType === 'edit' ? "Continue Editing" : "Continue Editing"}
                 onConfirm={handleConfirmClose}
                 onCancel={handleCancelClose}
                 type="delete"
