@@ -108,7 +108,7 @@ export default function Home() {
     if (hasSchool && schoolId) {
       try {
         // Make API request to create course
-        const response = await fetch('http://localhost:8001/courses', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

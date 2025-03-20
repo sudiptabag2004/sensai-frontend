@@ -75,7 +75,7 @@ export async function registerUserWithBackend(credentials: AuthCredentials): Pro
   try {
     const { user, account } = credentials;
     
-    const response = await fetch('http://localhost:8001/auth/login', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

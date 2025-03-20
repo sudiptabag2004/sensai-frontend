@@ -118,7 +118,7 @@ export default function CreateSchool() {
             });
 
             // Create the school via API
-            const response = await fetch('http://localhost:8001/organizations', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/organizations`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

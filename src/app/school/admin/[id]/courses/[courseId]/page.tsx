@@ -164,7 +164,7 @@ export default function CreateCourse() {
         const fetchCourseDetails = async () => {
             try {
                 setIsLoading(true);
-                const response = await fetch(`http://localhost:8001/courses/${courseId}`);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/${courseId}`);
 
                 if (!response.ok) {
                     throw new Error(`Failed to fetch course details: ${response.status}`);
@@ -367,7 +367,7 @@ export default function CreateCourse() {
 
         try {
             // Make POST request to create a new milestone (module)
-            const response = await fetch(`http://localhost:8001/courses/${courseId}/milestones`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/${courseId}/milestones`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -496,7 +496,7 @@ export default function CreateCourse() {
     const addLearningMaterial = async (moduleId: string) => {
         try {
             // Make API request to create a new learning material
-            const response = await fetch(`http://localhost:8001/tasks`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -550,7 +550,7 @@ export default function CreateCourse() {
     const addQuiz = async (moduleId: string) => {
         try {
             // Make API request to create a new quiz
-            const response = await fetch(`http://localhost:8001/tasks`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -608,7 +608,7 @@ export default function CreateCourse() {
     const addExam = async (moduleId: string) => {
         try {
             // Make API request to create a new exam
-            const response = await fetch(`http://localhost:8001/tasks`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -881,7 +881,7 @@ export default function CreateCourse() {
         const newTitle = e.currentTarget.textContent || "";
 
         // Update the title in the API - only for quizzes and exams
-        fetch(`http://localhost:8001/tasks/${activeItem.id}`, {
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/${activeItem.id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -1047,7 +1047,7 @@ export default function CreateCourse() {
 
             try {
                 // Make API call to update the milestone on the server
-                const response = await fetch(`http://localhost:8001/milestones/${moduleId}`, {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/milestones/${moduleId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1138,7 +1138,7 @@ export default function CreateCourse() {
             const newTitle = titleRef.current.textContent || "";
 
             // Make a PUT request to update the course name
-            fetch(`http://localhost:8001/courses/${courseId}`, {
+            fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/${courseId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1321,7 +1321,7 @@ export default function CreateCourse() {
             setCohortError(null);
 
             // First, fetch cohorts that are already assigned to this course
-            const courseCohortResponse = await fetch(`http://localhost:8001/courses/${courseId}/cohorts`);
+            const courseCohortResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/${courseId}/cohorts`);
             let assignedCohortIds: number[] = [];
 
             if (courseCohortResponse.ok) {
@@ -1331,7 +1331,7 @@ export default function CreateCourse() {
             }
 
             // Then, fetch all cohorts for the organization
-            const response = await fetch(`http://localhost:8001/cohorts/?org_id=${schoolId}`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts/?org_id=${schoolId}`);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch cohorts: ${response.status}`);
@@ -1411,7 +1411,7 @@ export default function CreateCourse() {
             const cohortNames = tempSelectedCohorts.map(cohort => cohort.name);
 
             // Make a single API call with all cohort IDs
-            const response = await fetch(`http://localhost:8001/courses/${courseId}/cohorts`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/${courseId}/cohorts`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1453,7 +1453,7 @@ export default function CreateCourse() {
     const fetchCourseCohorts = async () => {
         try {
             setIsLoadingCourseCohorts(true);
-            const response = await fetch(`http://localhost:8001/courses/${courseId}/cohorts`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/${courseId}/cohorts`);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch course cohorts: ${response.status}`);
@@ -1478,7 +1478,7 @@ export default function CreateCourse() {
     // Modify the existing removeCohortFromCourse function to handle the actual removal
     const removeCohortFromCourse = async (cohortId: number) => {
         try {
-            const response = await fetch(`http://localhost:8001/courses/${courseId}/cohorts`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/${courseId}/cohorts`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

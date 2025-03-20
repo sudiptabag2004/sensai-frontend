@@ -245,7 +245,7 @@ export default function CourseModuleList({
             setDeletingTaskId(itemId);
 
             // Make the API call to delete the task
-            const response = await fetch(`http://localhost:8001/tasks/${itemId}`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/${itemId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -289,7 +289,7 @@ export default function CourseModuleList({
                 setDeletingModuleId(moduleToDelete);
 
                 // Make the API call to delete the module (milestone)
-                const response = await fetch(`http://localhost:8001/milestones/${moduleToDelete}`, {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/milestones/${moduleToDelete}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',

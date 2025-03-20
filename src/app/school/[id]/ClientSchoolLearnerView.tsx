@@ -76,7 +76,7 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
             setLoading(true);
             try {
                 // Fetch basic school info using slug
-                const schoolResponse = await fetch(`http://localhost:8001/organizations/slug/${slug}`);
+                const schoolResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/organizations/slug/${slug}`);
                 if (!schoolResponse.ok) {
                     throw new Error(`API error: ${schoolResponse.status}`);
                 }
@@ -92,7 +92,7 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
                 setSchool(transformedSchool);
 
                 // After getting school data, fetch user's cohorts for this school
-                const cohortsResponse = await fetch(`http://localhost:8001/users/${user.id}/org/${transformedSchool.id}/cohorts`);
+                const cohortsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${user.id}/org/${transformedSchool.id}/cohorts`);
                 if (!cohortsResponse.ok) {
                     throw new Error(`API error: ${cohortsResponse.status}`);
                 }
@@ -132,7 +132,7 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
         setCourseError(null);
 
         try {
-            const response = await fetch(`http://localhost:8001/cohorts/${cohortId}/courses?include_tree=true`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts/${cohortId}/courses?include_tree=true`);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch courses: ${response.status}`);
@@ -164,7 +164,7 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
         if (!cohortId || !userId) return;
 
         try {
-            const response = await fetch(`http://localhost:8001/cohorts/${cohortId}/completion?user_id=${userId}`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts/${cohortId}/completion?user_id=${userId}`);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch completion data: ${response.status}`);
@@ -212,7 +212,7 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
         setLoadingLeaderboard(true);
 
         try {
-            const response = await fetch(`http://localhost:8001/cohorts/${cohortId}/leaderboard`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts/${cohortId}/leaderboard`);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch leaderboard data: ${response.status}`);

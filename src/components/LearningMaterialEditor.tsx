@@ -138,7 +138,7 @@ const LearningMaterialEditor = forwardRef<LearningMaterialEditorHandle, Learning
             const controller = new AbortController();
 
             console.log("Fetching task data for taskId:", taskId);
-            fetch(`http://localhost:8001/tasks/${taskId}`, {
+            fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/${taskId}`, {
                 signal: controller.signal
             })
                 .then(response => {
@@ -221,7 +221,7 @@ const LearningMaterialEditor = forwardRef<LearningMaterialEditorHandle, Learning
             const currentContent = editorContent.length > 0 ? editorContent : (taskData?.blocks || []);
 
             // Make POST request to publish the learning material content
-            const response = await fetch(`http://localhost:8001/tasks/${taskId}/learning_material`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/${taskId}/learning_material`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -298,7 +298,7 @@ const LearningMaterialEditor = forwardRef<LearningMaterialEditorHandle, Learning
             const currentContent = editorContent.length > 0 ? editorContent : (taskData?.blocks || []);
 
             // Make POST request to update the learning material content, keeping the same status
-            const response = await fetch(`http://localhost:8001/tasks/${taskId}/learning_material`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/${taskId}/learning_material`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

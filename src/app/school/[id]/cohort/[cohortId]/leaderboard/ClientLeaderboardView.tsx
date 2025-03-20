@@ -32,7 +32,7 @@ export default function ClientLeaderboardView({
             setLoading(true);
 
             try {
-                const response = await fetch(`http://localhost:8001/cohorts/${cohortId}/leaderboard`);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts/${cohortId}/leaderboard`);
 
                 if (!response.ok) {
                     throw new Error(`Failed to fetch leaderboard data: ${response.status}`);

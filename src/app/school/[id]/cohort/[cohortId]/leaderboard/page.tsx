@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 async function getCohortName(cohortId: string) {
     try {
         // Replace with your actual API endpoint
-        const res = await fetch(`http://localhost:8001/cohorts/${cohortId}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts/${cohortId}`, {
             headers: {
                 Cookie: cookies().toString()
             }

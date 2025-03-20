@@ -244,7 +244,7 @@ export default function LearnerQuizView({
 
             try {
                 // Make API call to fetch chat history using the provided taskId
-                const response = await fetch(`http://localhost:8001/chat/user/${userId}/task/${taskId}`);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/user/${userId}/task/${taskId}`);
 
                 if (!response.ok) {
                     throw new Error(`Failed to fetch chat history: ${response.status}`);
@@ -419,7 +419,7 @@ export default function LearnerQuizView({
         };
 
         try {
-            const response = await fetch('http://localhost:8001/chat/', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -567,7 +567,7 @@ export default function LearnerQuizView({
         let receivedAnyFeedback = false;
 
         // Call the API with the appropriate request body for streaming response
-        fetch(`http://localhost:8001/ai/chat`, {
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/ai/chat`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

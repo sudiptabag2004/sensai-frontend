@@ -28,7 +28,7 @@ export async function registerUserWithBackend(
   try {
     console.log("Sending auth request to backend with user:", user.email);
     
-    const response = await fetch('http://localhost:8001/auth/login', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

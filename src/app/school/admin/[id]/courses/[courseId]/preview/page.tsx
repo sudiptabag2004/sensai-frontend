@@ -29,9 +29,7 @@ export async function generateMetadata(
     { params }: { params: { id: string, courseId: string } }
 ): Promise<Metadata> {
     try {
-        // Use API_URL with fallback to localhost:8001
-        const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-        const courseResponse = await fetch(`${apiUrl}/courses/${params.courseId}`, {
+        const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/${params.courseId}`, {
             cache: 'no-store'
         });
 
@@ -61,11 +59,8 @@ export default async function PreviewPage({ params }: { params: { id: string, co
     const courseId = params.courseId;
 
     try {
-        // Use API_URL with fallback to localhost:8001 as used in the original client code
-        const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-
         // Make a single API call to get all course data
-        const response = await fetch(`${apiUrl}/courses/${courseId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/${courseId}`, {
             cache: 'no-store'
         });
 

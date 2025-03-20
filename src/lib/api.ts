@@ -53,7 +53,7 @@ export function useCourses() {
     setIsLoading(true);
     
     // Simple fetch without caching
-    fetch(`http://localhost:8001/users/${user.id}/courses`)
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${user.id}/courses`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`Request failed: ${response.status}`);
@@ -111,7 +111,7 @@ export function useSchools() {
     setIsLoading(true);
     
     // Simple fetch without caching
-    fetch(`http://localhost:8001/users/${user.id}/orgs`)
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${user.id}/orgs`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`Request failed: ${response.status}`);

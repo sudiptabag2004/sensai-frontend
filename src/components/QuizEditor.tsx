@@ -161,7 +161,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 setIsLoadingQuestions(true);
 
                 try {
-                    const response = await fetch(`http://localhost:8001/tasks/${taskId}`);
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/${taskId}`);
                     if (!response.ok) {
                         throw new Error('Failed to fetch task details');
                     }
@@ -589,7 +589,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             console.log("Formatted questions:", formattedQuestions);
 
             // Make POST request to publish the quiz
-            const response = await fetch(`http://localhost:8001/tasks/${taskId}/quiz`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/${taskId}/quiz`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -681,7 +681,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             });
 
             // Make PUT request to update the quiz content, keeping the same status
-            const response = await fetch(`http://localhost:8001/tasks/${taskId}/quiz`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/${taskId}/quiz`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

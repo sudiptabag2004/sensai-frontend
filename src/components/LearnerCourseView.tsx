@@ -187,7 +187,7 @@ export default function LearnerCourseView({
             if (!item) return;
 
             // Fetch item details from API
-            const response = await fetch(`http://localhost:8001/tasks/${itemId}`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/${itemId}`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch task: ${response.status}`);
             }
@@ -494,7 +494,7 @@ export default function LearnerCourseView({
             // This is similar to the chat message storage in LearnerQuizView
             // but we only send a user message, not an AI response
             try {
-                const response = await fetch(`http://localhost:8001/tasks/${activeItem.id}/complete`, {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/${activeItem.id}/complete`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

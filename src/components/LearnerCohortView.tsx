@@ -127,7 +127,7 @@ export default function LearnerCohortView({
         setIsLoadingStreak(true);
 
         try {
-            const response = await fetch(`http://localhost:8001/users/${userId}/streak?cohort_id=${cohortId}`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${userId}/streak?cohort_id=${cohortId}`);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch streak data: ${response.status}`);

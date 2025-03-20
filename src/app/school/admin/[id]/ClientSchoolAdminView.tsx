@@ -81,28 +81,28 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
             setLoading(true);
             try {
                 // Fetch basic school info
-                const schoolResponse = await fetch(`http://localhost:8001/organizations/${id}`);
+                const schoolResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/organizations/${id}`);
                 if (!schoolResponse.ok) {
                     throw new Error(`API error: ${schoolResponse.status}`);
                 }
                 const schoolData = await schoolResponse.json();
 
                 // Fetch members separately
-                const membersResponse = await fetch(`http://localhost:8001/organizations/${id}/members`);
+                const membersResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/organizations/${id}/members`);
                 if (!membersResponse.ok) {
                     throw new Error(`API error: ${membersResponse.status}`);
                 }
                 const membersData = await membersResponse.json();
 
                 // Fetch cohorts separately
-                const cohortsResponse = await fetch(`http://localhost:8001/cohorts/?org_id=${id}`);
+                const cohortsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts/?org_id=${id}`);
                 if (!cohortsResponse.ok) {
                     throw new Error(`API error: ${cohortsResponse.status}`);
                 }
                 const cohortsData = await cohortsResponse.json();
 
                 // Fetch courses separately
-                const coursesResponse = await fetch(`http://localhost:8001/courses?org_id=${id}`);
+                const coursesResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses?org_id=${id}`);
                 if (!coursesResponse.ok) {
                     throw new Error(`API error: ${coursesResponse.status}`);
                 }
@@ -194,7 +194,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
     const handleInviteMembers = async (emails: string[]) => {
         try {
             // Make API call to invite members
-            const response = await fetch(`http://localhost:8001/organizations/${id}/members`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/organizations/${id}/members`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -207,7 +207,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
             }
 
             // Refresh school data to get updated members list
-            const membersResponse = await fetch(`http://localhost:8001/organizations/${id}/members`);
+            const membersResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/organizations/${id}/members`);
             if (!membersResponse.ok) {
                 throw new Error('Failed to fetch updated members');
             }
@@ -251,7 +251,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
 
         try {
             // Make API call to delete member
-            const response = await fetch(`http://localhost:8001/organizations/${id}/members`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/organizations/${id}/members`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -266,7 +266,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
             }
 
             // Refresh school data to get updated members list
-            const membersResponse = await fetch(`http://localhost:8001/organizations/${id}/members`);
+            const membersResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/organizations/${id}/members`);
             if (!membersResponse.ok) {
                 throw new Error('Failed to fetch updated members');
             }
@@ -305,7 +305,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
             console.log("Creating cohort with name:", name, "for organization:", id);
 
             // Make API call to create cohort
-            const response = await fetch(`http://localhost:8001/cohorts`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -357,7 +357,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
     const handleCreateCourse = async (name: string) => {
         try {
             // Make API request to create course
-            const response = await fetch('http://localhost:8001/courses', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
