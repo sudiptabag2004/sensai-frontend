@@ -1,0 +1,33 @@
+services:
+  frontend:
+    image: dalmiamanhv/sensai-frontend:dev
+    container_name: frontend-dev
+    ports:
+      - "8502:3000" # Standard Next.js dev port
+    depends_on:
+      - backend
+    # restart: unless-stopped
+    networks:
+      - sensai-network-dev
+
+  backend:
+    image: dalmiamanhv/sensai-ai:v2-dev
+    container_name: backend-dev
+    working_dir: /src
+    command: bash -c "python /src/startup.py && uvicorn api.main:app --host 0.0.0.0 --port 8001"
+    volumes:
+      - /appdata_dev:/appdata
+    ports:
+      - "8002:8001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - sensai-network-dev
+
+networks:
+  sensai-network-dev:
+    driver: bridge

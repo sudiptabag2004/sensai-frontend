@@ -68,37 +68,3 @@ interface AuthCredentials {
   };
 }
 
-/**
- * Send user authentication data to the backend after successful Google login
- */
-export async function registerUserWithBackend(credentials: AuthCredentials): Promise<any> {
-  try {
-    const { user, account } = credentials;
-    
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: user.email,
-        given_name: user.given_name || user.name?.split(' ')[0] || '',
-        family_name: user.family_name || user.name?.split(' ').slice(1).join(' ') || '',
-        id_token: account.id_token
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend auth failed: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Backend authentication error:', error);
-    // Don't throw error to prevent blocking the auth flow
-    // Just log it and continue
-    return null;
-  }
-}
-
-// ... rest of the file stays the same 
