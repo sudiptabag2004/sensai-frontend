@@ -34,6 +34,7 @@ export interface QuizQuestionConfig {
     correctAnswerBlocks?: any[];
     codeLanguage?: string; // For code input type
     audioMaxDuration?: number; // For audio input type in seconds
+    questionType?: 'default' | 'open-ended' | 'coding'; // Add questionType property
 }
 
 export interface QuizQuestion {
@@ -78,7 +79,8 @@ interface APIQuestionResponse {
 const defaultQuestionConfig: QuizQuestionConfig = {
     inputType: 'text',
     responseStyle: 'coach',
-    evaluationCriteria: []
+    evaluationCriteria: [],
+    questionType: 'default'
 };
 
 // Helper function to extract text from all blocks in a BlockNote document
@@ -172,17 +174,24 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
                     // Update the questions with the fetched data
                     if (data && data.questions && data.questions.length > 0) {
-                        const updatedQuestions = data.questions.map((question: APIQuestionResponse) => ({
-                            id: String(question.id),
-                            content: question.blocks || [],
-                            config: {
-                                inputType: question.input_type || 'text',
-                                responseStyle: question.response_type === 'chat' ? 'coach' : 'evaluator',
-                                evaluationCriteria: [],
-                                correctAnswer: question.answer || '',
-                                correctAnswerBlocks: question.blocks || []
-                            }
-                        }));
+                        const updatedQuestions = data.questions.map((question: APIQuestionResponse) => {
+                            // Map API question type to local questionType
+                            const questionType = question.type === 'coding' ? 'coding'
+                                : question.type === 'open-ended' ? 'open-ended' : 'default';
+
+                            return {
+                                id: String(question.id),
+                                content: question.blocks || [],
+                                config: {
+                                    inputType: question.input_type || 'text' as 'text' | 'code' | 'audio',
+                                    responseStyle: question.response_type === 'chat' ? 'coach' : 'evaluator',
+                                    evaluationCriteria: [],
+                                    correctAnswer: question.answer || '',
+                                    correctAnswerBlocks: question.blocks || [],
+                                    questionType: questionType as 'default' | 'open-ended' | 'coding'
+                                }
+                            };
+                        });
 
                         // Update questions state
                         setQuestions(updatedQuestions);
@@ -402,10 +411,14 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
     // Add a new question
     const addQuestion = useCallback(() => {
-        const newQuestion = {
+        const newQuestion: QuizQuestion = {
             id: `question-${Date.now()}`,
             content: [],
-            config: { ...defaultQuestionConfig }
+            config: {
+                ...defaultQuestionConfig,
+                questionType: 'default',
+                inputType: 'text' as 'text'
+            }
         };
 
         const updatedQuestions = [...questions, newQuestion];
@@ -574,14 +587,19 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
                 console.log(`Question ${question.id} - Correct answer: "${correctAnswerText}"`);
 
+                // Map questionType to API type
+                const questionType = question.config.questionType || 'default';
+                // Map inputType
+                const inputType = question.config.inputType || 'text';
+
                 return {
                     blocks: question.content,
                     answer: correctAnswerText,
-                    input_type: "text",
+                    input_type: inputType,
                     response_type: "chat",
                     coding_languages: null,
                     generation_model: null,
-                    type: "objective",
+                    type: questionType === 'coding' ? 'coding' : questionType === 'open-ended' ? 'open-ended' : 'objective',
                     max_attempts: taskType === 'exam' ? 1 : null,
                     is_feedback_shown: taskType === 'exam' ? false : true
                 };
@@ -675,10 +693,15 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                     correctAnswerText = extractTextFromBlocks(question.config.correctAnswerBlocks);
                 }
 
+                // Map questionType to API type
+                const questionType = question.config.questionType || 'default';
+
                 return {
                     id: question.id,
                     blocks: question.content,
                     answer: correctAnswerText,
+                    type: questionType === 'coding' ? 'coding' : questionType === 'open-ended' ? 'open-ended' : 'objective',
+                    input_type: question.config.inputType || 'text'
                 };
             });
 
@@ -781,12 +804,12 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             "color": "#3C6E47",
             "tooltip": "Questions without any fixed correct answer"
         },
-        {
-            "label": "Coding",
-            "value": "coding",
-            "color": "#614A82",
-            "tooltip": "Questions where learners need to submit code"
-        }
+        // {
+        //     "label": "Coding",
+        //     "value": "coding",
+        //     "color": "#614A82",
+        //     "tooltip": "Questions where learners need to submit code"
+        // }
     ];
     const answerTypeOptions = [
         {
@@ -801,9 +824,54 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         }
     ];
 
+    // Get dropdown option objects based on config values
+    const getQuestionTypeOption = useCallback((type: string = 'default') => {
+        return questionTypeOptions.find(option => option.value === type) || questionTypeOptions[0];
+    }, []);
+
+    const getAnswerTypeOption = useCallback((type: string = 'text') => {
+        return answerTypeOptions.find(option => option.value === type) || answerTypeOptions[0];
+    }, []);
+
+    // Update the selected options based on the current question's config
+    useEffect(() => {
+        if (questions.length > 0 && currentQuestionIndex >= 0 && currentQuestionIndex < questions.length) {
+            const currentConfig = questions[currentQuestionIndex].config;
+
+            // Set question type based on config or default to 'default'
+            setSelectedQuestionType(getQuestionTypeOption(currentConfig.questionType || 'default'));
+
+            // Set answer type based on config.inputType or default to 'text'
+            setSelectedAnswerType(getAnswerTypeOption(currentConfig.inputType));
+        }
+    }, [currentQuestionIndex, questions, getQuestionTypeOption, getAnswerTypeOption]);
+
+    // Handle question type change
+    const handleQuestionTypeChange = useCallback((option: DropdownOption) => {
+        setSelectedQuestionType(option);
+
+        // Update the question config with the new question type
+        handleConfigChange({
+            questionType: option.value as 'default' | 'open-ended' | 'coding'
+        });
+    }, [handleConfigChange]);
+
+    // Handle answer type change
+    const handleAnswerTypeChange = useCallback((option: DropdownOption) => {
+        setSelectedAnswerType(option);
+
+        // Update the question config with the new input type
+        handleConfigChange({
+            inputType: option.value as 'text' | 'code' | 'audio'
+        });
+    }, [handleConfigChange]);
+
     // State for type dropdown
     const [selectedQuestionType, setSelectedQuestionType] = useState<DropdownOption>(questionTypeOptions[0]);
     const [selectedAnswerType, setSelectedAnswerType] = useState<DropdownOption>(answerTypeOptions[0]);
+
+    // State for tracking active tab (question or answer)
+    const [activeEditorTab, setActiveEditorTab] = useState<'question' | 'answer'>('question');
 
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
@@ -951,7 +1019,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                             title="Question Type"
                                             options={questionTypeOptions}
                                             selectedOption={selectedQuestionType}
-                                            onChange={setSelectedQuestionType}
+                                            onChange={handleQuestionTypeChange}
                                         />
                                     </div>
 
@@ -963,89 +1031,59 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                 title="Answer Type"
                                                 options={answerTypeOptions}
                                                 selectedOption={selectedAnswerType}
-                                                onChange={setSelectedAnswerType}
+                                                onChange={handleAnswerTypeChange}
                                             />
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="w-full flex">
-                                    {/* Question Editor - 80% width */}
-                                    <div className="w-3/5 pr-4">
-                                        {/* <div className="flex flex-col ml-12 mb-2">
-                                            <div className="mb-2 flex items-center">
-                                                <HelpCircle size={16} className="text-blue-500 mr-2" />
-                                                <h3 className="text-white text-sm font-light">Question</h3>
-                                            </div>
-                                            {status !== 'published' && (
-                                                <p className="text-gray-400 text-xs">
-                                                    The content of the question with all the details that a learner needs to answer it
-                                                </p>
-                                            )}
-                                        </div> */}
-                                        <div className="editor-container h-full">
-                                            <BlockNoteEditor
-                                                key={`quiz-editor-question-${currentQuestionIndex}`}
-                                                initialContent={currentQuestionContent}
-                                                onChange={handleQuestionContentChange}
-                                                isDarkMode={isDarkMode}
-                                                readOnly={readOnly}
-                                                onEditorReady={setEditorInstance}
-                                                className="quiz-editor"
-                                            />
-                                        </div>
+                                {/* Segmented control for editor tabs */}
+                                <div className="flex justify-center mb-4">
+                                    <div className="inline-flex bg-[#222222] rounded-lg p-1">
+                                        <button
+                                            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${activeEditorTab === 'question'
+                                                ? 'bg-[#333333] text-white'
+                                                : 'text-gray-400 hover:text-white'
+                                                }`}
+                                            onClick={() => setActiveEditorTab('question')}
+                                        >
+                                            <HelpCircle size={16} className="mr-2" />
+                                            Question
+                                        </button>
+                                        <button
+                                            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${activeEditorTab === 'answer'
+                                                ? 'bg-[#333333] text-white'
+                                                : 'text-gray-400 hover:text-white'
+                                                }`}
+                                            onClick={() => setActiveEditorTab('answer')}
+                                        >
+                                            <Check size={16} className="mr-2" />
+                                            Correct Answer
+                                        </button>
                                     </div>
+                                </div>
 
-                                    {/* Correct Answer Section - 20% width */}
-                                    {/* <div className="w-2/5 pl-4 border-l border-[#3A3A3A]">
-                                        <div className="h-full flex flex-col">
-                                            <div className="mb-2 flex items-center">
-                                                <Check size={16} className="text-green-500 mr-2" />
-                                                <h3 className="text-white text-sm font-light">Correct Answer</h3>
-                                            </div>
-                                            {status !== 'published' && (
-                                                <p className="text-gray-400 text-xs">
-                                                    This will be used for automatic grading and feedback
-                                                </p>
-                                            )}
-                                            <div
-                                                className="flex-1 bg-[#1A1A1A] rounded-md overflow-hidden"
-                                                // Add click handler to prevent event propagation
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    // Ensure the correct answer editor keeps focus
-                                                    if (correctAnswerEditorRef.current) {
-                                                        try {
-                                                            // Try to focus the editor
-                                                            correctAnswerEditorRef.current.focusEditor();
-                                                        } catch (err) {
-                                                            console.error("Error focusing correct answer editor:", err);
-                                                        }
-                                                    }
-                                                }}
-                                                // Prevent mousedown from bubbling up which can cause focus issues
-                                                onMouseDown={(e) => {
-                                                    e.stopPropagation();
-                                                }}
-                                            >
+                                <div className="w-full flex">
+                                    {/* Show content based on active tab */}
+                                    {activeEditorTab === 'question' ? (
+                                        <div className="w-full">
+                                            <div className="editor-container h-full">
                                                 <BlockNoteEditor
-                                                    key={`correct-answer-editor-${currentQuestionIndex}`}
-                                                    initialContent={currentQuestionConfig.correctAnswerBlocks || (currentQuestionConfig.correctAnswer ? [
-                                                        {
-                                                            type: "paragraph",
-                                                            content: currentQuestionConfig.correctAnswer
-                                                        }
-                                                    ] : [])}
-                                                    onChange={handleCorrectAnswerContentChange}
+                                                    key={`quiz-editor-question-${currentQuestionIndex}`}
+                                                    initialContent={currentQuestionContent}
+                                                    onChange={handleQuestionContentChange}
                                                     isDarkMode={isDarkMode}
                                                     readOnly={readOnly}
-                                                    onEditorReady={setCorrectAnswerEditorInstance}
-                                                    className="correct-answer-editor"
-                                                    placeholder="Enter the correct answer here"
+                                                    onEditorReady={setEditorInstance}
+                                                    className="quiz-editor"
                                                 />
                                             </div>
                                         </div>
-                                    </div> */}
+                                    ) : (
+                                        <div className="w-full">
+                                            {/* This tab is intentionally left empty as per requirements */}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
