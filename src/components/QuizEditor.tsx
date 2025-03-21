@@ -585,7 +585,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 // Map questionType to API type
                 const questionType = question.config.questionType || 'default';
                 // Map inputType
-                const inputType = question.config.inputType || 'text';
+                const inputType = question.config.inputType
 
                 return {
                     blocks: question.content,
@@ -690,7 +690,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                     blocks: question.content,
                     answer: correctAnswerText,
                     type: questionType === 'coding' ? 'coding' : questionType === 'open-ended' ? 'open-ended' : 'objective',
-                    input_type: question.config.inputType || 'text'
+                    input_type: question.config.inputType
                 };
             });
 
@@ -760,17 +760,17 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         // Extract the current correct answer before passing to preview
         let questionsWithCorrectAnswers = questions;
 
-        if (questions.length > 0 && currentQuestionIndex >= 0 && currentQuestionIndex < questions.length) {
-            // Make a deep copy of questions
-            questionsWithCorrectAnswers = JSON.parse(JSON.stringify(questions));
+        // No validation checks - directly use the questions array and update the current answer
+        // Make a deep copy of questions
+        questionsWithCorrectAnswers = JSON.parse(JSON.stringify(questions));
 
-            // Update the current question with the latest correct answer
-            if (correctAnswerEditorRef.current) {
-                const currentCorrectAnswer = extractCurrentCorrectAnswer();
-                if (currentCorrectAnswer) {
-                    questionsWithCorrectAnswers[currentQuestionIndex].config.correctAnswer = currentCorrectAnswer;
-                }
-            }
+        // Update the current question with the latest correct answer if possible
+        if (correctAnswerEditorRef.current && currentQuestionIndex >= 0 && currentQuestionIndex < questionsWithCorrectAnswers.length) {
+            const currentCorrectAnswer = extractCurrentCorrectAnswer();
+            questionsWithCorrectAnswers[currentQuestionIndex].config = {
+                ...questionsWithCorrectAnswers[currentQuestionIndex].config,
+                correctAnswer: currentCorrectAnswer || questionsWithCorrectAnswers[currentQuestionIndex].config.correctAnswer || "",
+            };
         }
 
         return (

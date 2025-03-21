@@ -105,27 +105,72 @@ export default function LearnerQuizView({
 
     // Ensure we have valid questions
     const validQuestions = useMemo(() => {
+        // Don't filter out any questions, just convert format if needed
         return (questions || []).map(q => {
-            // If the question already has the right format, use it as is
-            if (q && q.content && Array.isArray(q.content) && q.content.length > 0) {
-                return q;
-            }
-
-            // Handle API format where content might be in 'blocks' property
-            if (q && (q as any).blocks && Array.isArray((q as any).blocks) && (q as any).blocks.length > 0) {
+            // If the question is null or undefined, return it with default empty values
+            if (!q) {
                 return {
-                    id: q.id || `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    content: (q as any).blocks,
-                    config: q.config || {
+                    id: `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    content: [],
+                    config: {
                         inputType: 'text',
                         responseStyle: 'coach',
-                        evaluationCriteria: []
+                        evaluationCriteria: [],
+                        correctAnswer: "",
+                        audioMaxDuration: 120 // Default to 2 minutes
                     }
                 };
             }
 
-            return null;
-        }).filter(Boolean) as QuizQuestion[];
+            // If the question already has the right format, use it as is
+            if (q.content && Array.isArray(q.content)) {
+                // Ensure config has all required properties with defaults
+                const completeConfig = {
+                    ...q.config,
+                    inputType: q.config?.inputType || 'text',
+                    responseStyle: q.config?.responseStyle || 'coach',
+                    evaluationCriteria: q.config?.evaluationCriteria || [],
+                    correctAnswer: q.config?.correctAnswer || "",
+                    audioMaxDuration: q.config?.audioMaxDuration || 120
+                };
+                return {
+                    ...q,
+                    config: completeConfig
+                };
+            }
+
+            // Handle API format where content might be in 'blocks' property
+            if ((q as any).blocks && Array.isArray((q as any).blocks)) {
+                const config = q.config || {};
+                return {
+                    id: q.id || `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    content: (q as any).blocks,
+                    config: {
+                        ...config,
+                        inputType: config.inputType || 'text',
+                        responseStyle: config.responseStyle || 'coach',
+                        evaluationCriteria: config.evaluationCriteria || [],
+                        correctAnswer: config.correctAnswer || "",
+                        audioMaxDuration: config.audioMaxDuration || 120
+                    }
+                };
+            }
+
+            // Return a default structure for any other case
+            const config = q.config || {};
+            return {
+                id: q.id || `question-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                content: [],
+                config: {
+                    ...config,
+                    inputType: config.inputType || 'text',
+                    responseStyle: config.responseStyle || 'coach',
+                    evaluationCriteria: config.evaluationCriteria || [],
+                    correctAnswer: config.correctAnswer || "",
+                    audioMaxDuration: config.audioMaxDuration || 120
+                }
+            };
+        });
     }, [questions]);
 
     // Current answer input
@@ -796,11 +841,7 @@ export default function LearnerQuizView({
     const currentQuestionContent = validQuestions[currentQuestionIndex]?.content || [];
 
     // Get current question config
-    const currentQuestionConfig = validQuestions[currentQuestionIndex]?.config || {
-        inputType: 'text',
-        responseStyle: 'coach',
-        evaluationCriteria: []
-    };
+    const currentQuestionConfig = validQuestions[currentQuestionIndex]?.config
 
     // Focus the input field directly
     useEffect(() => {
