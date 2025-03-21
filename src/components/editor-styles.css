@@ -500,7 +500,6 @@ div[role="dialog"]>div {
 
 /* Make the correct answer editor more compact */
 .correct-answer-editor .ProseMirror {
-    padding: 12px !important;
     min-height: 100px !important;
     max-height: 200px !important;
     overflow-y: auto !important;

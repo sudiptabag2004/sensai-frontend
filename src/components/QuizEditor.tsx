@@ -1080,8 +1080,40 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="w-full">
-                                            {/* This tab is intentionally left empty as per requirements */}
+                                        <div className="w-full flex-1 bg-[#1A1A1A] rounded-md overflow-hidden"
+                                            // Add click handler to prevent event propagation
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                // Ensure the correct answer editor keeps focus
+                                                if (correctAnswerEditorRef.current) {
+                                                    try {
+                                                        // Try to focus the editor
+                                                        correctAnswerEditorRef.current.focusEditor();
+                                                    } catch (err) {
+                                                        console.error("Error focusing correct answer editor:", err);
+                                                    }
+                                                }
+                                            }}
+                                            // Prevent mousedown from bubbling up which can cause focus issues
+                                            onMouseDown={(e) => {
+                                                e.stopPropagation();
+                                            }}
+                                        >
+                                            <BlockNoteEditor
+                                                key={`correct-answer-editor-${currentQuestionIndex}`}
+                                                initialContent={currentQuestionConfig.correctAnswerBlocks || (currentQuestionConfig.correctAnswer ? [
+                                                    {
+                                                        type: "paragraph",
+                                                        content: currentQuestionConfig.correctAnswer
+                                                    }
+                                                ] : [])}
+                                                onChange={handleCorrectAnswerContentChange}
+                                                isDarkMode={isDarkMode}
+                                                readOnly={readOnly}
+                                                onEditorReady={setCorrectAnswerEditorInstance}
+                                                className="correct-answer-editor"
+                                                placeholder="Enter the correct answer here"
+                                            />
                                         </div>
                                     )}
                                 </div>
