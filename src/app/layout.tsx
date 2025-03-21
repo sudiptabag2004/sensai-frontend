@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "SensAI",
-  description: "Create and manage interactive courses",
+  description: "The only LMS you need in the era of AI",
 };
 
 export default function RootLayout({

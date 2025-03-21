@@ -164,7 +164,7 @@ export default function ClientSchoolLearnerView({ slug }: { slug: string }) {
         if (!cohortId || !userId) return;
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts/${cohortId}/completion/?user_id=${userId}`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts/${cohortId}/completion?user_id=${userId}`);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch completion data: ${response.status}`);
