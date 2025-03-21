@@ -1025,6 +1025,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                             options={questionTypeOptions}
                                             selectedOption={selectedQuestionType}
                                             onChange={handleQuestionTypeChange}
+                                            disabled={readOnly}
                                         />
                                     </div>
 
@@ -1037,6 +1038,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                 options={answerTypeOptions}
                                                 selectedOption={selectedAnswerType}
                                                 onChange={handleAnswerTypeChange}
+                                                disabled={readOnly}
                                             />
                                         </div>
                                     )}

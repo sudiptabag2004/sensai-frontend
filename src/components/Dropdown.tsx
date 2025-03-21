@@ -14,6 +14,7 @@ interface DropdownProps {
     options: DropdownOption[];
     selectedOption: DropdownOption;
     onChange: (option: DropdownOption) => void;
+    disabled?: boolean;
 }
 
 const Dropdown: React.FC<DropdownProps> = ({
@@ -22,11 +23,13 @@ const Dropdown: React.FC<DropdownProps> = ({
     options,
     selectedOption,
     onChange,
+    disabled = false,
 }) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const toggleDropdown = () => {
+        if (disabled) return; // Don't toggle if disabled
         setShowDropdown(!showDropdown);
     };
 
@@ -51,17 +54,17 @@ const Dropdown: React.FC<DropdownProps> = ({
                 {title}
             </span>
             <div
-                className={`relative w-5/6 py-1.5 px-1.5 cursor-pointer ${showDropdown ? 'bg-[#2A2A2A] rounded-t-md' : 'hover:bg-[#2A2A2A] rounded-md'}`}
+                className={`relative w-5/6 py-1.5 px-1.5 ${disabled ? 'opacity-70 cursor-default' : 'cursor-pointer'} ${showDropdown ? 'bg-[#2A2A2A] rounded-t-md' : `${!disabled ? 'hover:bg-[#2A2A2A]' : ''} rounded-md`}`}
                 ref={dropdownRef}
                 onClick={toggleDropdown}
             >
-                <div className="cursor-pointer inline-flex items-center">
+                <div className={`inline-flex items-center ${disabled ? 'cursor-default' : 'cursor-pointer'}`}>
                     <div className="inline-flex items-center px-2 py-0.5 rounded-md" style={{ backgroundColor: selectedOption.color }} >
                         <span className="text-white text-sm">{selectedOption.label}</span>
                     </div>
                 </div>
 
-                {showDropdown && (
+                {showDropdown && !disabled && (
                     <div className="w-full absolute top-full left-0 z-50 w-64 bg-[#1A1A1A] border-t border-[#3A3A3A] rounded-b-lg shadow-lg overflow-visible">
                         <div className="p-3">
                             <div className="space-y-0">
