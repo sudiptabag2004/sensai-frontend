@@ -915,7 +915,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                             </div>
                         ) : (
                             <div className="w-full flex flex-col">
-                                <div className="flex flex-col space-y-2">
+                                <div className="flex flex-col space-y-2 mb-4">
                                     <div className="flex items-center">
                                         <Dropdown
                                             icon={<HelpCircle size={16} />}

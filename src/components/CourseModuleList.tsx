@@ -4,6 +4,7 @@ import { Module, ModuleItem } from "@/types/course";
 import { QuizQuestion } from "@/components/QuizEditor"; // Import needed types directly
 import CourseItemDialog from "@/components/CourseItemDialog";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
+import Tooltip from "@/components/Tooltip"; // Import the Tooltip component
 import { TaskData } from "@/types";
 
 // Use the local Module and ModuleItem types to match the page component exactly
@@ -650,51 +651,57 @@ export default function CourseModuleList({
                                     {/* Add item buttons - only in edit mode */}
                                     {mode === 'edit' && (
                                         <div className="flex space-x-2 mt-4">
-                                            <button
-                                                onClick={async () => {
-                                                    if (onAddLearningMaterial) {
-                                                        try {
-                                                            await onAddLearningMaterial(module.id);
-                                                        } catch (error) {
-                                                            console.error("Failed to add learning material:", error);
+                                            <Tooltip content="Add learning material to teach a topic in the module" position="top">
+                                                <button
+                                                    onClick={async () => {
+                                                        if (onAddLearningMaterial) {
+                                                            try {
+                                                                await onAddLearningMaterial(module.id);
+                                                            } catch (error) {
+                                                                console.error("Failed to add learning material:", error);
+                                                            }
                                                         }
-                                                    }
-                                                }}
-                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
-                                            >
-                                                <Plus size={14} className="mr-1" />
-                                                Learning Material
-                                            </button>
-                                            <button
-                                                onClick={async () => {
-                                                    if (onAddQuiz) {
-                                                        try {
-                                                            await onAddQuiz(module.id);
-                                                        } catch (error) {
-                                                            console.error("Failed to add quiz:", error);
+                                                    }}
+                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
+                                                >
+                                                    <Plus size={14} className="mr-1" />
+                                                    Learning Material
+                                                </button>
+                                            </Tooltip>
+                                            <Tooltip content="Create a practice quiz where AI nudges learners to think and answer on their own" position="top">
+                                                <button
+                                                    onClick={async () => {
+                                                        if (onAddQuiz) {
+                                                            try {
+                                                                await onAddQuiz(module.id);
+                                                            } catch (error) {
+                                                                console.error("Failed to add quiz:", error);
+                                                            }
                                                         }
-                                                    }
-                                                }}
-                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
-                                            >
-                                                <Plus size={14} className="mr-1" />
-                                                Quiz
-                                            </button>
-                                            <button
-                                                onClick={async () => {
-                                                    if (onAddExam) {
-                                                        try {
-                                                            await onAddExam(module.id);
-                                                        } catch (error) {
-                                                            console.error("Failed to add exam:", error);
+                                                    }}
+                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
+                                                >
+                                                    <Plus size={14} className="mr-1" />
+                                                    Quiz
+                                                </button>
+                                            </Tooltip>
+                                            <Tooltip content="Create an exam where AI evaluates responses without giving any feedback" position="top">
+                                                <button
+                                                    onClick={async () => {
+                                                        if (onAddExam) {
+                                                            try {
+                                                                await onAddExam(module.id);
+                                                            } catch (error) {
+                                                                console.error("Failed to add exam:", error);
+                                                            }
                                                         }
-                                                    }
-                                                }}
-                                                className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
-                                            >
-                                                <Plus size={14} className="mr-1" />
-                                                Exam
-                                            </button>
+                                                    }}
+                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
+                                                >
+                                                    <Plus size={14} className="mr-1" />
+                                                    Exam
+                                                </button>
+                                            </Tooltip>
                                         </div>
                                     )}
                                 </div>
