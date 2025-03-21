@@ -69,6 +69,8 @@ interface ChatMessage {
     content: string;
     sender: 'user' | 'ai';
     timestamp: Date;
+    messageType?: 'text' | 'audio';
+    audioData?: string; // base64 encoded audio data
 }
 
 interface AIResponse {
@@ -286,7 +288,9 @@ export default function LearnerQuizView({
                         id: `ai-confirmation-${currentQuestionId}`,
                         content: EXAM_CONFIRMATION_MESSAGE,
                         sender: 'ai',
-                        timestamp: new Date()
+                        timestamp: new Date(),
+                        messageType: 'text',
+                        audioData: undefined
                     }
                 ];
             }
@@ -334,7 +338,9 @@ export default function LearnerQuizView({
                         id: `${message.role}-${message.id}`,
                         content: message.content,
                         sender: message.role === 'user' ? 'user' : 'ai',
-                        timestamp: new Date(message.created_at)
+                        timestamp: new Date(message.created_at),
+                        messageType: message.response_type === 'audio' ? 'audio' : 'text',
+                        audioData: message.response_type === 'audio' ? message.audio_data : undefined
                     };
 
                     // Track questions with user responses for exam questions
@@ -466,7 +472,8 @@ export default function LearnerQuizView({
             {
                 role: "user",
                 content: userMessage.content,
-                response_type: "text"
+                response_type: userMessage.messageType === 'audio' ? "audio" : "text",
+                audio_data: userMessage.messageType === 'audio' ? userMessage.audioData : undefined
             },
             {
                 role: "assistant",
@@ -499,7 +506,7 @@ export default function LearnerQuizView({
         } catch (error) {
             console.error('Error storing chat history:', error);
         }
-    }, [userId, isTestMode, completedQuestionIds]);
+    }, [userId, isTestMode, completedQuestionIds, taskType]);
 
     // Modified handleSubmitAnswer function to handle streaming responses
     const handleSubmitAnswer = useCallback(() => {
@@ -558,7 +565,9 @@ export default function LearnerQuizView({
                 id: `ai-${Date.now()}`,
                 content: EXAM_CONFIRMATION_MESSAGE,
                 sender: 'ai',
-                timestamp: new Date()
+                timestamp: new Date(),
+                messageType: 'text',
+                audioData: undefined
             };
 
             // Update chat history with confirmation message
@@ -591,7 +600,9 @@ export default function LearnerQuizView({
             // Format the chat history for the current question
             const formattedChatHistory = (chatHistories[currentQuestionId] || []).map(msg => ({
                 role: msg.sender === 'user' ? 'user' : 'assistant',
-                content: msg.content
+                content: msg.content,
+                response_type: msg.messageType || 'text',
+                audio_data: msg.audioData
             }));
 
             // Create the request body for teacher testing mode
@@ -631,7 +642,9 @@ export default function LearnerQuizView({
             id: aiMessageId,
             content: "", // Use confirmation message for both exam and quiz initially
             sender: 'ai',
-            timestamp: new Date()
+            timestamp: new Date(),
+            messageType: 'text',
+            audioData: undefined
         };
 
 
@@ -822,7 +835,9 @@ export default function LearnerQuizView({
                     id: `ai-error-${Date.now()}`,
                     content: "There was an error processing your answer. Please try again.",
                     sender: 'ai',
-                    timestamp: new Date()
+                    timestamp: new Date(),
+                    messageType: 'text',
+                    audioData: undefined
                 };
 
                 // For exam questions, clear the pending status so the user can try again
@@ -1041,12 +1056,14 @@ export default function LearnerQuizView({
                 // Remove the data URL prefix (e.g., "data:audio/wav;base64,")
                 const base64Data = base64Audio.split(',')[1];
 
-                // Create a placeholder message for the user's audio
+                // Create an audio message with base64 data
                 const userMessage: ChatMessage = {
                     id: `user-${Date.now()}`,
-                    content: "🎤 Audio message", // Placeholder text for the audio message
+                    content: "🎤 Audio message", // Fallback text if audio can't be played
                     sender: 'user',
-                    timestamp: new Date()
+                    timestamp: new Date(),
+                    messageType: 'audio',
+                    audioData: base64Data
                 };
 
                 // Immediately add only the user's message to the chat history
@@ -1074,7 +1091,9 @@ export default function LearnerQuizView({
                         id: `ai-${Date.now()}`,
                         content: EXAM_CONFIRMATION_MESSAGE,
                         sender: 'ai',
-                        timestamp: new Date()
+                        timestamp: new Date(),
+                        messageType: 'text',
+                        audioData: undefined
                     };
 
                     // Update chat history with confirmation message
@@ -1107,7 +1126,9 @@ export default function LearnerQuizView({
                     // Format the chat history for the current question
                     const formattedChatHistory = (chatHistories[currentQuestionId] || []).map(msg => ({
                         role: msg.sender === 'user' ? 'user' : 'assistant',
-                        content: msg.content
+                        content: msg.content,
+                        response_type: msg.messageType || 'text',
+                        audio_data: msg.audioData
                     }));
 
                     // Create the request body for teacher testing mode
@@ -1142,7 +1163,9 @@ export default function LearnerQuizView({
                     id: aiMessageId,
                     content: "", // Use confirmation message for both exam and quiz initially
                     sender: 'ai',
-                    timestamp: new Date()
+                    timestamp: new Date(),
+                    messageType: 'text',
+                    audioData: undefined
                 };
 
 
@@ -1332,7 +1355,9 @@ export default function LearnerQuizView({
                             id: `ai-error-${Date.now()}`,
                             content: "There was an error processing your audio. Please try again.",
                             sender: 'ai',
-                            timestamp: new Date()
+                            timestamp: new Date(),
+                            messageType: 'text',
+                            audioData: undefined
                         };
 
                         // For exam questions, clear the pending status so the user can try again
@@ -1457,7 +1482,18 @@ export default function LearnerQuizView({
                                                 className={`max-w-[75%] rounded-2xl px-4 py-2 ${message.sender === 'user' ? 'bg-[#333333] text-white' : 'bg-[#1A1A1A] text-white'
                                                     }`}
                                             >
-                                                <p className="text-sm">{message.content}</p>
+                                                {message.messageType === 'audio' && message.audioData ? (
+                                                    <div className="flex flex-col space-y-2">
+                                                        <p className="text-sm mb-2">🎤 Audio Response</p>
+                                                        <audio
+                                                            controls
+                                                            className="w-full max-w-[250px]"
+                                                            src={`data:audio/wav;base64,${message.audioData}`}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-sm">{message.content}</p>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
