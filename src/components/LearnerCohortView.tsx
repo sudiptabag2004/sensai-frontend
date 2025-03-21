@@ -57,6 +57,15 @@ export default function LearnerCohortView({
     const [localCompletedTaskIds, setLocalCompletedTaskIds] = useState<Record<string, boolean>>(completedTaskIds);
     const [localCompletedQuestionIds, setLocalCompletedQuestionIds] = useState<Record<string, Record<string, boolean>>>(completedQuestionIds);
 
+    // Add useEffect to update local state when props change
+    useEffect(() => {
+        setLocalCompletedTaskIds(completedTaskIds);
+    }, [completedTaskIds]);
+
+    useEffect(() => {
+        setLocalCompletedQuestionIds(completedQuestionIds);
+    }, [completedQuestionIds]);
+
     // Add state for streak data
     const [streakCount, setStreakCount] = useState<number>(streakDays);
     const [activeWeekDays, setActiveWeekDays] = useState<string[]>(activeDays);
