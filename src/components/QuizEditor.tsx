@@ -179,6 +179,14 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                             const questionType = question.type === 'coding' ? 'coding'
                                 : question.type === 'open-ended' ? 'open-ended' : 'default';
 
+                            // Create correct answer blocks from the answer text if it exists
+                            const correctAnswerBlocks = question.answer ? [
+                                {
+                                    type: "paragraph",
+                                    content: question.answer
+                                }
+                            ] : [];
+
                             return {
                                 id: String(question.id),
                                 content: question.blocks || [],
@@ -187,7 +195,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                     responseStyle: question.response_type === 'chat' ? 'coach' : 'evaluator',
                                     evaluationCriteria: [],
                                     correctAnswer: question.answer || '',
-                                    correctAnswerBlocks: question.blocks || [],
+                                    correctAnswerBlocks: correctAnswerBlocks, // Use the answer-based blocks instead of question blocks
                                     questionType: questionType as 'default' | 'open-ended' | 'coding'
                                 }
                             };
