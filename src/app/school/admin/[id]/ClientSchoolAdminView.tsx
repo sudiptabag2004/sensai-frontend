@@ -102,7 +102,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                 const cohortsData = await cohortsResponse.json();
 
                 // Fetch courses separately
-                const coursesResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses?org_id=${id}`);
+                const coursesResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/?org_id=${id}`);
                 if (!coursesResponse.ok) {
                     throw new Error(`API error: ${coursesResponse.status}`);
                 }
@@ -305,7 +305,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
             console.log("Creating cohort with name:", name, "for organization:", id);
 
             // Make API call to create cohort
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/cohorts/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -357,7 +357,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
     const handleCreateCourse = async (name: string) => {
         try {
             // Make API request to create course
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

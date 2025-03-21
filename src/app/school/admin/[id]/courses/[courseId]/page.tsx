@@ -496,7 +496,7 @@ export default function CreateCourse() {
     const addLearningMaterial = async (moduleId: string) => {
         try {
             // Make API request to create a new learning material
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -550,7 +550,7 @@ export default function CreateCourse() {
     const addQuiz = async (moduleId: string) => {
         try {
             // Make API request to create a new quiz
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -608,7 +608,7 @@ export default function CreateCourse() {
     const addExam = async (moduleId: string) => {
         try {
             // Make API request to create a new exam
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

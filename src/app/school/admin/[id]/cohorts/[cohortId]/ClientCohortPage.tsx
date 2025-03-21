@@ -333,7 +333,7 @@ export default function ClientCohortPage({ schoolId, cohortId }: ClientCohortPag
         setIsLoadingCourses(true);
         setCourseError(null);
         try {
-            const coursesResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses?org_id=${schoolId}`);
+            const coursesResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/courses/?org_id=${schoolId}`);
             if (!coursesResponse.ok) {
                 throw new Error(`Failed to fetch courses: ${coursesResponse.status}`);
             }
