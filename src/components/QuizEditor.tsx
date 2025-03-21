@@ -393,29 +393,21 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         }
     }, [questions, currentQuestionIndex, onChange]);
 
-    // Handle correct answer content change
-    const handleCorrectAnswerContentChange = useCallback((content: any[]) => {
-        if (questions.length === 0) return;
+    // Function to get current correct answer text from editor
+    const extractCurrentCorrectAnswer = useCallback(() => {
+        if (!correctAnswerEditorRef.current) return "";
 
-        // Store the raw content blocks instead of extracting text
-        const updatedQuestions = [...questions];
-        updatedQuestions[currentQuestionIndex] = {
-            ...updatedQuestions[currentQuestionIndex],
-            config: {
-                ...updatedQuestions[currentQuestionIndex].config,
-                correctAnswerBlocks: content, // Store raw blocks
-                correctAnswer: updatedQuestions[currentQuestionIndex].config.correctAnswer // Keep existing text value
+        try {
+            const blocks = correctAnswerEditorRef.current.document;
+            if (blocks && blocks.length > 0) {
+                return extractTextFromBlocks(blocks);
             }
-        };
-
-        // Update questions state
-        setQuestions(updatedQuestions);
-
-        // Notify parent component
-        if (onChange) {
-            onChange(updatedQuestions);
+        } catch (e) {
+            console.error("Error extracting text from correct answer editor:", e);
         }
-    }, [questions, currentQuestionIndex, onChange]);
+
+        return "";
+    }, []);
 
     // Add a new question
     const addQuestion = useCallback(() => {
@@ -557,6 +549,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         }
     };
 
+    // Modified handleConfirmPublish to extract correct answer at publish time
     const handleConfirmPublish = async () => {
         if (!taskId) {
             console.error("Cannot publish: taskId is not provided");
@@ -574,23 +567,17 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
             // Format questions for the API
             const formattedQuestions = questions.map((question, index) => {
-                // Extract correct answer text only at publish time
-                let correctAnswerText = question.config.correctAnswer || "";
+                let correctAnswerText = "";
 
-                // If this is the current question, extract the text from the editor
-                if (index === currentQuestionIndex && correctAnswerEditorRef.current) {
-                    try {
-                        const blocks = correctAnswerEditorRef.current.document;
-                        if (blocks && blocks.length > 0) {
-                            // Use the helper function to extract text from all blocks
-                            correctAnswerText = extractTextFromBlocks(blocks);
-                        }
-                    } catch (e) {
-                        console.error("Error extracting text from correct answer editor:", e);
-                    }
+                // If this is the current question, extract directly from the editor
+                if (index === currentQuestionIndex) {
+                    correctAnswerText = extractCurrentCorrectAnswer();
                 } else if (question.config.correctAnswerBlocks) {
                     // For other questions, extract from stored blocks if available
                     correctAnswerText = extractTextFromBlocks(question.config.correctAnswerBlocks);
+                } else if (question.config.correctAnswer) {
+                    // Fallback to stored text answer
+                    correctAnswerText = question.config.correctAnswer;
                 }
 
                 console.log(`Question ${question.id} - Correct answer: "${correctAnswerText}"`);
@@ -668,7 +655,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         }
     };
 
-    // Handle save for edit mode
+    // Modified handleSave for edit mode to extract correct answer at save time
     const handleSave = async () => {
         if (!taskId) {
             console.error("Cannot save: taskId is not provided");
@@ -682,23 +669,17 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
             // Format questions for the API
             const formattedQuestions = questions.map((question, index) => {
-                // Extract correct answer text only at save time
-                let correctAnswerText = question.config.correctAnswer || "";
+                let correctAnswerText = "";
 
-                // If this is the current question, extract the text from the editor
-                if (index === currentQuestionIndex && correctAnswerEditorRef.current) {
-                    try {
-                        const blocks = correctAnswerEditorRef.current.document;
-                        if (blocks && blocks.length > 0) {
-                            // Use the helper function to extract text from all blocks
-                            correctAnswerText = extractTextFromBlocks(blocks);
-                        }
-                    } catch (e) {
-                        console.error("Error extracting text from correct answer editor:", e);
-                    }
+                // If this is the current question, extract directly from the editor
+                if (index === currentQuestionIndex) {
+                    correctAnswerText = extractCurrentCorrectAnswer();
                 } else if (question.config.correctAnswerBlocks) {
                     // For other questions, extract from stored blocks if available
                     correctAnswerText = extractTextFromBlocks(question.config.correctAnswerBlocks);
+                } else if (question.config.correctAnswer) {
+                    // Fallback to stored text answer
+                    correctAnswerText = question.config.correctAnswer;
                 }
 
                 // Map questionType to API type
@@ -774,11 +755,27 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         hasContent: () => questions.length > 0
     }));
 
-    // Memoize the LearnerQuizView component to prevent unnecessary re-renders
+    // Update the MemoizedLearnerQuizView to include the correct answer
     const MemoizedLearnerQuizView = useMemo(() => {
+        // Extract the current correct answer before passing to preview
+        let questionsWithCorrectAnswers = questions;
+
+        if (questions.length > 0 && currentQuestionIndex >= 0 && currentQuestionIndex < questions.length) {
+            // Make a deep copy of questions
+            questionsWithCorrectAnswers = JSON.parse(JSON.stringify(questions));
+
+            // Update the current question with the latest correct answer
+            if (correctAnswerEditorRef.current) {
+                const currentCorrectAnswer = extractCurrentCorrectAnswer();
+                if (currentCorrectAnswer) {
+                    questionsWithCorrectAnswers[currentQuestionIndex].config.correctAnswer = currentCorrectAnswer;
+                }
+            }
+        }
+
         return (
             <LearnerQuizView
-                questions={questions}
+                questions={questionsWithCorrectAnswers}
                 isDarkMode={isDarkMode}
                 readOnly={readOnly}
                 className="w-full h-full"
@@ -797,7 +794,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 isTestMode={true}
             />
         );
-    }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, userId]);
+    }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, userId, currentQuestionIndex, extractCurrentCorrectAnswer]);
 
     // Define dropdown options
     const questionTypeOptions = [
@@ -1089,7 +1086,6 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                         </div>
                                     ) : (
                                         <div className="w-full flex-1 bg-[#1A1A1A] rounded-md overflow-hidden"
-                                            // Add click handler to prevent event propagation
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 // Ensure the correct answer editor keeps focus
@@ -1102,7 +1098,6 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                     }
                                                 }
                                             }}
-                                            // Prevent mousedown from bubbling up which can cause focus issues
                                             onMouseDown={(e) => {
                                                 e.stopPropagation();
                                             }}
@@ -1115,7 +1110,22 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                         content: currentQuestionConfig.correctAnswer
                                                     }
                                                 ] : [])}
-                                                onChange={handleCorrectAnswerContentChange}
+                                                onChange={(content) => {
+                                                    // Store blocks but don't extract text on every change
+                                                    const updatedQuestions = [...questions];
+                                                    updatedQuestions[currentQuestionIndex] = {
+                                                        ...updatedQuestions[currentQuestionIndex],
+                                                        config: {
+                                                            ...updatedQuestions[currentQuestionIndex].config,
+                                                            correctAnswerBlocks: content
+                                                        }
+                                                    };
+                                                    setQuestions(updatedQuestions);
+
+                                                    if (onChange) {
+                                                        onChange(updatedQuestions);
+                                                    }
+                                                }}
                                                 isDarkMode={isDarkMode}
                                                 readOnly={readOnly}
                                                 onEditorReady={setCorrectAnswerEditorInstance}

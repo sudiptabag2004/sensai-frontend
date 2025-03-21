@@ -4,6 +4,7 @@ import "@blocknote/core/fonts/inter.css";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import BlockNoteEditor from "./BlockNoteEditor";
+import AudioInputComponent from "./AudioInputComponent";
 
 // Custom styles for the pulsating animation
 const styles = `
@@ -535,11 +536,19 @@ export default function LearnerQuizView({
                 question: {
                     "blocks": validQuestions[currentQuestionIndex].content,
                     "response_type": "chat",
-                    "answer": validQuestions[currentQuestionIndex].config.correctAnswer,
+                    "answer": validQuestions[currentQuestionIndex].config.correctAnswer || "",
                     "type": "objective",
                     "input_type": "text"
                 }
             };
+
+            // Log the question data for debugging purposes
+            console.log("Test mode question data:", {
+                questionId: currentQuestionId,
+                blocks: validQuestions[currentQuestionIndex].content,
+                answer: validQuestions[currentQuestionIndex].config.correctAnswer || "",
+                has_answer: !!validQuestions[currentQuestionIndex].config.correctAnswer
+            });
         } else {
             // In normal mode, send question_id and user_id
             requestBody = {
@@ -565,6 +574,8 @@ export default function LearnerQuizView({
 
         // Track if we've received any feedback
         let receivedAnyFeedback = false;
+
+        console.log(requestBody)
 
         // Call the API with the appropriate request body for streaming response
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/ai/chat`, {
@@ -836,6 +847,353 @@ export default function LearnerQuizView({
     }
     `;
 
+    // New function to handle audio submission
+    const handleAudioSubmit = useCallback(async (audioBlob: Blob) => {
+        if (!validQuestions || validQuestions.length === 0 || currentQuestionIndex >= validQuestions.length) {
+            return;
+        }
+
+        const currentQuestionId = validQuestions[currentQuestionIndex].id;
+
+        // Set submitting state to true
+        setIsSubmitting(true);
+
+        try {
+            // Convert audio blob to base64
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+
+            reader.onloadend = async () => {
+                const base64Audio = reader.result as string;
+                // Remove the data URL prefix (e.g., "data:audio/wav;base64,")
+                const base64Data = base64Audio.split(',')[1];
+
+                // Create a placeholder message for the user's audio
+                const userMessage: ChatMessage = {
+                    id: `user-${Date.now()}`,
+                    content: "🎤 Audio message", // Placeholder text for the audio message
+                    sender: 'user',
+                    timestamp: new Date()
+                };
+
+                // Immediately add only the user's message to the chat history
+                setChatHistories(prev => ({
+                    ...prev,
+                    [currentQuestionId]: [...(prev[currentQuestionId] || []), userMessage]
+                }));
+
+                // Special case: For exam questions in test mode, don't make the API call
+                // instead show confirmation immediately
+                if (taskType === 'exam' && isTestMode) {
+                    // Mark this question as completed
+                    setCompletedQuestionIds(prev => ({
+                        ...prev,
+                        [currentQuestionId]: true
+                    }));
+
+                    // Call the onSubmitAnswer callback to mark completion
+                    if (onSubmitAnswer) {
+                        onSubmitAnswer(currentQuestionId, base64Data);
+                    }
+
+                    // Add confirmation message immediately
+                    const confirmationMessage: ChatMessage = {
+                        id: `ai-${Date.now()}`,
+                        content: EXAM_CONFIRMATION_MESSAGE,
+                        sender: 'ai',
+                        timestamp: new Date()
+                    };
+
+                    // Update chat history with confirmation message
+                    setChatHistories(prev => ({
+                        ...prev,
+                        [currentQuestionId]: [...(prev[currentQuestionId] || []), confirmationMessage]
+                    }));
+
+                    // Reset states
+                    setIsSubmitting(false);
+                    return; // Skip the API call completely
+                }
+
+                // For exam questions, mark as pending submission
+                if (taskType === 'exam') {
+                    setPendingSubmissionQuestionIds(prev => ({
+                        ...prev,
+                        [currentQuestionId]: true
+                    }));
+                }
+
+                // Show the AI typing animation
+                setIsAiResponding(true);
+
+                // Prepare the request body based on whether this is a teacher testing or a real learner
+                let requestBody;
+
+                if (isTestMode) {
+                    // In teacher testing mode, send chat_history and question data
+                    // Format the chat history for the current question
+                    const formattedChatHistory = (chatHistories[currentQuestionId] || []).map(msg => ({
+                        role: msg.sender === 'user' ? 'user' : 'assistant',
+                        content: msg.content
+                    }));
+
+                    // Create the request body for teacher testing mode
+                    requestBody = {
+                        user_response: base64Data,
+                        response_type: "audio",
+                        chat_history: formattedChatHistory,
+                        question: {
+                            "blocks": validQuestions[currentQuestionIndex].content,
+                            "response_type": "chat",
+                            "answer": validQuestions[currentQuestionIndex].config.correctAnswer || "",
+                            "type": "objective",
+                            "input_type": "audio"
+                        }
+                    };
+
+                } else {
+                    // In normal mode, send question_id and user_id
+                    requestBody = {
+                        user_response: base64Data,
+                        response_type: "audio",
+                        question_id: currentQuestionId,
+                        user_id: userId
+                    };
+                }
+
+                // Create a message ID for the streaming response
+                const aiMessageId = `ai-${Date.now()}`;
+
+                // Create an initial empty message for streaming content
+                const initialAiMessage: ChatMessage = {
+                    id: aiMessageId,
+                    content: "", // Use confirmation message for both exam and quiz initially
+                    sender: 'ai',
+                    timestamp: new Date()
+                };
+
+
+                let isCorrect = false;
+
+                // Track if we've received any feedback
+                let receivedAnyFeedback = false;
+
+                // Call the API with the appropriate request body for streaming response
+                fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/ai/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+
+                        // Get the response reader for streaming for both exam and quiz
+                        const reader = response.body?.getReader();
+
+                        if (!reader) {
+                            throw new Error('Failed to get response reader');
+                        }
+
+                        // Process the stream using the same logic as in handleSubmitAnswer
+                        // ... rest of existing stream processing logic ...
+                        const processStream = async () => {
+                            try {
+                                let accumulatedFeedback = "";
+
+                                while (true) {
+                                    const { done, value } = await reader.read();
+
+                                    if (done) {
+                                        break;
+                                    }
+
+                                    // Convert the chunk to text
+                                    const chunk = new TextDecoder().decode(value);
+
+                                    // Split by newlines to handle multiple JSON objects in a single chunk
+                                    const jsonLines = chunk.split('\n').filter(line => line.trim());
+
+                                    for (const line of jsonLines) {
+                                        try {
+                                            const data = JSON.parse(line);
+
+                                            // Handle feedback updates
+                                            if (data.feedback) {
+                                                // Append to accumulated feedback
+                                                accumulatedFeedback = data.feedback;
+
+                                                // For quiz questions, update the UI as we receive chunks
+                                                if (taskType === 'quiz') {
+                                                    // If this is the first feedback chunk we've received
+                                                    if (!receivedAnyFeedback) {
+                                                        receivedAnyFeedback = true;
+
+                                                        // Stop showing the animation
+                                                        setIsAiResponding(false);
+
+                                                        // Add the AI message to chat history now that we have content
+                                                        setChatHistories(prev => ({
+                                                            ...prev,
+                                                            [currentQuestionId]: [...(prev[currentQuestionId] || []), {
+                                                                ...initialAiMessage,
+                                                                content: accumulatedFeedback
+                                                            }]
+                                                        }));
+                                                    } else {
+                                                        // Update the existing AI message content for subsequent chunks
+                                                        setChatHistories(prev => {
+                                                            // Find the current question's chat history
+                                                            const currentHistory = [...(prev[currentQuestionId] || [])];
+
+                                                            // Find the index of the AI message to update
+                                                            const aiMessageIndex = currentHistory.findIndex(msg => msg.id === aiMessageId);
+
+                                                            if (aiMessageIndex !== -1) {
+                                                                // Update the existing message
+                                                                currentHistory[aiMessageIndex] = {
+                                                                    ...currentHistory[aiMessageIndex],
+                                                                    content: accumulatedFeedback
+                                                                };
+                                                            }
+
+                                                            return {
+                                                                ...prev,
+                                                                [currentQuestionId]: currentHistory
+                                                            };
+                                                        });
+                                                    }
+                                                }
+                                                // For exam questions, we don't update the UI yet
+                                                // but we still track that we received feedback
+                                                else if (!receivedAnyFeedback) {
+                                                    receivedAnyFeedback = true;
+                                                }
+                                            }
+
+                                            // Handle is_correct when available - for quiz questions
+                                            if (taskType === 'quiz' && data.is_correct !== undefined) {
+                                                isCorrect = data.is_correct;
+
+                                                if (data.is_correct) {
+                                                    // Mark this specific question as completed
+                                                    setCompletedQuestionIds(prev => ({
+                                                        ...prev,
+                                                        [currentQuestionId]: true
+                                                    }));
+
+                                                    // Call the onSubmitAnswer callback to mark completion
+                                                    if (onSubmitAnswer) {
+                                                        onSubmitAnswer(currentQuestionId, base64Data);
+                                                    }
+                                                }
+                                            }
+                                        } catch (e) {
+                                            console.error('Error parsing JSON chunk:', e);
+                                        }
+                                    }
+                                }
+
+                                // After processing all chunks, handle exam questions completion
+                                if (taskType === 'exam') {
+                                    // Now that all chunks have been received, mark as complete
+                                    // Mark this question as completed
+                                    setCompletedQuestionIds(prev => ({
+                                        ...prev,
+                                        [currentQuestionId]: true
+                                    }));
+
+                                    // Call the onSubmitAnswer callback to mark completion
+                                    if (onSubmitAnswer) {
+                                        onSubmitAnswer(currentQuestionId, base64Data);
+                                    }
+
+                                    // For exam questions, clear the pending submission status
+                                    setPendingSubmissionQuestionIds(prev => {
+                                        const newState = { ...prev };
+                                        delete newState[currentQuestionId];
+                                        return newState;
+                                    });
+
+                                    initialAiMessage.content = EXAM_CONFIRMATION_MESSAGE;
+
+                                    // Add exam confirmation message to chat history
+                                    setChatHistories(prev => ({
+                                        ...prev,
+                                        [currentQuestionId]: [...(prev[currentQuestionId] || []), {
+                                            ...initialAiMessage,
+                                            content: EXAM_CONFIRMATION_MESSAGE
+                                        }]
+                                    }));
+                                }
+
+                                // Store chat history in backend for both quiz and exam
+                                if (!isTestMode) {
+                                    const aiResponse: AIResponse = {
+                                        feedback: accumulatedFeedback,
+                                        is_correct: isCorrect
+                                    };
+                                    storeChatHistory(currentQuestionId, userMessage, aiResponse);
+                                }
+
+                                // Stop the AI responding animation if it's still active
+                                setIsAiResponding(false);
+
+                            } catch (error) {
+                                console.error('Error processing stream:', error);
+                                throw error;
+                            }
+                        };
+
+                        // Start processing the stream for both exam and quiz
+                        return processStream();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching AI response:', error);
+
+                        // Show error message to the user
+                        const errorResponse: ChatMessage = {
+                            id: `ai-error-${Date.now()}`,
+                            content: "There was an error processing your audio. Please try again.",
+                            sender: 'ai',
+                            timestamp: new Date()
+                        };
+
+                        // For exam questions, clear the pending status so the user can try again
+                        if (taskType === 'exam') {
+                            setPendingSubmissionQuestionIds(prev => {
+                                const newState = { ...prev };
+                                delete newState[currentQuestionId];
+                                return newState;
+                            });
+                        }
+
+                        // Add the error message to the chat history
+                        // This is only for UI display and won't be saved to the database
+                        setChatHistories(prev => ({
+                            ...prev,
+                            [currentQuestionId]: [...(prev[currentQuestionId] || []), errorResponse]
+                        }));
+                    })
+                    .finally(() => {
+                        // Only reset submitting state when API call is done
+                        setIsSubmitting(false);
+
+                        // If we never received any feedback, also reset the AI responding state
+                        if (!receivedAnyFeedback) {
+                            setIsAiResponding(false);
+                        }
+                    });
+            };
+        } catch (error) {
+            console.error("Error processing audio submission:", error);
+            setIsSubmitting(false);
+        }
+    }, [validQuestions, currentQuestionIndex, onSubmitAnswer, taskType, userId, isTestMode, chatHistories, storeChatHistory]);
+
     return (
         <div className={`w-full h-full ${className}`}>
             {/* Add the custom styles */}
@@ -943,35 +1301,47 @@ export default function LearnerQuizView({
                     {/* Input area with fixed position at bottom */}
                     <div className="px-6 pb-6 pt-2 bg-[#111111]">
                         {!(taskType === 'exam' && completedQuestionIds[validQuestions[currentQuestionIndex]?.id]) && (
-                            /* Input area - same for both states */
-                            <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
-                                <input
-                                    ref={inputRef}
-                                    type="text"
-                                    placeholder="Type your answer here"
-                                    className="flex-1 bg-transparent border-none px-6 py-4 text-white focus:outline-none"
-                                    value={currentAnswer}
-                                    onChange={handleInputChange}
-                                    onKeyPress={handleKeyPress}
-                                    autoFocus={!readOnly}
-                                    disabled={false} // Never disable the input field
-                                />
-                                <button
-                                    className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
-                                    onClick={handleSubmitAnswer}
-                                    disabled={!currentAnswer.trim() || isSubmitting || isAiResponding}
-                                    aria-label="Submit answer"
-                                    type="button"
-                                >
-                                    {isSubmitting ? (
-                                        <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                                    ) : (
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                    )}
-                                </button>
-                            </div>
+                            /* Input area - conditional render based on input type */
+                            <>
+                                {currentQuestionConfig.inputType === 'audio' ? (
+                                    <AudioInputComponent
+                                        onAudioSubmit={handleAudioSubmit}
+                                        isSubmitting={isSubmitting || isAiResponding}
+                                        maxDuration={currentQuestionConfig.audioMaxDuration || 120}
+                                        isDisabled={readOnly}
+                                    />
+                                ) : (
+                                    /* Original text input */
+                                    <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
+                                        <input
+                                            ref={inputRef}
+                                            type="text"
+                                            placeholder="Type your answer here"
+                                            className="flex-1 bg-transparent border-none px-6 py-4 text-white focus:outline-none"
+                                            value={currentAnswer}
+                                            onChange={handleInputChange}
+                                            onKeyPress={handleKeyPress}
+                                            autoFocus={!readOnly}
+                                            disabled={false} // Never disable the input field
+                                        />
+                                        <button
+                                            className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
+                                            onClick={handleSubmitAnswer}
+                                            disabled={!currentAnswer.trim() || isSubmitting || isAiResponding}
+                                            aria-label="Submit answer"
+                                            type="button"
+                                        >
+                                            {isSubmitting ? (
+                                                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                            ) : (
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
