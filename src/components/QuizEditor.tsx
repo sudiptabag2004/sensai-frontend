@@ -17,7 +17,7 @@ import BlockNoteEditor from "./BlockNoteEditor";
 import LearnerQuizView from "./LearnerQuizView";
 import ConfirmationDialog from "./ConfirmationDialog";
 // Import the new Dropdown component
-import Dropdown from "./Dropdown";
+import Dropdown, { DropdownOption } from "./Dropdown";
 
 // Define the editor handle with methods that can be called by parent components
 export interface QuizEditorHandle {
@@ -769,12 +769,41 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, userId]);
 
     // Define dropdown options
-    const questionTypeOptions = [{ "label": "Default", "value": "default", color: "#3A506B" }, { "label": "Open-Ended", "value": "open-ended", color: "#3C6E47" }, { "label": "Coding", "value": "coding", color: "#614A82" }];
-    const answerTypeOptions = [{ "label": "Text", "value": "text", color: "#2D6A4F" }, { "label": "Audio", "value": "audio", color: "#9D4E4E" }];
+    const questionTypeOptions = [
+        {
+            "label": "Default",
+            "value": "default",
+            "color": "#3A506B",
+        },
+        {
+            "label": "Open-Ended",
+            "value": "open-ended",
+            "color": "#3C6E47",
+            "tooltip": "Questions without any fixed correct answer"
+        },
+        {
+            "label": "Coding",
+            "value": "coding",
+            "color": "#614A82",
+            "tooltip": "Questions where learners need to submit code"
+        }
+    ];
+    const answerTypeOptions = [
+        {
+            "label": "Text",
+            "value": "text",
+            "color": "#2D6A4F",
+        },
+        {
+            "label": "Audio",
+            "value": "audio",
+            "color": "#9D4E4E",
+        }
+    ];
 
     // State for type dropdown
-    const [selectedQuestionType, setSelectedQuestionType] = useState(questionTypeOptions[0]);
-    const [selectedAnswerType, setSelectedAnswerType] = useState(answerTypeOptions[0]);
+    const [selectedQuestionType, setSelectedQuestionType] = useState<DropdownOption>(questionTypeOptions[0]);
+    const [selectedAnswerType, setSelectedAnswerType] = useState<DropdownOption>(answerTypeOptions[0]);
 
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
