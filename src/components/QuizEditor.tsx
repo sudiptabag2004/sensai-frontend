@@ -768,11 +768,13 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         );
     }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, userId]);
 
-    // State for type dropdown
-    const [selectedType, setSelectedType] = useState("Discussion");
-
     // Define dropdown options
-    const typeOptions = ["Discussion", "Resource"];
+    const questionTypeOptions = [{ "label": "Default", "value": "default", color: "#3A506B" }, { "label": "Open-Ended", "value": "open-ended", color: "#3C6E47" }, { "label": "Coding", "value": "coding", color: "#614A82" }];
+    const answerTypeOptions = [{ "label": "Text", "value": "text", color: "#2D6A4F" }, { "label": "Audio", "value": "audio", color: "#9D4E4E" }];
+
+    // State for type dropdown
+    const [selectedQuestionType, setSelectedQuestionType] = useState(questionTypeOptions[0]);
+    const [selectedAnswerType, setSelectedAnswerType] = useState(answerTypeOptions[0]);
 
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
@@ -913,16 +915,29 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                             </div>
                         ) : (
                             <div className="w-full flex flex-col">
-                                {/* Type Field Dropdown */}
-                                <div className="mb-4 flex items-center">
-                                    <Dropdown
-                                        icon={<Pen size={16} />}
-                                        title="Answer Type"
-                                        options={typeOptions}
-                                        selectedOption={selectedType}
-                                        onChange={setSelectedType}
-                                        bgColor="#7A623F"
-                                    />
+                                <div className="flex flex-col space-y-2">
+                                    <div className="flex items-center">
+                                        <Dropdown
+                                            icon={<HelpCircle size={16} />}
+                                            title="Question Type"
+                                            options={questionTypeOptions}
+                                            selectedOption={selectedQuestionType}
+                                            onChange={setSelectedQuestionType}
+                                        />
+                                    </div>
+
+                                    {/* Type Field Dropdown - Only shown for default or open-ended questions */}
+                                    {(selectedQuestionType.value === 'default' || selectedQuestionType.value === 'open-ended') && (
+                                        <div className="mb-4 flex items-center">
+                                            <Dropdown
+                                                icon={<Pen size={16} />}
+                                                title="Answer Type"
+                                                options={answerTypeOptions}
+                                                selectedOption={selectedAnswerType}
+                                                onChange={setSelectedAnswerType}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="w-full flex">

@@ -1,12 +1,17 @@
 import React, { useState, useRef, useEffect, ReactNode } from 'react';
 
+interface DropdownOption {
+    label: string;
+    value: string;
+    color: string;
+}
+
 interface DropdownProps {
     icon?: ReactNode;
     title: string;
-    options: string[];
-    selectedOption: string;
-    onChange: (option: string) => void;
-    bgColor?: string;
+    options: DropdownOption[];
+    selectedOption: DropdownOption;
+    onChange: (option: DropdownOption) => void;
 }
 
 const Dropdown: React.FC<DropdownProps> = ({
@@ -15,7 +20,6 @@ const Dropdown: React.FC<DropdownProps> = ({
     options,
     selectedOption,
     onChange,
-    bgColor = '#7A623F',
 }) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -40,20 +44,18 @@ const Dropdown: React.FC<DropdownProps> = ({
 
     return (
         <div className="flex items-center text-gray-500 text-sm w-full">
-            <span className="w-1/8 mr-2 flex items-center hover:bg-[#2A2A2A] px-3 py-2 rounded-md">
+            <span className="w-1/6 mr-2 flex items-center hover:bg-[#2A2A2A] px-3 py-2 rounded-md">
                 {icon && <span className="mr-2">{icon}</span>}
                 {title}
             </span>
             <div
                 className={`relative w-5/6 py-1.5 px-1.5 cursor-pointer ${showDropdown ? 'bg-[#2A2A2A] rounded-t-md' : 'hover:bg-[#2A2A2A] rounded-md'}`}
                 ref={dropdownRef}
-                onMouseEnter={toggleDropdown}
-                onMouseLeave={showDropdown ? toggleDropdown : undefined}
                 onClick={toggleDropdown}
             >
                 <div className="cursor-pointer inline-flex items-center">
-                    <div className="inline-flex items-center px-2 py-0.5 rounded-md" style={{ backgroundColor: bgColor }} >
-                        <span className="text-white text-sm">{selectedOption}</span>
+                    <div className="inline-flex items-center px-2 py-0.5 rounded-md" style={{ backgroundColor: selectedOption.color }} >
+                        <span className="text-white text-sm">{selectedOption.label}</span>
                     </div>
                 </div>
 
@@ -63,15 +65,15 @@ const Dropdown: React.FC<DropdownProps> = ({
                             <div className="space-y-0">
                                 {options.map((option) => (
                                     <div
-                                        key={option}
+                                        key={option.value}
                                         className="flex items-center px-2 py-1.5 rounded-md hover:bg-[#2A2A2A] cursor-pointer transition-colors"
                                         onClick={() => {
                                             onChange(option);
                                             setShowDropdown(false);
                                         }}
                                     >
-                                        <div className="inline-flex items-center px-2 py-0.5 rounded-md" style={{ backgroundColor: bgColor }}>
-                                            <span className="text-white text-sm">{option}</span>
+                                        <div className="inline-flex items-center px-2 py-0.5 rounded-md" style={{ backgroundColor: option.color }}>
+                                            <span className="text-white text-sm">{option.label}</span>
                                         </div>
                                     </div>
                                 ))}
