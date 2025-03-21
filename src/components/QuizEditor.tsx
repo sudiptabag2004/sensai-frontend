@@ -4,7 +4,7 @@ import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
-import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap, Sparkles, Check, HelpCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap, Sparkles, Check, HelpCircle, X, ChevronDown, Pen } from "lucide-react";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteSchema } from "@blocknote/core";
 
@@ -16,6 +16,8 @@ import BlockNoteEditor from "./BlockNoteEditor";
 // Import the LearnerQuizView component
 import LearnerQuizView from "./LearnerQuizView";
 import ConfirmationDialog from "./ConfirmationDialog";
+// Import the new Dropdown component
+import Dropdown from "./Dropdown";
 
 // Define the editor handle with methods that can be called by parent components
 export interface QuizEditorHandle {
@@ -766,6 +768,12 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         );
     }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, userId]);
 
+    // State for type dropdown
+    const [selectedType, setSelectedType] = useState("Discussion");
+
+    // Define dropdown options
+    const typeOptions = ["Discussion", "Resource"];
+
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
             {/* Delete confirmation modal */}
@@ -904,82 +912,96 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                 <EmptyQuizPlaceholder />
                             </div>
                         ) : (
-                            <div className="w-full flex">
-                                {/* Question Editor - 80% width */}
-                                <div className="w-3/5 pr-4">
-                                    <div className="flex flex-col ml-12 mb-2">
-                                        <div className="mb-2 flex items-center">
-                                            <HelpCircle size={16} className="text-blue-500 mr-2" />
-                                            <h3 className="text-white text-sm font-light">Question</h3>
-                                        </div>
-                                        {status !== 'published' && (
-                                            <p className="text-gray-400 text-xs">
-                                                The content of the question with all the details that a learner needs to answer it
-                                            </p>
-                                        )}
-                                    </div>
-                                    <div className="editor-container h-full">
-                                        <BlockNoteEditor
-                                            key={`quiz-editor-question-${currentQuestionIndex}`}
-                                            initialContent={currentQuestionContent}
-                                            onChange={handleQuestionContentChange}
-                                            isDarkMode={isDarkMode}
-                                            readOnly={readOnly}
-                                            onEditorReady={setEditorInstance}
-                                            className="quiz-editor"
-                                        />
-                                    </div>
+                            <div className="w-full flex flex-col">
+                                {/* Type Field Dropdown */}
+                                <div className="mb-4 flex items-center">
+                                    <Dropdown
+                                        icon={<Pen size={16} />}
+                                        title="Answer Type"
+                                        options={typeOptions}
+                                        selectedOption={selectedType}
+                                        onChange={setSelectedType}
+                                        bgColor="#7A623F"
+                                    />
                                 </div>
 
-                                {/* Correct Answer Section - 20% width */}
-                                <div className="w-2/5 pl-4 border-l border-[#3A3A3A]">
-                                    <div className="h-full flex flex-col">
-                                        <div className="mb-2 flex items-center">
-                                            <Check size={16} className="text-green-500 mr-2" />
-                                            <h3 className="text-white text-sm font-light">Correct Answer</h3>
-                                        </div>
-                                        {status !== 'published' && (
-                                            <p className="text-gray-400 text-xs">
-                                                This will be used for automatic grading and feedback
-                                            </p>
-                                        )}
-                                        <div
-                                            className="flex-1 bg-[#1A1A1A] rounded-md overflow-hidden"
-                                            // Add click handler to prevent event propagation
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                // Ensure the correct answer editor keeps focus
-                                                if (correctAnswerEditorRef.current) {
-                                                    try {
-                                                        // Try to focus the editor
-                                                        correctAnswerEditorRef.current.focusEditor();
-                                                    } catch (err) {
-                                                        console.error("Error focusing correct answer editor:", err);
-                                                    }
-                                                }
-                                            }}
-                                            // Prevent mousedown from bubbling up which can cause focus issues
-                                            onMouseDown={(e) => {
-                                                e.stopPropagation();
-                                            }}
-                                        >
+                                <div className="w-full flex">
+                                    {/* Question Editor - 80% width */}
+                                    <div className="w-3/5 pr-4">
+                                        {/* <div className="flex flex-col ml-12 mb-2">
+                                            <div className="mb-2 flex items-center">
+                                                <HelpCircle size={16} className="text-blue-500 mr-2" />
+                                                <h3 className="text-white text-sm font-light">Question</h3>
+                                            </div>
+                                            {status !== 'published' && (
+                                                <p className="text-gray-400 text-xs">
+                                                    The content of the question with all the details that a learner needs to answer it
+                                                </p>
+                                            )}
+                                        </div> */}
+                                        <div className="editor-container h-full">
                                             <BlockNoteEditor
-                                                key={`correct-answer-editor-${currentQuestionIndex}`}
-                                                initialContent={currentQuestionConfig.correctAnswerBlocks || (currentQuestionConfig.correctAnswer ? [
-                                                    {
-                                                        type: "paragraph",
-                                                        content: currentQuestionConfig.correctAnswer
-                                                    }
-                                                ] : [])}
-                                                onChange={handleCorrectAnswerContentChange}
+                                                key={`quiz-editor-question-${currentQuestionIndex}`}
+                                                initialContent={currentQuestionContent}
+                                                onChange={handleQuestionContentChange}
                                                 isDarkMode={isDarkMode}
                                                 readOnly={readOnly}
-                                                onEditorReady={setCorrectAnswerEditorInstance}
-                                                className="correct-answer-editor"
-                                                placeholder="Enter the correct answer here"
+                                                onEditorReady={setEditorInstance}
+                                                className="quiz-editor"
                                             />
                                         </div>
                                     </div>
+
+                                    {/* Correct Answer Section - 20% width */}
+                                    {/* <div className="w-2/5 pl-4 border-l border-[#3A3A3A]">
+                                        <div className="h-full flex flex-col">
+                                            <div className="mb-2 flex items-center">
+                                                <Check size={16} className="text-green-500 mr-2" />
+                                                <h3 className="text-white text-sm font-light">Correct Answer</h3>
+                                            </div>
+                                            {status !== 'published' && (
+                                                <p className="text-gray-400 text-xs">
+                                                    This will be used for automatic grading and feedback
+                                                </p>
+                                            )}
+                                            <div
+                                                className="flex-1 bg-[#1A1A1A] rounded-md overflow-hidden"
+                                                // Add click handler to prevent event propagation
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // Ensure the correct answer editor keeps focus
+                                                    if (correctAnswerEditorRef.current) {
+                                                        try {
+                                                            // Try to focus the editor
+                                                            correctAnswerEditorRef.current.focusEditor();
+                                                        } catch (err) {
+                                                            console.error("Error focusing correct answer editor:", err);
+                                                        }
+                                                    }
+                                                }}
+                                                // Prevent mousedown from bubbling up which can cause focus issues
+                                                onMouseDown={(e) => {
+                                                    e.stopPropagation();
+                                                }}
+                                            >
+                                                <BlockNoteEditor
+                                                    key={`correct-answer-editor-${currentQuestionIndex}`}
+                                                    initialContent={currentQuestionConfig.correctAnswerBlocks || (currentQuestionConfig.correctAnswer ? [
+                                                        {
+                                                            type: "paragraph",
+                                                            content: currentQuestionConfig.correctAnswer
+                                                        }
+                                                    ] : [])}
+                                                    onChange={handleCorrectAnswerContentChange}
+                                                    isDarkMode={isDarkMode}
+                                                    readOnly={readOnly}
+                                                    onEditorReady={setCorrectAnswerEditorInstance}
+                                                    className="correct-answer-editor"
+                                                    placeholder="Enter the correct answer here"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div> */}
                                 </div>
                             </div>
                         )}
