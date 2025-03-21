@@ -1242,9 +1242,9 @@ export default function LearnerQuizView({
 
             <div className="flex h-full bg-[#111111] rounded-md overflow-hidden">
                 {/* Left side - Question (50%) */}
-                <div className="w-1/2 p-8 border-r border-[#222222] flex flex-col bg-[#1A1A1A]">
+                <div className="w-1/2 p-6 border-r border-[#222222] flex flex-col bg-[#1A1A1A]">
                     {/* Navigation controls at the top of left side - only show if more than one question */}
-                    {validQuestions.length > 1 && (
+                    {validQuestions.length > 1 ? (
                         <div className="flex items-center justify-between w-full mb-6">
                             <div className="w-10 h-10">
                                 <button
@@ -1270,9 +1270,15 @@ export default function LearnerQuizView({
                                 </button>
                             </div>
                         </div>
+                    ) : (
+                        <div className="flex items-center justify-center w-full mb-6">
+                            <div className="bg-[#222222] px-3 py-1 rounded-full text-white text-sm">
+                                Question
+                            </div>
+                        </div>
                     )}
 
-                    <div className={`flex-1 ${questions.length > 1 ? 'mt-4' : 'mt-6'}`}>
+                    <div className={`flex-1 ${questions.length > 1 ? 'mt-4' : ''}`}>
                         {/* Use editor with negative margin to offset unwanted space */}
                         <div className="ml-[-60px]"> {/* Increased negative margin to align with navigation arrow */}
                             <BlockNoteEditor

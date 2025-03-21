@@ -1017,7 +1017,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                             </div>
                         ) : (
                             <div className="w-full flex flex-col">
-                                <div className="flex flex-col space-y-2 mb-4">
+                                {/* <div className="flex flex-col space-y-2 mb-4">
                                     <div className="flex items-center">
                                         <Dropdown
                                             icon={<HelpCircle size={16} />}
@@ -1029,7 +1029,6 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                         />
                                     </div>
 
-                                    {/* Type Field Dropdown - Only shown for default or open-ended questions */}
                                     {(selectedQuestionType.value === 'default' || selectedQuestionType.value === 'open-ended') && (
                                         <div className="mb-4 flex items-center">
                                             <Dropdown
@@ -1042,7 +1041,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                             />
                                         </div>
                                     )}
-                                </div>
+                                </div> */}
 
                                 {/* Segmented control for editor tabs */}
                                 <div className="flex justify-center mb-4">
