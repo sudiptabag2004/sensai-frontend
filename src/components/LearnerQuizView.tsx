@@ -1287,7 +1287,7 @@ export default function LearnerQuizView({
                                 onChange={() => { }} // Read-only in view mode
                                 isDarkMode={isDarkMode}
                                 readOnly={true}
-                                className="!bg-transparent"
+                                className={`!bg-transparent ${isTestMode ? 'quiz-viewer-preview' : 'quiz-viewer'}`}
                                 placeholder="Question content will appear here"
                             />
                         </div>
@@ -1350,11 +1350,11 @@ export default function LearnerQuizView({
                         {!(taskType === 'exam' && completedQuestionIds[validQuestions[currentQuestionIndex]?.id]) && (
                             /* Input area - conditional render based on input type */
                             <>
-                                {currentQuestionConfig.inputType === 'audio' ? (
+                                {currentQuestionConfig?.inputType === 'audio' ? (
                                     <AudioInputComponent
                                         onAudioSubmit={handleAudioSubmit}
                                         isSubmitting={isSubmitting || isAiResponding}
-                                        maxDuration={currentQuestionConfig.audioMaxDuration || 120}
+                                        maxDuration={currentQuestionConfig?.audioMaxDuration || 120}
                                         isDisabled={readOnly}
                                     />
                                 ) : (

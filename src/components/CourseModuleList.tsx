@@ -581,6 +581,18 @@ export default function CourseModuleList({
                                                         : ""
                                                     }`}>
                                                     {item.title || (item.type === 'material' ? "New Learning Material" : item.type === 'quiz' ? "New Quiz" : "New Exam")}
+
+                                                    {/* Display completion count for incomplete quizzes/exams */}
+                                                    {mode === 'view' &&
+                                                        (item.type === 'quiz' || item.type === 'exam') &&
+                                                        !completedItems[item.id] && // Not fully completed
+                                                        completedQuestionIds[item.id] &&
+                                                        Object.keys(completedQuestionIds[item.id]).some(qId => completedQuestionIds[item.id][qId] === true) &&
+                                                        (
+                                                            <span className="ml-2 text-sm font-normal text-yellow-500">
+                                                                ({Object.values(completedQuestionIds[item.id]).filter(Boolean).length} / {Object.keys(completedQuestionIds[item.id]).length})
+                                                            </span>
+                                                        )}
                                                 </div>
                                             </div>
 

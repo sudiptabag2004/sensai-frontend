@@ -530,3 +530,17 @@ div[role="dialog"]>div {
     max-height: 400px !important;
     overflow-y: auto !important;
 }
+
+/* Make the quiz question viewer have a max height with scroll */
+.quiz-viewer-preview .ProseMirror {
+    min-height: 100px !important;
+    max-height: 450px !important;
+    overflow-y: auto !important;
+}
+
+.quiz-viewer .ProseMirror {
+    min-height: 100px !important;
+    max-height: 500px !important;
+    overflow-y: auto !important;
+    margin-left: 20px;
+}
