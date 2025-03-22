@@ -26,6 +26,26 @@ const styles = `
 .pulsating-circle {
   animation: pulsate 1.5s ease-in-out infinite;
 }
+
+@keyframes highlightText {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 300% center;
+  }
+}
+
+.highlight-animation {
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 25%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0) 75%);
+  background-size: 200% auto;
+  color: rgba(255, 255, 255, 0.6);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: highlightText 2s linear infinite;
+  transition: opacity 0.2s ease-in-out;
+}
 `;
 
 export interface QuizQuestionConfig {
@@ -853,6 +873,90 @@ export default function LearnerQuizView({
         });
     }, [currentQuestionIndex]); // Only re-focus when changing questions
 
+    // Preset list of thinking messages for the AI typing animation
+    const thinkingMessages = [
+        "Analyzing your response",
+        "Thinking",
+        "Processing your answer",
+        "Considering different angles",
+        "Evaluating your submission",
+        "Looking at your approach",
+        "Checking against criteria",
+        "Formulating feedback",
+        "Preparing a thoughtful response",
+        "Finding the best way to help",
+        "Reflecting on your answer",
+        "Connecting the dots",
+        "Crafting personalized feedback",
+        "Examining your reasoning",
+        "Assessing key concepts"
+    ];
+
+    // State for current thinking message
+    const [currentThinkingMessage, setCurrentThinkingMessage] = useState("");
+    // State to track animation transition
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    // Ref to store the interval ID for proper cleanup
+    const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    // Ref to store the timeout ID for proper cleanup
+    const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Effect to change the thinking message every 2 seconds
+    useEffect(() => {
+        // Only set up the interval if AI is responding
+        if (!isAiResponding) {
+            // Clear any existing intervals/timeouts when AI stops responding
+            if (messageIntervalRef.current) {
+                clearInterval(messageIntervalRef.current);
+                messageIntervalRef.current = null;
+            }
+            if (transitionTimeoutRef.current) {
+                clearTimeout(transitionTimeoutRef.current);
+                transitionTimeoutRef.current = null;
+            }
+            return;
+        }
+
+        // Initial random message
+        const randomMessage = thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
+        setCurrentThinkingMessage(randomMessage);
+        setIsTransitioning(false);
+
+        // Set interval to change message every 2 seconds
+        messageIntervalRef.current = setInterval(() => {
+            // First set transition state to true (starting the fade-out)
+            setIsTransitioning(true);
+
+            // After a short delay, change the message and reset transition state
+            transitionTimeoutRef.current = setTimeout(() => {
+                // Get current message to avoid repeating
+                const currentMessage = currentThinkingMessage;
+
+                // Filter out the current message to avoid repetition
+                const availableMessages = thinkingMessages.filter(msg => msg !== currentMessage);
+
+                // Select a random message from the filtered list
+                const newRandomIndex = Math.floor(Math.random() * availableMessages.length);
+                setCurrentThinkingMessage(availableMessages[newRandomIndex]);
+
+                // Reset transition state (starting the fade-in)
+                setIsTransitioning(false);
+            }, 200); // Short delay for the transition effect
+        }, 2000);
+
+        // Clean up interval and timeout on unmount or when dependencies change
+        return () => {
+            if (messageIntervalRef.current) {
+                clearInterval(messageIntervalRef.current);
+                messageIntervalRef.current = null;
+            }
+            if (transitionTimeoutRef.current) {
+                clearTimeout(transitionTimeoutRef.current);
+                transitionTimeoutRef.current = null;
+            }
+        };
+    }, [isAiResponding, currentThinkingMessage, thinkingMessages]);
+
     // Custom styles for the pulsating animation and hidden scrollbar
     const customStyles = `
     @keyframes pulsate {
@@ -872,6 +976,34 @@ export default function LearnerQuizView({
     
     .pulsating-circle {
       animation: pulsate 1.5s ease-in-out infinite;
+    }
+
+    @keyframes highlightText {
+      0% {
+        background-position: -200% center;
+      }
+      100% {
+        background-position: 300% center;
+      }
+    }
+
+    .highlight-animation {
+      background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 25%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0) 75%);
+      background-size: 200% auto;
+      color: rgba(255, 255, 255, 0.6);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: highlightText 2s linear infinite;
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    .message-transition-out {
+      opacity: 0.5;
+    }
+
+    .message-transition-in {
+      opacity: 1;
     }
 
     /* Hide scrollbar for Chrome, Safari and Opera */
@@ -1330,13 +1462,18 @@ export default function LearnerQuizView({
                                         </div>
                                     ))}
 
-                                    {/* AI typing animation - simplified to a single pulsating white circle */}
+                                    {/* AI typing animation - with pulsating dot and changing text */}
                                     {isAiResponding && (
-                                        <div className="flex justify-start">
-                                            <div className="flex items-center justify-center min-w-[40px] min-h-[40px]">
+                                        <div className="flex justify-start items-center my-2 ml-2">
+                                            <div className="flex items-center justify-center min-w-[20px] min-h-[20px] mr-2">
                                                 <div
                                                     className="w-2.5 h-2.5 bg-white rounded-full pulsating-circle"
                                                 ></div>
+                                            </div>
+                                            <div className={`${isTransitioning ? 'message-transition-out' : 'message-transition-in'}`}>
+                                                <span className="highlight-animation text-sm">
+                                                    {currentThinkingMessage}
+                                                </span>
                                             </div>
                                         </div>
                                     )}
