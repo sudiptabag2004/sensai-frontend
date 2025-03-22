@@ -103,9 +103,11 @@ export default function LearnerCohortView({
         const date = new Date(dateString);
         const dayIndex = date.getDay(); // 0 is Sunday, 1 is Monday, etc.
 
-        // Convert day index to our format (S, M, T, W, T, F, S) with Sunday as first day
-        const daysOfWeek = ["S", "M", "T", "W", "T", "F", "S"];
-        return daysOfWeek[dayIndex];
+        // Return unique identifiers for each day, with position index to distinguish Sunday (0) and Saturday (6)
+        // This allows us to still show "S" for both Saturday and Sunday in the UI,
+        // but have a way to uniquely identify them internally
+        const dayIdentifiers = ["S_0", "M", "T", "W", "T", "F", "S_6"];
+        return dayIdentifiers[dayIndex];
     }, []);
 
     // Get today's date in YYYY-MM-DD format

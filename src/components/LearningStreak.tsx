@@ -2,12 +2,15 @@ import React, { useMemo } from "react";
 
 interface LearningStreakProps {
     streakDays: number;
-    activeDays: string[]; // Days that are active in the streak (e.g., ['M', 'T'])
+    activeDays: string[]; // Days that are active in the streak (e.g., ['M', 'T', 'S_0', 'S_6'])
 }
 
 export default function LearningStreak({ streakDays, activeDays }: LearningStreakProps) {
     // Reordered days of week to start with Sunday, end with Saturday, with Wednesday in the middle
     const daysOfWeek = ["S", "M", "T", "W", "T", "F", "S"];
+
+    // Map display days to their internal identifiers
+    const dayToIdentifierMap = ["S_0", "M", "T", "W", "T", "F", "S_6"];
 
     // List of energizing emojis
     const energizing_emojis = [
@@ -22,6 +25,13 @@ export default function LearningStreak({ streakDays, activeDays }: LearningStrea
         }
         return null;
     }, [streakDays]);
+
+    // Function to check if a day is active based on index
+    const isDayActive = (index: number): boolean => {
+        // Get the identifier for this position
+        const identifier = dayToIdentifierMap[index];
+        return activeDays.includes(identifier);
+    };
 
     return (
         <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
@@ -41,7 +51,7 @@ export default function LearningStreak({ streakDays, activeDays }: LearningStrea
                             key={index}
                             className={`
                                 flex-1 h-8 flex items-center justify-center rounded mx-1.5
-                                ${activeDays.includes(day)
+                                ${isDayActive(index)
                                     ? "bg-[#F9B84E] text-black font-light"
                                     : "bg-gray-800 text-gray-400 font-light"}
                             `}
