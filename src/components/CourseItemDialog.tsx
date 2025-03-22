@@ -483,6 +483,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                 onPublishCancel={onPublishCancel}
                                 taskId={activeItem.id}
                                 isEditMode={isEditMode}
+                                isDarkMode={true}
                                 onPublishSuccess={(updatedData?: TaskData) => {
                                     // Handle publish success
                                     if (updatedData) {
@@ -545,6 +546,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                     onQuizContentChange(questions);
                                 }}
                                 isPreviewMode={quizPreviewMode}
+                                isDarkMode={true}
                                 readOnly={activeItem.status === 'published' && !isEditMode}
                                 onPublish={onPublishConfirm}
                                 taskId={activeItem.id}

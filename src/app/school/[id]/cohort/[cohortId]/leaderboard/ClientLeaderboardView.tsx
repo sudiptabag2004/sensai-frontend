@@ -186,7 +186,7 @@ export default function ClientLeaderboardView({
                                         <div className="font-medium text-white flex items-center">
                                             {performer.name}
                                             {isCurrentUser(performer) && (
-                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900/30 dark:bg-blue-900/30 text-blue-400 dark:text-blue-400">
+                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900/30 text-blue-400">
                                                     You
                                                 </span>
                                             )}

@@ -24,13 +24,13 @@ export default function LearningStreak({ streakDays, activeDays }: LearningStrea
     }, [streakDays]);
 
     return (
-        <div className="bg-white dark:bg-[#121212] rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-            <div className="bg-[#FFF3D8] dark:bg-[#2A2000] px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-                <h3 className="text-lg font-light text-black dark:text-white">Learning Streak</h3>
+        <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+            <div className="bg-[#2A2000] px-4 py-3 border-b border-gray-800">
+                <h3 className="text-lg font-light text-white">Learning Streak</h3>
             </div>
 
             <div className="p-4">
-                <div className="text-3xl font-light mb-4 text-black dark:text-white flex items-center">
+                <div className="text-3xl font-light mb-4 text-white flex items-center">
                     {streakDays} Days
                     {randomEmoji && <span className="ml-2" role="img" aria-label="Energizing emoji">{randomEmoji}</span>}
                 </div>
@@ -43,7 +43,7 @@ export default function LearningStreak({ streakDays, activeDays }: LearningStrea
                                 flex-1 h-8 flex items-center justify-center rounded mx-1.5
                                 ${activeDays.includes(day)
                                     ? "bg-[#F9B84E] text-black font-light"
-                                    : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-light"}
+                                    : "bg-gray-800 text-gray-400 font-light"}
                             `}
                         >
                             {day}

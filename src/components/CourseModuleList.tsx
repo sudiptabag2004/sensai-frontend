@@ -325,7 +325,7 @@ export default function CourseModuleList({
                 {modules.map((module, index) => (
                     <div
                         key={module.id}
-                        className="border border-gray-200 dark:border-none rounded-lg hover:border-gray-300 transition-colors"
+                        className="border-none rounded-lg transition-colors"
                         style={{ backgroundColor: module.backgroundColor }}
                     >
                         <div className="flex flex-col">
@@ -346,7 +346,7 @@ export default function CourseModuleList({
                                             }));
                                         }
                                     }}
-                                    className="mr-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
+                                    className="mr-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
                                     aria-label={getIsExpanded(module.id) ? "Collapse module" : "Expand module"}
                                 >
                                     {getIsExpanded(module.id) ? <ChevronDownExpand size={18} /> : <ChevronRight size={18} />}
@@ -356,7 +356,7 @@ export default function CourseModuleList({
                                         <h2
                                             contentEditable
                                             suppressContentEditableWarning
-                                            className="text-xl font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
+                                            className="text-xl font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none"
                                             data-module-id={module.id}
                                             data-placeholder="New Module"
                                             onClick={(e) => e.stopPropagation()}
@@ -365,7 +365,7 @@ export default function CourseModuleList({
                                         </h2>
                                     ) : (
                                         <h2
-                                            className="text-xl font-light text-black dark:text-white cursor-pointer"
+                                            className="text-xl font-light text-white cursor-pointer"
                                         >
                                             {module.title || "New Module"}
                                         </h2>
@@ -382,7 +382,7 @@ export default function CourseModuleList({
                                                         e.stopPropagation();
                                                         saveModuleTitle(module.id);
                                                     }}
-                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-black bg-white dark:bg-gray-300 hover:bg-gray-100 dark:hover:bg-gray-400 border border-gray-300 dark:border-black dark:hover:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
+                                                    className="px-3 py-1 text-sm text-black bg-gray-300 hover:bg-gray-400 border border-black hover:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
                                                     aria-label="Save module title"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
@@ -416,7 +416,7 @@ export default function CourseModuleList({
                                                             onEditModuleTitle(module.id);
                                                         }
                                                     }}
-                                                    className="px-3 py-1 text-sm text-gray-700 dark:text-black bg-white dark:bg-gray-300 hover:bg-gray-100 dark:hover:bg-gray-400 border border-gray-300 dark:border-black dark:hover:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
+                                                    className="px-3 py-1 text-sm text-black bg-gray-300 hover:bg-gray-400 border border-black hover:border-gray-600 rounded-md transition-colors cursor-pointer flex items-center"
                                                     aria-label="Edit module title"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
@@ -433,7 +433,7 @@ export default function CourseModuleList({
                                                         }
                                                     }}
                                                     disabled={index === 0}
-                                                    className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                                    className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                                     aria-label="Move module up"
                                                 >
                                                     <ChevronUp size={18} />
@@ -446,7 +446,7 @@ export default function CourseModuleList({
                                                         }
                                                     }}
                                                     disabled={index === modules.length - 1}
-                                                    className="p-1 text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                                    className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                                     aria-label="Move module down"
                                                 >
                                                     <ChevronDown size={18} />
@@ -456,7 +456,7 @@ export default function CourseModuleList({
                                                         e.stopPropagation();
                                                         setModuleToDelete(module.id);
                                                     }}
-                                                    className="p-1 text-gray-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
+                                                    className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
                                                     aria-label="Delete module"
                                                     disabled={deletingModuleId === module.id}
                                                 >
@@ -509,11 +509,11 @@ export default function CourseModuleList({
                                     {getIsExpanded(module.id) ? (
                                         <div className="px-4 pb-2">
                                             <div className="flex justify-end items-center mb-1">
-                                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                <div className="text-sm text-gray-400">
                                                     {module.progress}%
                                                 </div>
                                             </div>
-                                            <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full">
+                                            <div className="w-full bg-gray-700 h-2 rounded-full">
                                                 <div
                                                     className="bg-green-500 h-2 rounded-full transition-all duration-300"
                                                     style={{ width: `${module.progress}%` }}
@@ -523,11 +523,11 @@ export default function CourseModuleList({
                                     ) : (
                                         <div className="px-4 pb-4">
                                             <div className="flex justify-end items-center mb-1">
-                                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                <div className="text-sm text-gray-400">
                                                     {module.progress}%
                                                 </div>
                                             </div>
-                                            <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full">
+                                            <div className="w-full bg-gray-700 h-2 rounded-full">
                                                 <div
                                                     className="bg-green-500 h-2 rounded-full transition-all duration-300"
                                                     style={{ width: `${module.progress}%` }}
@@ -542,11 +542,11 @@ export default function CourseModuleList({
                         {/* Module content - only visible when expanded */}
                         {getIsExpanded(module.id) && (
                             <div className="px-4 pb-4">
-                                <div className="pl-6 border-l border-gray-200 dark:border-gray-400 ml-2 space-y-2">
+                                <div className="pl-6 border-l border-gray-400 ml-2 space-y-2">
                                     {module.items.map((item, itemIndex) => (
                                         <div
                                             key={item.id}
-                                            className={`flex items-center group p-2 rounded-md cursor-pointer transition-all relative mt-2 hover:bg-gray-800/30 dark:hover:bg-gray-700/50 ${completedItems[item.id] ? "opacity-60" : ""}`}
+                                            className={`flex items-center group p-2 rounded-md cursor-pointer transition-all relative mt-2 hover:bg-gray-700/50 ${completedItems[item.id] ? "opacity-60" : ""}`}
                                             onClick={() => onOpenItem && onOpenItem(module.id, item.id)}
                                         >
                                             <div className={`flex items-center mr-2 ${completedItems[item.id]
@@ -562,7 +562,7 @@ export default function CourseModuleList({
                                                         <Clipboard size={16} />}
                                             </div>
                                             <div className="flex-1">
-                                                <div className={`text-base font-light text-black dark:text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none ${completedItems[item.id]
+                                                <div className={`text-base font-light text-white outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none ${completedItems[item.id]
                                                     ? "line-through"
                                                     : (item.type === 'quiz' || item.type === 'exam') &&
                                                         completedQuestionIds[item.id] &&
@@ -662,7 +662,7 @@ export default function CourseModuleList({
                                                             }
                                                         }
                                                     }}
-                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
+                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-300 hover:text-white border border-gray-400 rounded-full transition-colors cursor-pointer"
                                                 >
                                                     <Plus size={14} className="mr-1" />
                                                     Learning Material
@@ -679,7 +679,7 @@ export default function CourseModuleList({
                                                             }
                                                         }
                                                     }}
-                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
+                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-300 hover:text-white border border-gray-400 rounded-full transition-colors cursor-pointer"
                                                 >
                                                     <Plus size={14} className="mr-1" />
                                                     Quiz
@@ -696,7 +696,7 @@ export default function CourseModuleList({
                                                             }
                                                         }
                                                     }}
-                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white border border-gray-200 dark:border-gray-400 rounded-full transition-colors cursor-pointer"
+                                                    className="flex items-center px-3 py-1.5 text-sm text-gray-300 hover:text-white border border-gray-400 rounded-full transition-colors cursor-pointer"
                                                 >
                                                     <Plus size={14} className="mr-1" />
                                                     Exam

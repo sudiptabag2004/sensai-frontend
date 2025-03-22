@@ -251,22 +251,23 @@ export default function CreateCourse() {
 
     // Check for dark mode
     useEffect(() => {
-        setIsDarkMode(document.documentElement.classList.contains('dark'));
+        setIsDarkMode(true);
+        // setIsDarkMode(document.documentElement.classList.contains('dark'));
 
         // Optional: Listen for changes to the dark mode
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.attributeName === 'class') {
-                    setIsDarkMode(document.documentElement.classList.contains('dark'));
-                }
-            });
-        });
+        // const observer = new MutationObserver((mutations) => {
+        //     mutations.forEach((mutation) => {
+        //         if (mutation.attributeName === 'class') {
+        //             setIsDarkMode(document.documentElement.classList.contains('dark'));
+        //         }
+        //     });
+        // });
 
-        observer.observe(document.documentElement, { attributes: true });
+        // observer.observe(document.documentElement, { attributes: true });
 
-        return () => {
-            observer.disconnect();
-        };
+        // return () => {
+        //     observer.disconnect();
+        // };
     }, []);
 
     // Set initial content and focus on newly added modules and items
@@ -1544,14 +1545,14 @@ export default function CreateCourse() {
     };
 
     return (
-        <div className="min-h-screen bg-white dark:bg-black">
+        <div className="min-h-screen bg-black">
             {/* Use the reusable Header component with showCreateCourseButton set to false */}
             <Header showCreateCourseButton={false} />
 
             {/* Show spinner when loading */}
             {isLoading ? (
                 <div className="flex justify-center items-center h-[calc(100vh-80px)]">
-                    <div className="w-16 h-16 border-t-2 border-b-2 border-black dark:border-white rounded-full animate-spin"></div>
+                    <div className="w-16 h-16 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
                 </div>
             ) : (
                 /* Main content area - only shown after loading */
@@ -1568,7 +1569,7 @@ export default function CreateCourse() {
 
                         <div className="flex items-center justify-between mb-8">
                             {error ? (
-                                <h1 className="text-4xl font-light text-red-500 dark:text-red-400 w-3/4 mr-8">
+                                <h1 className="text-4xl font-light text-red-400 w-3/4 mr-8">
                                     {error}
                                 </h1>
                             ) : (
@@ -1579,7 +1580,7 @@ export default function CreateCourse() {
                                         suppressContentEditableWarning
                                         onInput={handleCourseTitleInput}
                                         onKeyDown={handleKeyDown}
-                                        className={`text-4xl font-light text-black dark:text-white outline-none ${isCourseTitleEditing ? 'border-b border-gray-300 dark:border-gray-700 pb-1' : ''}`}
+                                        className={`text-4xl font-light text-white outline-none ${isCourseTitleEditing ? 'border-b border-gray-700 pb-1' : ''}`}
                                         autoFocus={isCourseTitleEditing}
                                     >
                                         {courseTitle}
@@ -1804,7 +1805,7 @@ export default function CreateCourse() {
 
                         <button
                             onClick={addModule}
-                            className="mb-6 px-6 py-2 bg-black dark:bg-white text-white dark:text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 dark:focus:ring-gray-100 cursor-pointer"
+                            className="mb-6 px-6 py-2 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-100 cursor-pointer"
                         >
                             Add Module
                         </button>
@@ -1847,7 +1848,7 @@ export default function CreateCourse() {
                     {/* Display cohorts assigned to this course */}
                     {!isLoadingCourseCohorts && courseCohorts.length > 0 && (
                         <div className="mt-10">
-                            <h2 className="text-sm font-light text-gray-600 dark:text-gray-400 mb-3 ">Cohorts</h2>
+                            <h2 className="text-sm font-light text-gray-400 mb-3 ">Cohorts</h2>
                             <div className="flex flex-wrap gap-3">
                                 {courseCohorts.map((cohort: { id: number; name: string }) => (
                                     <div

@@ -251,7 +251,7 @@ export default function LearnerCohortView({
     };
 
     return (
-        <div className="bg-white dark:bg-black">
+        <div className="bg-black">
             <div className="lg:flex lg:flex-row lg:justify-between">
                 {/* Left Column: Course Tabs and Course Content */}
                 <div className="lg:w-2/3 lg:pr-8">
@@ -280,7 +280,7 @@ export default function LearnerCohortView({
                     {/* Course Content */}
                     <div>
                         {courseTitle && (
-                            <h1 className="text-4xl font-light text-black dark:text-white mb-8">
+                            <h1 className="text-4xl font-light text-white mb-8">
                                 {courseTitle}
                             </h1>
                         )}

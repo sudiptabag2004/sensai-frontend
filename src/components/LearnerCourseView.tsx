@@ -761,7 +761,7 @@ export default function LearnerCourseView({
     };
 
     return (
-        <div className="bg-white dark:bg-black">
+        <div className="bg-black">
             {filteredModules.length > 0 ? (
                 <CourseModuleList
                     modules={modulesWithProgress}
@@ -992,6 +992,7 @@ export default function LearnerCourseView({
                                                 <DynamicLearningMaterialEditor
                                                     taskId={activeItem.id}
                                                     readOnly={true}
+                                                    isDarkMode={true}
                                                 />
                                             </div>
                                         )}
@@ -1008,6 +1009,7 @@ export default function LearnerCourseView({
                                                     isTestMode={false}
                                                     taskId={activeItem.id}
                                                     completedQuestionIds={completedQuestions}
+                                                    isDarkMode={true}
                                                 />
                                             </>
                                         )}

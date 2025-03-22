@@ -1285,7 +1285,7 @@ export default function LearnerQuizView({
                                 key={`question-view-${currentQuestionIndex}`}
                                 initialContent={currentQuestionContent}
                                 onChange={() => { }} // Read-only in view mode
-                                isDarkMode={true}
+                                isDarkMode={isDarkMode}
                                 readOnly={true}
                                 className="!bg-transparent"
                                 placeholder="Question content will appear here"
