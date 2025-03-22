@@ -35,7 +35,7 @@ export default function CreateSchool() {
     }, [schools, router]);
 
     // Base URL for the school (would come from environment variables in a real app)
-    const baseUrl = "sensai.hyperverge.org/school/";
+    const baseUrl = `${process.env.NEXT_PUBLIC_APP_URL}/school/`;
 
     // Play success sound effect - a distinctive sound for school creation
     const playSuccessSound = () => {

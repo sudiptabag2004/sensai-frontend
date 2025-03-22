@@ -112,7 +112,7 @@ export default function ClientSchoolAdminView({ id }: { id: string }) {
                 const transformedSchool: School = {
                     id: parseInt(schoolData.id),
                     name: schoolData.name,
-                    url: `sensai.hyperverge.org/school/${schoolData.slug}`,
+                    url: `${process.env.NEXT_PUBLIC_APP_URL}/school/${schoolData.slug}`,
                     courses: coursesData.map((course: any) => ({
                         id: course.id,
                         name: course.name,
