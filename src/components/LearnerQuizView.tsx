@@ -1374,8 +1374,8 @@ export default function LearnerQuizView({
                                         </h2>
                                         <p className="text-gray-400 text-center max-w-md mx-auto mb-8">
                                             {taskType === 'exam'
-                                                ? 'Think through your answer, then type it here. You can attempt the question only once. Be careful and confident.'
-                                                : 'Think through your answer, then type it here. You will receive instant feedback and support throughout your journey'
+                                                ? `Think through your answer, then ${currentQuestionConfig?.inputType === 'audio' ? 'record' : 'type'} it here. You can attempt the question only once. Be careful and confident.`
+                                                : `Think through your answer, then ${currentQuestionConfig?.inputType === 'audio' ? 'record' : 'type'} it here. You will receive instant feedback and support throughout your journey`
                                             }
                                         </p>
                                     </>
