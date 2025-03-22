@@ -685,14 +685,20 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 // Map questionType to API type
                 const questionType = question.config.questionType || 'default';
 
+                // Get input_type from the current config
+                const inputType = question.config.inputType;
+                console.log(`Question ${question.id} - Input type: ${inputType}`);
+
                 return {
                     id: question.id,
                     blocks: question.content,
                     answer: correctAnswerText,
                     type: questionType === 'coding' ? 'coding' : questionType === 'open-ended' ? 'open-ended' : 'objective',
-                    input_type: question.config.inputType
+                    input_type: inputType
                 };
             });
+
+            console.log("Saving quiz with formatted questions:", formattedQuestions);
 
             // Make PUT request to update the quiz content, keeping the same status
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/tasks/${taskId}/quiz`, {
@@ -869,6 +875,9 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         handleConfigChange({
             inputType: option.value as 'text' | 'code' | 'audio'
         });
+
+        // Ensure question state is updated immediately in case we save right after changing
+        console.log(`Answer type changed to: ${option.value}`);
     }, [handleConfigChange]);
 
     // State for type dropdown
