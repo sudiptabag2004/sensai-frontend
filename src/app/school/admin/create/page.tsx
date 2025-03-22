@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header";
 import { useAuth } from "@/lib/auth";
 import { useSchools } from "@/lib/api";
 import { motion } from "framer-motion"; // Import Framer Motion
+import { X } from "lucide-react"; // Import X icon
 
 export default function CreateSchool() {
     const router = useRouter();
@@ -209,11 +210,27 @@ export default function CreateSchool() {
         }
     };
 
+    // Function to navigate back to home
+    const handleGoBack = () => {
+        router.push('/');
+    };
+
     return (
         <>
             <Header showCreateCourseButton={false} />
 
             <div className="flex min-h-screen flex-col bg-black text-white">
+                {/* Close button */}
+                <div className="absolute top-20 right-1/4 z-10">
+                    <button
+                        onClick={handleGoBack}
+                        className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center hover:bg-gray-800 transition-colors focus:outline-none focus:ring-0 focus:border-0 cursor-pointer"
+                        aria-label="Close and return to home"
+                    >
+                        <X className="w-5 h-5 text-white" />
+                    </button>
+                </div>
+
                 <main className="container mx-auto px-4 py-8 max-w-3xl">
                     {isLoadingSchools ? (
                         <div className="flex justify-center items-center py-12">
