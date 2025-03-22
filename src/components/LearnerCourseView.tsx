@@ -769,7 +769,7 @@ export default function LearnerCourseView({
                     expandedModules={expandedModules}
                     onToggleModule={toggleModule}
                     onOpenItem={openTaskItem}
-                    completedTaskIds={completedTaskIds}
+                    completedTaskIds={completedTasks}
                     completedQuestionIds={localCompletedQuestionIds}
                 />
             ) : (
