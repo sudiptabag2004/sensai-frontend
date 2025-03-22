@@ -932,7 +932,7 @@ export default function LearnerCourseView({
                                         ((activeItem.questions?.length === 1 && completedTasks[activeItem.id]) ||
                                             (activeItem.questions?.length > 1 && activeQuestionId && completedQuestions[activeQuestionId]))) && (
                                             <button
-                                                className="flex items-center px-4 py-2 text-sm text-white bg-green-700 hover:bg-green-800 rounded-full transition-colors cursor-default"
+                                                className="flex items-center px-4 py-2 text-sm text-white bg-green-700 rounded-full transition-colors cursor-default"
                                                 disabled
                                             >
                                                 <CheckCircle size={16} className="mr-2" />
@@ -942,7 +942,7 @@ export default function LearnerCourseView({
                                     {activeItem?.type === 'material' && (
                                         completedTasks[activeItem?.id] ? (
                                             <button
-                                                className="flex items-center px-4 py-2 text-sm text-white bg-green-700 hover:bg-green-800 rounded-full transition-colors cursor-default"
+                                                className="flex items-center px-4 py-2 text-sm text-white bg-green-700 rounded-full transition-colors cursor-default"
                                                 disabled
                                             >
                                                 <CheckCircle size={16} className="mr-2" />
