@@ -109,11 +109,6 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     // State to track if quiz/exam has questions (for publish/preview button visibility)
     const [hasQuizQuestions, setHasQuizQuestions] = useState(false);
 
-    // Add effect to log when hasQuizQuestions changes
-    useEffect(() => {
-        console.log('hasQuizQuestions updated:', hasQuizQuestions);
-    }, [hasQuizQuestions]);
-
     // Reset quiz preview mode when dialog is closed
     useEffect(() => {
         if (!isOpen) {
