@@ -149,6 +149,79 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
         }
     }, [isOpen, activeItem]);
 
+    // Add a capture phase event listener for Escape key
+    useEffect(() => {
+        // Handler function for keydown events in the capture phase
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // If Escape key is pressed
+            if (e.key === 'Escape') {
+                // Check for active dialog element to ensure dialog is actually open
+                const dialogElement = dialogContentRef.current;
+                if (!dialogElement) return;
+
+                // If close confirmation is already showing, don't do anything
+                if (showCloseConfirmation) {
+                    return;
+                }
+
+                // For published items in view mode, close directly
+                if (activeItem?.status === 'published' && !isEditMode) {
+                    onClose();
+                    return;
+                }
+
+                // Prevent the default behavior and stop propagation
+                e.preventDefault();
+                e.stopPropagation();
+
+                // If we're in edit mode for a published item
+                if (activeItem?.status === 'published') {
+                    // Show the confirmation dialog instead
+                    setConfirmationType('edit');
+                    setShowCloseConfirmation(true);
+                } else {
+                    // Check if the editor/quiz has any content using the appropriate ref
+                    const hasContent = activeItem.type === 'material'
+                        ? learningMaterialEditorRef.current?.hasContent() || false
+                        : quizEditorRef.current?.hasContent() || false;
+
+                    // Check if the title has been changed from default
+                    const titleElement = dialogTitleRef.current;
+                    const currentTitle = titleElement?.textContent || '';
+
+                    // Set default title based on item type
+                    let defaultTitle = "New Learning Material";
+                    if (activeItem.type === 'quiz') defaultTitle = "New Quiz";
+                    if (activeItem.type === 'exam') defaultTitle = "New Exam";
+
+                    const isTitleChanged = currentTitle !== defaultTitle && currentTitle.trim() !== '';
+
+                    // If there's no content and title hasn't changed, close without confirmation   
+                    if (!hasContent && !isTitleChanged) {
+                        if (showPublishConfirmation) {
+                            onSetShowPublishConfirmation(false);
+                        }
+                        onClose();
+                        return;
+                    }
+
+                    // Set confirmation type for draft items
+                    setConfirmationType('draft');
+                    setShowCloseConfirmation(true);
+                    return;
+                }
+            }
+        };
+
+        // Add the event listener in the capture phase to intercept before other handlers
+        document.addEventListener('keydown', handleKeyDown, true);
+
+        // Clean up the event listener when the component unmounts or when dependencies change
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown, true);
+        };
+    }, [activeItem, isEditMode]);
+
     // Bail early if dialog isn't open or there's no active item
     if (!isOpen || !activeItem) return null;
 
