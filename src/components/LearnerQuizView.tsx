@@ -327,10 +327,45 @@ export default function LearnerQuizView({
                 // Track which questions had user messages
                 const questionsWithResponses: Record<string, boolean> = {};
 
-                chatData.forEach((message: any) => {
+                // Process messages sequentially with Promise.all for audio messages
+                await Promise.all(chatData.map(async (message: any) => {
                     const questionId = message.question_id.toString();
                     if (!chatHistoryByQuestion[questionId]) {
                         chatHistoryByQuestion[questionId] = [];
+                    }
+
+                    // For audio messages, fetch the actual audio data
+                    let audioData = undefined;
+                    if (message.response_type === 'audio') {
+                        try {
+                            // Get presigned URL
+                            const file_uuid = message.content;
+                            const presignedResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/presigned-url/get`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ file_uuid })
+                            });
+
+                            if (!presignedResponse.ok) {
+                                throw new Error('Failed to get presigned URL for audio file');
+                            }
+
+                            const { url: presignedUrl } = await presignedResponse.json();
+
+                            // Fetch the audio data using the presigned URL
+                            const audioResponse = await fetch(presignedUrl);
+                            if (!audioResponse.ok) {
+                                throw new Error('Failed to fetch audio data');
+                            }
+
+                            // Convert the audio data to base64
+                            const audioBlob = await audioResponse.blob();
+                            audioData = await blobToBase64(audioBlob);
+                        } catch (error) {
+                            console.error('Error fetching audio data:', error);
+                        }
                     }
 
                     // Convert API message to ChatMessage format
@@ -340,7 +375,7 @@ export default function LearnerQuizView({
                         sender: message.role === 'user' ? 'user' : 'ai',
                         timestamp: new Date(message.created_at),
                         messageType: message.response_type,
-                        audioData: message.response_type === 'audio' ? message.audio_data : undefined
+                        audioData: audioData
                     };
 
                     // Track questions with user responses for exam questions
@@ -349,6 +384,13 @@ export default function LearnerQuizView({
                     }
 
                     chatHistoryByQuestion[questionId].push(chatMessage);
+                }));
+
+                console.log(chatHistoryByQuestion)
+
+                // Sort chat history by timestamp for each question to ensure correct order
+                Object.keys(chatHistoryByQuestion).forEach(questionId => {
+                    chatHistoryByQuestion[questionId].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
                 });
 
                 // Update chat histories state
@@ -380,6 +422,21 @@ export default function LearnerQuizView({
 
         fetchChatHistory();
     }, [isTestMode, userId, validQuestions, isChatHistoryLoaded, taskId, taskType]);
+
+    // Helper function to convert Blob to base64
+    const blobToBase64 = (blob: Blob): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result as string;
+                // Extract the base64 data portion (remove "data:audio/wav;base64," prefix)
+                const base64Data = base64String.split(',')[1];
+                resolve(base64Data);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    };
 
     // Effect to focus the input when the question changes
     useEffect(() => {
@@ -473,12 +530,14 @@ export default function LearnerQuizView({
                 role: "user",
                 content: userMessage.content,
                 response_type: userMessage.messageType,
-                audio_data: userMessage.messageType === 'audio' ? userMessage.audioData : undefined
+                audio_data: userMessage.messageType === 'audio' ? userMessage.audioData : undefined,
+                created_at: userMessage.timestamp
             },
             {
                 role: "assistant",
                 content: aiMessage.feedback,
-                response_type: null
+                response_type: null,
+                created_at: new Date()
             }
         ];
 
@@ -671,7 +730,7 @@ export default function LearnerQuizView({
 
                 try {
                     // First, get a presigned URL for the audio file
-                    const presignedUrlResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/presigned-url`, {
+                    const presignedUrlResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/presigned-url/create`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -726,6 +785,7 @@ export default function LearnerQuizView({
                     console.log('Audio file uploaded successfully to S3');
                     // Update the request body with the file information
                     requestBody.user_response = file_uuid;
+                    userMessage.content = file_uuid || '';
                 } catch (error) {
                     console.error('Error uploading audio to S3:', error);
                     throw error;
@@ -996,7 +1056,7 @@ export default function LearnerQuizView({
                 const base64Data = base64Audio.split(',')[1];
 
                 // Use the shared processing function with audio-specific parameters
-                processUserResponse("🎤 Audio message", 'audio', base64Data);
+                processUserResponse('', 'audio', base64Data);
             };
         } catch (error) {
             console.error("Error processing audio submission:", error);
@@ -1171,7 +1231,7 @@ export default function LearnerQuizView({
                 transitionTimeoutRef.current = null;
             }
         };
-    }, [isAiResponding, currentThinkingMessage, thinkingMessages]);
+    }, [isAiResponding, thinkingMessages]);
 
     // Custom styles for the pulsating animation and hidden scrollbar
     const customStyles = `
@@ -1301,15 +1361,25 @@ export default function LearnerQuizView({
                     <div className="flex-1 flex flex-col px-6 py-6 overflow-hidden">
                         {currentChatHistory.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full w-full">
-                                <h2 className="text-4xl font-light text-white mb-6 text-center">
-                                    {taskType === 'exam' ? 'Ready for a challenge?' : 'Ready to test your knowledge?'}
-                                </h2>
-                                <p className="text-gray-400 text-center max-w-md mx-auto mb-8">
-                                    {taskType === 'exam'
-                                        ? 'Think through your answer, then type it here. You can attempt the question only once. Be careful and confident.'
-                                        : 'Think through your answer, then type it here. You will receive instant feedback and support throughout your journey'
-                                    }
-                                </p>
+                                {!isChatHistoryLoaded && !isTestMode ? (
+                                    // Loading spinner while chat history is loading
+                                    <div className="flex flex-col items-center justify-center">
+                                        <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
+                                    </div>
+                                ) : (
+                                    // Show placeholder text only when history is loaded but empty
+                                    <>
+                                        <h2 className="text-4xl font-light text-white mb-6 text-center">
+                                            {taskType === 'exam' ? 'Ready for a challenge?' : 'Ready to test your knowledge?'}
+                                        </h2>
+                                        <p className="text-gray-400 text-center max-w-md mx-auto mb-8">
+                                            {taskType === 'exam'
+                                                ? 'Think through your answer, then type it here. You can attempt the question only once. Be careful and confident.'
+                                                : 'Think through your answer, then type it here. You will receive instant feedback and support throughout your journey'
+                                            }
+                                        </p>
+                                    </>
+                                )}
                             </div>
                         ) : (
                             <div
@@ -1370,7 +1440,6 @@ export default function LearnerQuizView({
                                         onAudioSubmit={handleAudioSubmit}
                                         isSubmitting={isSubmitting || isAiResponding}
                                         maxDuration={currentQuestionConfig?.audioMaxDuration || 120}
-                                        isDisabled={readOnly}
                                     />
                                 ) : (
                                     /* Original text input */

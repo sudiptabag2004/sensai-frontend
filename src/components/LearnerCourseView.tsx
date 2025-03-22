@@ -210,7 +210,7 @@ export default function LearnerCourseView({
                         blocks: q.blocks || [], // Keep the original blocks property
                         content: q.blocks || [], // Also add as content for compatibility
                         config: {
-                            inputType: 'text',
+                            inputType: q.input_type || 'text',
                             responseStyle: 'coach',
                             evaluationCriteria: [],
                             correctAnswer: q.answer || ''

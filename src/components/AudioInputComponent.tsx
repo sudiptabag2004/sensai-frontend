@@ -393,7 +393,7 @@ export default function AudioInputComponent({
             <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222] px-3 py-2">
                 {/* Record/Play/Stop button */}
                 <button
-                    className="w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center bg-[#222222] text-white hover:bg-[#333333] mr-3"
+                    className="w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center bg-[#222222] text-white hover:bg-[#333333] mr-3 cursor-pointer"
                     onClick={isRecording ? stopRecording : audioBlob ? togglePlayback : startRecording}
                     disabled={isDisabled || isSubmitting}
                     type="button"
