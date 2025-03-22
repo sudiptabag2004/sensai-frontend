@@ -141,7 +141,7 @@ export default function CourseModuleList({
     const [deletingModuleId, setDeletingModuleId] = useState<string | null>(null);
 
     // State to track task deletion confirmation
-    const [taskToDelete, setTaskToDelete] = useState<{ moduleId: string, itemId: string } | null>(null);
+    const [taskToDelete, setTaskToDelete] = useState<{ moduleId: string, itemId: string, itemType?: string } | null>(null);
 
     // Update completedItems when completedTaskIds changes
     useEffect(() => {
@@ -317,6 +317,16 @@ export default function CourseModuleList({
     // Function to cancel module deletion
     const handleCancelModuleDelete = () => {
         setModuleToDelete(null);
+    };
+
+    // Function to get item type name for display
+    const getItemTypeName = (type?: string) => {
+        switch (type) {
+            case 'material': return 'learning material';
+            case 'quiz': return 'quiz';
+            case 'exam': return 'exam';
+            default: return 'task';
+        }
     };
 
     return (
@@ -612,7 +622,11 @@ export default function CourseModuleList({
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if (onDeleteItem) {
-                                                                setTaskToDelete({ moduleId: module.id, itemId: item.id });
+                                                                setTaskToDelete({
+                                                                    moduleId: module.id,
+                                                                    itemId: item.id,
+                                                                    itemType: item.type
+                                                                });
                                                             }
                                                         }}
                                                         className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
@@ -747,9 +761,9 @@ export default function CourseModuleList({
             {/* Task deletion confirmation dialog */}
             <ConfirmationDialog
                 open={taskToDelete !== null}
-                title="Are you sure you want to delete this task?"
-                message="This task will be permanently removed. This action cannot be undone."
-                confirmButtonText="Delete Task"
+                title={`Are you sure you want to delete this ${taskToDelete ? getItemTypeName(taskToDelete.itemType) : 'item'}?`}
+                message={`This ${taskToDelete ? getItemTypeName(taskToDelete.itemType) : 'item'} will be permanently removed. This action cannot be undone.`}
+                confirmButtonText={`Delete ${taskToDelete ? getItemTypeName(taskToDelete.itemType).charAt(0).toUpperCase() + getItemTypeName(taskToDelete.itemType).slice(1) : 'Item'}`}
                 onConfirm={handleConfirmTaskDelete}
                 onCancel={handleCancelTaskDelete}
                 type="delete"
