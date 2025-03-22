@@ -461,7 +461,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
 
                     {/* Dialog Content */}
                     <div
-                        className="flex-1 overflow-y-auto p-6 dialog-content-editor"
+                        className="flex-1 overflow-y-auto dialog-content-editor"
                         onClick={(e) => {
                             // Ensure the click event doesn't bubble up
                             e.stopPropagation();
