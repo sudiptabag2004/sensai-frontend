@@ -26,8 +26,10 @@ export default function CreateSchool() {
     // Check if user already has a school and redirect if they do
     useEffect(() => {
         if (schools && schools.length > 0) {
-            const existingSchoolId = schools[0].id;
-            router.push(`/school/admin/${existingSchoolId}`);
+            const ownedSchool = schools.find(school => school.role === 'owner');
+            if (ownedSchool) {
+                router.push(`/school/admin/${ownedSchool.id}`);
+            }
         }
     }, [schools, router]);
 

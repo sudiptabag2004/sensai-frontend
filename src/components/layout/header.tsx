@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useSchools } from "@/lib/api";
 import CreateCourseDialog from "@/components/CreateCourseDialog";
+import SchoolPickerDialog from "@/components/SchoolPickerDialog";
 import { ChevronDown } from "lucide-react";
 
 interface Cohort {
@@ -35,16 +36,17 @@ export function Header({
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const [cohortDropdownOpen, setCohortDropdownOpen] = useState(false);
     const [isCreateCourseDialogOpen, setIsCreateCourseDialogOpen] = useState(false);
+    const [isSchoolPickerOpen, setIsSchoolPickerOpen] = useState(false);
     const profileMenuRef = useRef<HTMLDivElement>(null);
     const cohortDropdownRef = useRef<HTMLDivElement>(null);
     const { schools, isLoading } = useSchools();
 
     // Check if user has a school they own (role admin)
     const hasOwnedSchool = Boolean(schools && schools.length > 0 &&
-        schools.some(school => school.role === 'owner'));
+        schools.some(school => school.role === 'owner' || school.role === 'admin'));
 
-    // Use the first owned school or just first school as fallback
-    const ownedSchool = schools?.find(school => school.role === 'owner');
+    // Use the first owned/admin school or just first school as fallback
+    const ownedSchool = schools?.find(school => school.role === 'owner' || school.role === 'admin');
     const schoolId = ownedSchool?.id || (schools && schools.length > 0 ? schools[0].id : null);
 
     // Close the profile menu when clicking outside
@@ -92,13 +94,31 @@ export function Header({
 
     // Handle button click based on school ownership
     const handleButtonClick = (e: React.MouseEvent) => {
-        if (hasOwnedSchool && schoolId) {
-            // If user has a school they own, go to school admin page
-            router.push(`/school/admin/${schoolId}`);
-        } else {
-            // Otherwise go to school creation page
+        // If no schools, redirect to school creation
+        if (!schools || schools.length === 0) {
             router.push("/school/admin/create");
+            return;
         }
+
+        // If exactly one school and user is owner, go directly to that school
+        if (schools.length === 1 && (schools[0].role === 'owner')) {
+            router.push(`/school/admin/${schools[0].id}`);
+            return;
+        }
+
+        // Otherwise show the school picker dialog
+        setIsSchoolPickerOpen(true);
+    };
+
+    // Handle selecting a school from the picker
+    const handleSelectSchool = (selectedSchoolId: string) => {
+        router.push(`/school/admin/${selectedSchoolId}`);
+        setIsSchoolPickerOpen(false);
+    };
+
+    // Handle creating a new school
+    const handleCreateSchool = () => {
+        router.push("/school/admin/create");
     };
 
     // Handle creating a new course with the provided name
@@ -261,6 +281,17 @@ export function Header({
                 onClose={() => setIsCreateCourseDialogOpen(false)}
                 onCreateCourse={handleCreateCourse}
             />
+
+            {/* School Picker Dialog */}
+            {schools && (
+                <SchoolPickerDialog
+                    open={isSchoolPickerOpen}
+                    onClose={() => setIsSchoolPickerOpen(false)}
+                    schools={schools}
+                    onSelectSchool={handleSelectSchool}
+                    onCreateSchool={handleCreateSchool}
+                />
+            )}
         </header>
     );
 } 
