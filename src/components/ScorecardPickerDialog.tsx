@@ -3,6 +3,7 @@ import { X, Plus, Check, Sparkles, FileText } from 'lucide-react';
 
 interface CriterionData {
     name: string;
+    description: string;
     maxScore: number;
 }
 
@@ -10,7 +11,6 @@ interface ScorecardTemplate {
     id: string;
     name: string;
     icon: React.ReactNode;
-    categories?: string[];
     description?: string;
     criteria?: CriterionData[];
 }
@@ -80,7 +80,7 @@ const TemplatePreview: React.FC<{ template: ScorecardTemplate; templateElement: 
     return (
         <div className="absolute z-[60] w-[350px] bg-[#2F2F2F] rounded-lg shadow-xl p-2" style={previewStyle}>
             {/* Header with title */}
-            <div className="p-5 pb-3 bg-[#1F1F1F]">
+            <div className="p-5 pb-3 bg-[#1F1F1F] mb-2">
                 <div className="flex items-center mb-4">
                     <div className="w-6 h-6 bg-[#712828] rounded flex items-center justify-center mr-2">
                         {template.icon}
@@ -110,7 +110,7 @@ const TemplatePreview: React.FC<{ template: ScorecardTemplate; templateElement: 
             </div>
 
             {/* Description text */}
-            <p className="text-white text-sm font-normal p-2">{description}</p>
+            <p className="text-white text-sm font-normal px-1">{description}</p>
         </div>
     );
 };
@@ -128,40 +128,64 @@ const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
     // Define template options with updated properties
     const templates: ScorecardTemplate[] = [
         {
-            id: 'critical-thinking',
-            name: 'Critical Thinking',
+            id: 'written-communication',
+            name: 'Written Communication',
             icon: <Check size={16} className="text-white" />,
-            categories: ['Analysis', 'Evaluation', 'Inference', 'Problem-solving'],
-            description: "Develop critical thinking skills systematically",
+            description: "Assess written communication skills",
             criteria: [
-                { name: "Analysis", maxScore: 5 },
-                { name: "Evaluation", maxScore: 5 },
-                { name: "Inference", maxScore: 5 }
+                { name: "Relevance", description: "How relevant is the content to the task?", maxScore: 5 },
+                { name: "Grammar", description: "How grammatically correct is the content? Check for grammar, punctuation, syntax and tense errors.", maxScore: 5 },
+                { name: "Clarity", description: "How clear is the content? Check for structure, organization, and readability.", maxScore: 5 }
             ]
         },
         {
-            id: 'creativity',
-            name: 'Creativity',
+            id: 'interview-prep',
+            name: 'Interview Preparation',
             icon: <Sparkles size={16} className="text-white" />,
-            categories: ['Originality', 'Fluency', 'Flexibility', 'Elaboration'],
-            description: "Foster creative thinking and innovation",
+            description: "Assess the quality of interviewing skills",
             criteria: [
-                { name: "Originality", maxScore: 5 },
-                { name: "Fluency", maxScore: 5 },
-                { name: "Flexibility", maxScore: 5 }
+                { name: "Relevance", description: "How relevant is the content to the question posed to them?", maxScore: 5 },
+                { name: "Fluency", description: "How fluently does the candidate speak? Their pace should be neither slow nor fast but at a regular speaking speed. They should not use filler speech or pause frequently.", maxScore: 5 },
+                { name: "Confidence", description: "How confident does the candidate sound? The tone should be confident and not hesitant. Check for nervous pauses or stutters.", maxScore: 5 },
+                { name: "Pronunciation", description: "How well does the candidate pronounce the words? Their pronunciation should be clear and coherent. The words must be intelligible.", maxScore: 5 }
             ]
         },
         {
-            id: 'issue-tracking',
-            name: 'Issue Tracking',
-            icon: <Check size={16} className="text-white" />,
-            description: "Resolve issues and feedback fast",
+            id: 'product-pitch',
+            name: 'Product Pitch',
+            icon: <Sparkles size={16} className="text-white" />,
+            description: "Assess a product pitch",
             criteria: [
-                { name: "Priority", maxScore: 5 },
-                { name: "Status", maxScore: 5 },
-                { name: "Resolution", maxScore: 5 }
+                { name: "Problem", description: "How clearly does the pitch identify the problem being solved?", maxScore: 5 },
+                { name: "Value", description: "How compelling is the value proposition for the target audience?", maxScore: 5 },
+                { name: "Clarity", description: "How clear and concise is the overall pitch?", maxScore: 5 },
+                { name: "Engagement", description: "How engaging and persuasive is the delivery of the pitch?", maxScore: 5 },
+                { name: "Market Fit", description: "How well does the pitch demonstrate product-market fit?", maxScore: 5 }
             ]
         },
+        // {
+        //     id: 'written-communication2',
+        //     name: 'Written Communication',
+        //     icon: <Check size={16} className="text-white" />,
+        //     description: "Assess the quality of written communication",
+        //     criteria: [
+        //         { name: "Relevance", description: "How relevant is the content to the task?", maxScore: 5 },
+        //         { name: "Grammar", description: "How grammatically correct is the content? Check for grammar, punctuation, syntax and tense errors.", maxScore: 5 },
+        //         { name: "Clarity", description: "How clear is the content? Check for structure, organization, and readability.", maxScore: 5 }
+        //     ]
+        // },
+        // {
+        //     id: 'interview-prep3',
+        //     name: 'Interview Preparation',
+        //     icon: <Sparkles size={16} className="text-white" />,
+        //     description: "Assess the quality of interviewing skills",
+        //     criteria: [
+        //         { name: "Relevance", description: "How relevant is the content to the question posed to them?", maxScore: 5 },
+        //         { name: "Fluency", description: "How fluently does the candidate speak? Their pace should be neither slow nor fast but at a regular speaking speed. They should not use filler speech or pause frequently.", maxScore: 5 },
+        //         { name: "Confidence", description: "How confident does the candidate sound? The tone should be confident and not hesitant. Check for nervous pauses or stutters.", maxScore: 5 },
+        //         { name: "Pronunciation", description: "How well does the candidate pronounce the words? Their pronunciation should be clear and coherent. The words must be intelligible.", maxScore: 5 }
+        //     ]
+        // },
     ];
 
     // Simpler approach: create a ref and track DOM element
