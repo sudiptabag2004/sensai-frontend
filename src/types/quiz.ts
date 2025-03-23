@@ -1,4 +1,4 @@
-import { CriterionData } from "../components/ScorecardPickerDialog";
+import { CriterionData, ScorecardTemplate } from "../components/ScorecardPickerDialog";
 
 export interface QuizEditorHandle {
     save: () => Promise<void>;
@@ -15,12 +15,7 @@ export interface QuizQuestionConfig {
     codeLanguage?: string; // For code input type
     audioMaxDuration?: number; // For audio input type in seconds
     questionType?: 'default' | 'open-ended' | 'coding';
-    scorecardData?: {
-        id?: string;
-        name: string;
-        criteria: CriterionData[];
-        description?: string;
-    };
+    scorecardData?: ScorecardTemplate;
 }
 
 export interface QuizQuestion {

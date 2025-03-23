@@ -8,6 +8,7 @@ interface ScorecardProps {
     criteria: CriterionData[];
     onDelete?: () => void;
     readOnly?: boolean;
+    linked: boolean;
     onChange?: (criteria: CriterionData[]) => void;
     onNameChange?: (newName: string) => void;
 }
@@ -27,6 +28,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
     criteria,
     onDelete,
     readOnly = false,
+    linked = false,
     onChange,
     onNameChange
 }, ref) => {
@@ -39,7 +41,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
     // Expose the focusName method to parent components
     useImperativeHandle(ref, () => ({
         focusName: () => {
-            if (nameRef.current && !readOnly) {
+            if (nameRef.current && !readOnly && !linked) {
                 nameRef.current.focus();
                 // Select all text to make it easy to replace
                 nameRef.current.select();
@@ -49,7 +51,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
     // Function to add a new criterion
     const handleAddCriterion = () => {
-        if (readOnly || !onChange) return;
+        if (readOnly || linked || !onChange) return;
 
         const newCriterion: CriterionData = {
             name: '',
@@ -63,7 +65,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
     // Function to delete a criterion by index
     const handleDeleteCriterion = (indexToDelete: number) => {
-        if (readOnly || !onChange) return;
+        if (readOnly || linked || !onChange) return;
 
         const updatedCriteria = criteria.filter((_, index) => index !== indexToDelete);
         onChange(updatedCriteria);
@@ -71,7 +73,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
     // Function to start editing a cell
     const startEditing = (rowIndex: number, field: 'name' | 'description' | 'maxScore') => {
-        if (readOnly) return;
+        if (readOnly || linked) return;
 
         const value = field === 'maxScore'
             ? criteria[rowIndex].maxScore.toString()
@@ -126,10 +128,14 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                         ref={nameRef}
                         type="text"
                         defaultValue={name}
-                        readOnly={readOnly}
+                        readOnly={readOnly || linked}
                         placeholder="Scorecard Name"
-                        className="text-white text-lg font-normal bg-transparent border-none outline-none focus:border-b focus:border-white/50 w-full max-w-full"
-                        style={{ caretColor: 'white' }}
+                        className={`text-white text-lg font-normal bg-transparent outline-none w-full max-w-full ${readOnly || linked ? 'scorecard-title-disabled' : ''}`}
+                        style={{
+                            caretColor: 'white',
+                            outline: 'none',
+                            boxShadow: 'none'
+                        }}
                         onBlur={(e) => onNameChange && onNameChange(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && onNameChange) {
@@ -185,7 +191,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                         />
                                     ) : (
                                         <span
-                                            className={`inline-block px-2 py-0.5 rounded-full text-xs text-white ${!readOnly ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                            className={`inline-block px-2 py-0.5 rounded-full text-xs text-white ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80' : ''}`}
                                             style={{ backgroundColor: pillColor }}
                                             onClick={() => startEditing(index, 'name')}
                                         >
@@ -209,7 +215,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                         />
                                     ) : (
                                         <span
-                                            className={`block truncate text-sm ${!readOnly ? 'cursor-pointer hover:opacity-80' : ''} ${criterion.description ? '' : 'text-gray-500'}`}
+                                            className={`block truncate text-sm ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80' : ''} ${criterion.description ? '' : 'text-gray-500'}`}
                                             onClick={() => startEditing(index, 'description')}
                                         >
                                             {criterion.description || 'Click to add description'}
@@ -234,7 +240,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                         />
                                     ) : (
                                         <span
-                                            className={`block ${!readOnly ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                            className={`block ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80' : ''}`}
                                             onClick={() => startEditing(index, 'maxScore')}
                                         >
                                             {criterion.maxScore}
@@ -244,7 +250,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
                                 {/* Delete Button Cell */}
                                 <div className="flex items-center justify-center">
-                                    {!readOnly && criteria.length > 1 && (
+                                    {!readOnly && !linked && criteria.length > 1 && (
                                         <button
                                             onClick={() => handleDeleteCriterion(index)}
                                             className="p-1 rounded-full hover:bg-[#4F2828] text-gray-500 hover:text-red-300 transition-colors cursor-pointer"
@@ -276,13 +282,12 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                 </div>
 
                 {/* Add Criterion button - now below the criteria rows */}
-                {!readOnly && (
+                {!readOnly && !linked && (
                     <div className="flex justify-center mt-3">
                         <button
                             onClick={handleAddCriterion}
                             className="flex items-center px-4 py-2 rounded-full bg-[#2A2A2A] hover:bg-[#2A4A3A] text-gray-300 hover:text-green-300 transition-colors cursor-pointer"
                             aria-label="Add criterion"
-                            disabled={readOnly}
                         >
                             <Plus size={14} className="mr-1" />
                             <span className="text-sm">Add</span>

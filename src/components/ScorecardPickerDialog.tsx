@@ -16,6 +16,8 @@ interface Scorecard {
 export interface ScorecardTemplate extends Scorecard {
     icon?: React.ReactNode;
     description?: string;
+    is_template?: boolean; // Identifies hard-coded templates
+    new?: boolean; // Identifies user-created scorecards in current session
 }
 
 interface ScorecardTemplatesDialogProps {
@@ -154,6 +156,7 @@ const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
             name: 'Written Communication',
             icon: <Check size={16} className="text-white" />,
             description: "Assess written communication skills",
+            is_template: true, // This is a hard-coded template
             criteria: [
                 { name: "Relevance", description: "How relevant is the content to the task?", maxScore: 5 },
                 { name: "Grammar", description: "How grammatically correct is the content? Check for grammar, punctuation, syntax and tense errors.", maxScore: 5 },
@@ -165,6 +168,7 @@ const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
             name: 'Interview Preparation',
             icon: <Sparkles size={16} className="text-white" />,
             description: "Assess the quality of interviewing skills",
+            is_template: true, // This is a hard-coded template
             criteria: [
                 { name: "Relevance", description: "How relevant is the content to the question posed to them?", maxScore: 5 },
                 { name: "Fluency", description: "How fluently does the candidate speak? Their pace should be neither slow nor fast but at a regular speaking speed. They should not use filler speech or pause frequently.", maxScore: 5 },
@@ -177,6 +181,7 @@ const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
             name: 'Product Pitch',
             icon: <Sparkles size={16} className="text-white" />,
             description: "Assess a product pitch",
+            is_template: true, // This is a hard-coded template
             criteria: [
                 { name: "Problem", description: "How clearly does the pitch identify the problem being solved?", maxScore: 5 },
                 { name: "Value", description: "How compelling is the value proposition for the target audience?", maxScore: 5 },

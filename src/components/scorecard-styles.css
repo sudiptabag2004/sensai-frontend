@@ -14,3 +14,9 @@
     min-height: 28px;
     padding: 0 2px;
 }
+
+.scorecard-title-disabled:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: rgba(255, 255, 255, 0) !important;
+}

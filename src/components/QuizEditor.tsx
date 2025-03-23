@@ -131,6 +131,8 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                             id: scorecard.id.toString(),
                             name: scorecard.title,
                             icon: <FileText size={16} className="text-white" />,
+                            is_template: false, // Not a hard-coded template
+                            new: false, // Not newly created in this session
                             criteria: scorecard.criteria.map((criterion: ScorecardCriterion) => ({
                                 name: criterion.name,
                                 description: criterion.description,
@@ -362,6 +364,8 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         const newScorecardData: ScorecardTemplate = {
             id: crypto.randomUUID(), // Generate a unique UUID for the scorecard
             name: "New Scorecard",
+            new: true, // Mark as newly created in this session
+            is_template: false, // Not a template
             criteria: [
                 { name: '', description: '', maxScore: 5 }
             ]
@@ -370,7 +374,6 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         handleConfigChange({
             scorecardData: newScorecardData
         });
-
 
         setSchoolScorecards(prev => [...prev, newScorecardData]);
 
@@ -393,23 +396,30 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         const newScorecardData: ScorecardTemplate = {
             id: crypto.randomUUID(),
             name: template.name,
+            new: template.is_template, // Only mark as new if it's created from a template
+            is_template: false,
             criteria: template.criteria || [],
-        }
+        };
 
         // Add the template data to the question's config
         handleConfigChange({
             scorecardData: newScorecardData
         });
 
-        setSchoolScorecards(prev => [...prev, newScorecardData]);
+        // Only add to school scorecards if it's a new scorecard created from a template
+        if (template.is_template) {
+            setSchoolScorecards(prev => [...prev, newScorecardData]);
+        }
 
         // Switch to the scorecard tab
         setActiveEditorTab('scorecard');
 
-        // Focus on the scorecard title after a short delay to allow rendering
-        setTimeout(() => {
-            scorecardRef.current?.focusName();
-        }, 100);
+        // Focus on the scorecard title after a short delay to allow rendering, but only if it's a new scorecard
+        if (template.is_template) {
+            setTimeout(() => {
+                scorecardRef.current?.focusName();
+            }, 100);
+        }
     };
 
     // Function to set the editor reference
@@ -704,31 +714,41 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
                 console.log(question.config.scorecardData)
                 let scorecard = null
-                if (question.config.scorecardData) {
-                    scorecard = {
-                        id: question.config.scorecardData.id,
-                        title: question.config.scorecardData.name,
-                        criteria: question.config.scorecardData.criteria.map(criterion => ({
-                            name: criterion.name,
-                            description: criterion.description,
-                            min_score: 1,
-                            max_score: criterion.maxScore
-                        }))
-                    }
-                }
+                let scorecardId = null
 
-                return {
-                    blocks: question.content,
-                    answer: correctAnswerText,
-                    input_type: inputType,
-                    response_type: questionType === 'open-ended' ? "report" : "chat",
-                    coding_languages: null,
-                    generation_model: null,
-                    type: questionType === 'open-ended' ? 'subjective' : 'objective',
-                    max_attempts: taskType === 'exam' ? 1 : null,
-                    is_feedback_shown: taskType === 'exam' ? false : true,
-                    scorecard: scorecard
-                };
+                if (question.config.scorecardData) {
+                    // Use our helper function to determine if this is an API scorecard
+                    const isExistingScorecard = isPublishedScorecard(question.config.scorecardData);
+
+                    if (isExistingScorecard) {
+                        scorecardId = question.config.scorecardData.id
+                    } else {
+                        scorecard = {
+                            id: question.config.scorecardData.id,
+                            title: question.config.scorecardData.name,
+                            criteria: question.config.scorecardData.criteria.map(criterion => ({
+                                name: criterion.name,
+                                description: criterion.description,
+                                min_score: 1,
+                                max_score: criterion.maxScore
+                            }))
+                        }
+                    }
+
+                    return {
+                        blocks: question.content,
+                        answer: correctAnswerText,
+                        input_type: inputType,
+                        response_type: questionType === 'open-ended' ? "report" : "chat",
+                        coding_languages: null,
+                        generation_model: null,
+                        type: questionType === 'open-ended' ? 'subjective' : 'objective',
+                        max_attempts: taskType === 'exam' ? 1 : null,
+                        is_feedback_shown: taskType === 'exam' ? false : true,
+                        scorecard: scorecard,
+                        scorecard_id: scorecardId
+                    };
+                }
             });
 
             console.log("Publishing quiz with title:", currentTitle);
@@ -990,6 +1010,12 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
     // State for tracking active tab (question or answer)
     const [activeEditorTab, setActiveEditorTab] = useState<'question' | 'answer' | 'scorecard'>('question');
+
+    // Helper function to check if a scorecard is a published scorecard
+    const isPublishedScorecard = (scorecardData: ScorecardTemplate): boolean => {
+        // published scorecards are those that are already part of the school and fetched from api
+        return scorecardData && !scorecardData.new && !scorecardData.is_template;
+    };
 
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
@@ -1259,11 +1285,13 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                 criteria={currentQuestionConfig.scorecardData?.criteria || []}
                                                 onDelete={() => setShowScorecardDeleteConfirm(true)}
                                                 readOnly={status === 'published'}
+                                                linked={isPublishedScorecard(currentQuestionConfig.scorecardData)}
                                                 onNameChange={(newName) => {
-                                                    const currentScorecardData = currentQuestionConfig.scorecardData || {
-                                                        name: scorecardTitle,
-                                                        criteria: []
-                                                    };
+                                                    if (!currentQuestionConfig.scorecardData) {
+                                                        return;
+                                                    }
+
+                                                    const currentScorecardData = currentQuestionConfig.scorecardData;
 
                                                     // Update the title of the current scorecard
                                                     const updatedScorecardData = {
@@ -1291,6 +1319,10 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                     }
                                                 }}
                                                 onChange={(updatedCriteria) => {
+                                                    if (!currentQuestionConfig.scorecardData) {
+                                                        return;
+                                                    }
+
                                                     const currentScorecardData = currentQuestionConfig.scorecardData || {
                                                         name: scorecardTitle,
                                                         criteria: []
