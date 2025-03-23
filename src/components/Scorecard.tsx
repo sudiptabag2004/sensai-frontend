@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, forwardRef, useImperativeHandle, useState } from 'react';
 import { Trash2, Plus, X } from 'lucide-react';
 import { CriterionData } from './ScorecardPickerDialog';
 import './scorecard-styles.css'; // We'll create this CSS file
@@ -15,6 +15,12 @@ export interface ScorecardHandle {
     focusTitle: () => void;
 }
 
+// Interface to track which cell is being edited
+interface EditingCell {
+    rowIndex: number;
+    field: 'name' | 'description' | 'maxScore';
+}
+
 const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
     title,
     criteria,
@@ -23,6 +29,10 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
     onChange
 }, ref) => {
     const titleRef = useRef<HTMLInputElement>(null);
+    // State to track which cell is being edited
+    const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
+    // State to track the current value being edited
+    const [editValue, setEditValue] = useState<string>('');
 
     // Expose the focusTitle method to parent components
     useImperativeHandle(ref, () => ({
@@ -55,6 +65,54 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
         const updatedCriteria = criteria.filter((_, index) => index !== indexToDelete);
         onChange(updatedCriteria);
+    };
+
+    // Function to start editing a cell
+    const startEditing = (rowIndex: number, field: 'name' | 'description' | 'maxScore') => {
+        if (readOnly) return;
+
+        const value = field === 'maxScore'
+            ? criteria[rowIndex].maxScore.toString()
+            : criteria[rowIndex][field] || '';
+
+        setEditingCell({ rowIndex, field });
+        setEditValue(value);
+    };
+
+    // Function to save changes when editing is complete
+    const saveChanges = () => {
+        if (!editingCell || !onChange) return;
+
+        const { rowIndex, field } = editingCell;
+        const updatedCriteria = [...criteria];
+
+        if (field === 'maxScore') {
+            // Convert to number and validate
+            const numberValue = parseInt(editValue, 10);
+            if (!isNaN(numberValue) && numberValue >= 0) {
+                updatedCriteria[rowIndex] = {
+                    ...updatedCriteria[rowIndex],
+                    maxScore: numberValue
+                };
+            }
+        } else {
+            updatedCriteria[rowIndex] = {
+                ...updatedCriteria[rowIndex],
+                [field]: editValue
+            };
+        }
+
+        onChange(updatedCriteria);
+        setEditingCell(null);
+    };
+
+    // Handle key press events in the edit inputs
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            saveChanges();
+        } else if (e.key === 'Escape') {
+            setEditingCell(null);
+        }
     };
 
     return (
@@ -102,20 +160,79 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
                         return (
                             <div key={index} style={{ display: 'grid', gridTemplateColumns: '25% 55% 10% 10%' }} className="gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
+                                {/* Criterion Name Cell */}
                                 <div className="px-2 py-1 text-sm flex items-center">
-                                    <span
-                                        className="inline-block px-2 py-0.5 rounded-full text-xs text-white"
-                                        style={{ backgroundColor: pillColor }}
-                                    >
-                                        {criterion.name}
-                                    </span>
+                                    {editingCell?.rowIndex === index && editingCell.field === 'name' ? (
+                                        <input
+                                            type="text"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            onBlur={saveChanges}
+                                            onKeyDown={handleKeyDown}
+                                            autoFocus
+                                            className="bg-[#333] rounded w-full text-xs p-1 outline-none"
+                                            style={{ caretColor: 'white' }}
+                                        />
+                                    ) : (
+                                        <span
+                                            className={`inline-block px-2 py-0.5 rounded-full text-xs text-white ${!readOnly ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                            style={{ backgroundColor: pillColor }}
+                                            onClick={() => startEditing(index, 'name')}
+                                        >
+                                            {criterion.name || 'New Criterion'}
+                                        </span>
+                                    )}
                                 </div>
+
+                                {/* Description Cell */}
                                 <div className="px-2 py-1 text-sm">
-                                    {criterion.description || ""}
+                                    {editingCell?.rowIndex === index && editingCell.field === 'description' ? (
+                                        <input
+                                            type="text"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            onBlur={saveChanges}
+                                            onKeyDown={handleKeyDown}
+                                            autoFocus
+                                            className="bg-[#333] rounded w-full text-sm p-1 outline-none"
+                                            style={{ caretColor: 'white' }}
+                                        />
+                                    ) : (
+                                        <span
+                                            className={`block truncate text-sm ${!readOnly ? 'cursor-pointer hover:opacity-80' : ''} ${criterion.description ? '' : 'text-gray-500'}`}
+                                            onClick={() => startEditing(index, 'description')}
+                                        >
+                                            {criterion.description || 'Click to add description'}
+                                        </span>
+                                    )}
                                 </div>
+
+                                {/* Max Score Cell */}
                                 <div className="px-2 py-1 text-sm text-center">
-                                    {criterion.maxScore}
+                                    {editingCell?.rowIndex === index && editingCell.field === 'maxScore' ? (
+                                        <input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            onBlur={saveChanges}
+                                            onKeyDown={handleKeyDown}
+                                            autoFocus
+                                            min="0"
+                                            max="100"
+                                            className="bg-[#333] rounded w-full text-xs p-1 outline-none text-center"
+                                            style={{ caretColor: 'white' }}
+                                        />
+                                    ) : (
+                                        <span
+                                            className={`block ${!readOnly ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                            onClick={() => startEditing(index, 'maxScore')}
+                                        >
+                                            {criterion.maxScore}
+                                        </span>
+                                    )}
                                 </div>
+
+                                {/* Delete Button Cell */}
                                 <div className="flex items-center justify-center">
                                     {!readOnly && criteria.length > 1 && (
                                         <button
