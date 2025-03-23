@@ -3,9 +3,9 @@
 import { useRef, useEffect, useState } from "react";
 import { Sparkles, Check, X, Pencil, Eye, Edit2 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { QuizQuestion } from "./QuizEditor";
+import { QuizQuestion } from "../types";
 import type { LearningMaterialEditorHandle } from "./LearningMaterialEditor";
-import type { QuizEditorHandle } from "./QuizEditor";
+import type { QuizEditorHandle } from "../types";
 import Toast from "./Toast";
 import ConfirmationDialog from "./ConfirmationDialog";
 
@@ -63,6 +63,7 @@ interface CourseItemDialogProps {
     onDialogTitleChange: (e: React.FormEvent<HTMLHeadingElement>) => void;
     onQuizContentChange: (questions: QuizQuestion[]) => void;
     focusEditor: () => void;
+    schoolId?: string; // Add schoolId prop
 }
 
 const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
@@ -84,6 +85,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
     onDialogTitleChange,
     onQuizContentChange,
     focusEditor,
+    schoolId,
 }) => {
     // Add refs for the editor components
     const learningMaterialEditorRef = useRef<LearningMaterialEditorHandle>(null);
@@ -674,6 +676,7 @@ const CourseItemDialog: React.FC<CourseItemDialogProps> = ({
                                     // Hide the publish confirmation dialog
                                     onSetShowPublishConfirmation(false);
                                 }}
+                                schoolId={schoolId}
                             />
                         ) : null}
                     </div>

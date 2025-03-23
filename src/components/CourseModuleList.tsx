@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronUp, ChevronDown, ChevronRight, ChevronDown as ChevronDownExpand, Plus, BookOpen, HelpCircle, Trash, Clipboard, Check } from "lucide-react";
 import { Module, ModuleItem } from "@/types/course";
-import { QuizQuestion } from "@/components/QuizEditor"; // Import needed types directly
+import { QuizQuestion } from "@/types/quiz"; // Import from types instead
 import CourseItemDialog from "@/components/CourseItemDialog";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import Tooltip from "@/components/Tooltip"; // Import the Tooltip component
@@ -68,6 +68,7 @@ interface CourseModuleListProps {
     cancelModuleEditing?: (moduleId: string) => void; // Function to cancel module title editing
     completedTaskIds?: Record<string, boolean>; // Added prop for completed task IDs
     completedQuestionIds?: Record<string, Record<string, boolean>>; // Add prop for partially completed quiz/exam questions
+    schoolId?: string; // Add school ID for fetching scorecards
 
     // Dialog-related props
     isDialogOpen?: boolean;
@@ -107,6 +108,7 @@ export default function CourseModuleList({
     cancelModuleEditing = () => { }, // Default empty function
     completedTaskIds = {}, // Default empty object for completed task IDs
     completedQuestionIds = {}, // Default empty object for completed question IDs
+    schoolId,
 
     // Dialog-related props
     isDialogOpen = false,
@@ -757,6 +759,7 @@ export default function CourseModuleList({
                 onDialogTitleChange={handleDialogTitleChange}
                 onQuizContentChange={handleQuizContentChange}
                 focusEditor={focusEditor}
+                schoolId={schoolId}
             />
 
             {/* Module deletion confirmation dialog */}

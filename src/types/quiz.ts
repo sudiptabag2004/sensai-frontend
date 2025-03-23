@@ -16,7 +16,8 @@ export interface QuizQuestionConfig {
     audioMaxDuration?: number; // For audio input type in seconds
     questionType?: 'default' | 'open-ended' | 'coding';
     scorecardData?: {
-        title: string;
+        id?: string;
+        name: string;
         criteria: CriterionData[];
         description?: string;
     };
@@ -48,6 +49,14 @@ export interface QuizEditorProps {
     onQuestionChange?: (questionId: string) => void;
     onSubmitAnswer?: (questionId: string, answer: string) => void;
     userId?: string;
+    schoolId?: string; // ID of the school for fetching school-specific scorecards
+}
+
+export interface ScorecardCriterion {
+    name: string;
+    description: string;
+    min_score: number;
+    max_score: number;
 }
 
 // Define the API response question interface
@@ -58,4 +67,16 @@ export interface APIQuestionResponse {
     type: string;
     input_type: string;
     response_type: string;
+    scorecard_id?: number;
+    scorecard?: {
+        id: number;
+        title: string;
+        criteria: {
+            id: number;
+            name: string;
+            description: string;
+            min_score: number;
+            max_score: number;
+        }[];
+    };
 } 

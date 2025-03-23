@@ -27,7 +27,7 @@ const DynamicQuizEditor = dynamic(
 );
 
 // Import the QuizQuestion type
-import { QuizQuestion, QuizQuestionConfig } from "../../../../../../components/QuizEditor";
+import { QuizQuestion, QuizQuestionConfig } from "../../../../../../types/quiz";
 
 // Define interfaces
 interface Milestone {
@@ -1842,6 +1842,7 @@ export default function CreateCourse() {
                             setShowPublishConfirmation={setShowPublishConfirmation}
                             saveModuleTitle={saveModuleTitle}
                             cancelModuleEditing={cancelModuleEditing}
+                            schoolId={schoolId}
                         />
                     </div>
 

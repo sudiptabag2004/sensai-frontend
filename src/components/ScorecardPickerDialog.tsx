@@ -7,12 +7,15 @@ export interface CriterionData {
     maxScore: number;
 }
 
-export interface ScorecardTemplate {
+interface Scorecard {
     id: string;
     name: string;
-    icon: React.ReactNode;
+    criteria: CriterionData[];
+}
+
+export interface ScorecardTemplate extends Scorecard {
+    icon?: React.ReactNode;
     description?: string;
-    criteria?: CriterionData[];
 }
 
 interface ScorecardTemplatesDialogProps {
@@ -21,10 +24,11 @@ interface ScorecardTemplatesDialogProps {
     onCreateNew: () => void;
     onSelectTemplate: (template: ScorecardTemplate) => void;
     position?: { top: number; left: number };
+    schoolScorecards?: ScorecardTemplate[]; // New prop for school-specific scorecards
 }
 
 // Preview component to show on hover - now matching the Issue Tracking design
-const TemplatePreview: React.FC<{ template: ScorecardTemplate; templateElement: HTMLDivElement | null }> = ({ template, templateElement }) => {
+const TemplatePreview: React.FC<{ template: ScorecardTemplate; templateElement: HTMLDivElement | null; type?: 'user' | 'standard' }> = ({ template, templateElement, type = 'standard' }) => {
     // Get the template-specific data or use defaults
     const getStatusPills = () => {
         if (template.id === 'issue-tracking') {
@@ -79,12 +83,14 @@ const TemplatePreview: React.FC<{ template: ScorecardTemplate; templateElement: 
 
     return (
         <div className="absolute z-[60] w-[350px] bg-[#2F2F2F] rounded-lg shadow-xl p-2" style={previewStyle}>
-            {/* Header with title */}
+            {/* Header with name */}
             <div className="p-5 pb-3 bg-[#1F1F1F] mb-2">
                 <div className="flex items-center mb-4">
-                    <div className="w-6 h-6 bg-[#712828] rounded flex items-center justify-center mr-2">
-                        {template.icon}
-                    </div>
+                    {type === 'standard' && (
+                        <div className="w-6 h-6 bg-[#712828] rounded flex items-center justify-center mr-2">
+                            {template.icon}
+                        </div>
+                    )}
                     <h3 className="text-white text-lg font-normal">{template.name}</h3>
                 </div>
 
@@ -122,8 +128,10 @@ const TemplatePreview: React.FC<{ template: ScorecardTemplate; templateElement: 
                 </div>
             </div>
 
-            {/* Description text */}
-            <p className="text-white text-sm font-normal px-1">{description}</p>
+            {/* Description text - only shown for standard type */}
+            {type === 'standard' && (
+                <p className="text-white text-sm font-normal px-1">{description}</p>
+            )}
         </div>
     );
 };
@@ -133,7 +141,8 @@ const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
     onClose,
     onCreateNew,
     onSelectTemplate,
-    position
+    position,
+    schoolScorecards = []
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [hoveredTemplate, setHoveredTemplate] = useState<string | null>(null);
@@ -209,6 +218,9 @@ const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
     // Calculate position - default if not provided
     const dialogPosition = position || { top: 0, left: 0 };
 
+    // Check if there are any school-specific scorecards to show
+    const hasSchoolScorecards = schoolScorecards.length > 0;
+
     return (
         <div
             className="fixed inset-0 z-50"
@@ -244,6 +256,40 @@ const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
                     </div>
                     <span className="text-white text-sm">New empty scorecard</span>
                 </div>
+
+                {/* School Scorecards Section - only shown if there are school scorecards */}
+                {hasSchoolScorecards && (
+                    <div className="mb-2">
+                        <div className="px-4 py-2 text-sm text-gray-400">Your Scorecards</div>
+
+                        {schoolScorecards.map((template) => (
+                            <div
+                                key={template.id}
+                                className="flex items-center px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors relative"
+                                onClick={() => onSelectTemplate(template)}
+                                onMouseEnter={(e) => {
+                                    setHoveredTemplate(template.id);
+                                    setHoveredElement(e.currentTarget as HTMLDivElement);
+                                }}
+                                onMouseLeave={() => {
+                                    setHoveredTemplate(null);
+                                    setHoveredElement(null);
+                                }}
+                            >
+                                <span className="text-white text-sm">{template.name}</span>
+
+                                {/* Preview on hover */}
+                                {hoveredTemplate === template.id && hoveredElement && (
+                                    <TemplatePreview
+                                        template={template}
+                                        templateElement={hoveredElement}
+                                        type="user"
+                                    />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Suggested section */}
                 <div className="mb-2">

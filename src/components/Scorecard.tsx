@@ -4,15 +4,16 @@ import { CriterionData } from './ScorecardPickerDialog';
 import './scorecard-styles.css'; // We'll create this CSS file
 
 interface ScorecardProps {
-    title: string;
+    name: string;
     criteria: CriterionData[];
-    onDelete: () => void;
+    onDelete?: () => void;
     readOnly?: boolean;
     onChange?: (criteria: CriterionData[]) => void;
+    onNameChange?: (newName: string) => void;
 }
 
 export interface ScorecardHandle {
-    focusTitle: () => void;
+    focusName: () => void;
 }
 
 // Interface to track which cell is being edited
@@ -22,25 +23,26 @@ interface EditingCell {
 }
 
 const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
-    title,
+    name,
     criteria,
     onDelete,
     readOnly = false,
-    onChange
+    onChange,
+    onNameChange
 }, ref) => {
-    const titleRef = useRef<HTMLInputElement>(null);
+    const nameRef = useRef<HTMLInputElement>(null);
     // State to track which cell is being edited
     const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
     // State to track the current value being edited
     const [editValue, setEditValue] = useState<string>('');
 
-    // Expose the focusTitle method to parent components
+    // Expose the focusName method to parent components
     useImperativeHandle(ref, () => ({
-        focusTitle: () => {
-            if (titleRef.current && !readOnly) {
-                titleRef.current.focus();
+        focusName: () => {
+            if (nameRef.current && !readOnly) {
+                nameRef.current.focus();
                 // Select all text to make it easy to replace
-                titleRef.current.select();
+                nameRef.current.select();
             }
         }
     }));
@@ -117,29 +119,37 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
     return (
         <div className="w-full bg-[#2F2F2F] rounded-lg shadow-xl p-2">
-            {/* Header with title */}
+            {/* Header with name */}
             <div className="p-5 pb-3 bg-[#1F1F1F] mb-2">
                 <div className="flex items-center mb-4">
                     <input
-                        ref={titleRef}
+                        ref={nameRef}
                         type="text"
-                        defaultValue={title}
+                        defaultValue={name}
                         readOnly={readOnly}
                         placeholder="Scorecard Name"
                         className="text-white text-lg font-normal bg-transparent border-none outline-none focus:border-b focus:border-white/50 w-full max-w-full"
                         style={{ caretColor: 'white' }}
+                        onBlur={(e) => onNameChange && onNameChange(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && onNameChange) {
+                                e.currentTarget.blur();
+                                onNameChange(e.currentTarget.value);
+                            }
+                        }}
                     />
 
                     <div className="ml-auto flex items-center space-x-2">
                         {/* Delete scorecard button */}
-                        <button
-                            onClick={onDelete}
-                            className="flex items-center justify-center p-2 rounded-full hover:bg-[#4F2828] text-gray-400 hover:text-red-300 transition-colors cursor-pointer"
-                            aria-label="Delete scorecard"
-                            disabled={readOnly}
-                        >
-                            <Trash2 size={16} />
-                        </button>
+                        {!readOnly && (
+                            <button
+                                onClick={onDelete}
+                                className="flex items-center justify-center p-2 rounded-full hover:bg-[#4F2828] text-gray-400 hover:text-red-300 transition-colors cursor-pointer"
+                                aria-label="Delete scorecard"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        )}
                     </div>
                 </div>
 

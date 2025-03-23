@@ -1,12 +1,9 @@
 "use client";
 
 import "@blocknote/core/fonts/inter.css";
-import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
 import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap, Sparkles, Check, HelpCircle, X, ChevronDown, Pen, ClipboardCheck } from "lucide-react";
-import { useCreateBlockNote } from "@blocknote/react";
-import { BlockNoteSchema } from "@blocknote/core";
 
 // Add custom styles for dark mode
 import "./editor-styles.css";
@@ -25,7 +22,7 @@ import Scorecard, { ScorecardHandle } from "./Scorecard";
 // Import dropdown options
 import { questionTypeOptions, answerTypeOptions } from "./dropdownOptions";
 // Import quiz types
-import { QuizEditorHandle, QuizQuestionConfig, QuizQuestion, QuizEditorProps, APIQuestionResponse } from "../types";
+import { QuizEditorHandle, QuizQuestionConfig, QuizQuestion, QuizEditorProps, APIQuestionResponse, ScorecardCriterion } from "../types";
 
 // Default configuration for new questions
 const defaultQuestionConfig: QuizQuestionConfig = {
@@ -84,6 +81,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     onQuestionChange,
     onSubmitAnswer,
     userId,
+    schoolId, // Add schoolId prop to access school scorecards
 }, ref) => {
     // For published quizzes/exams: data is always fetched from the API
     // For draft quizzes/exams: always start with empty questions
@@ -101,6 +99,11 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     // Track if data has been fetched to prevent infinite loops
     const [hasFetchedData, setHasFetchedData] = useState(false);
 
+    // Add state for school scorecards
+    const [schoolScorecards, setSchoolScorecards] = useState<ScorecardTemplate[]>([]);
+    // Add loading state for fetching scorecards
+    const [isLoadingScorecards, setIsLoadingScorecards] = useState(false);
+
     // Make sure we reset questions when component mounts for draft quizzes
     useEffect(() => {
         if (status === 'draft') {
@@ -109,9 +112,53 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         }
     }, [status]);
 
-    // Fetch quiz/exam questions from API when the component mounts for published quizzes only
+    // Fetch school scorecards when component mounts for draft quizzes
     useEffect(() => {
-        const fetchQuestions = async () => {
+        const fetchSchoolScorecards = async () => {
+            if (schoolId) {
+                setIsLoadingScorecards(true);
+                try {
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/scorecards/?org_id=${schoolId}`);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch school scorecards');
+                    }
+
+                    const data = await response.json();
+
+                    // Transform the API response to ScorecardTemplate format
+                    if (data && Array.isArray(data)) {
+                        const transformedScorecards = data.map(scorecard => ({
+                            id: scorecard.id.toString(),
+                            name: scorecard.title,
+                            icon: <FileText size={16} className="text-white" />,
+                            criteria: scorecard.criteria.map((criterion: ScorecardCriterion) => ({
+                                name: criterion.name,
+                                description: criterion.description,
+                                maxScore: criterion.max_score
+                            })) || []
+                        }));
+
+                        setSchoolScorecards(transformedScorecards);
+
+                        // Now that we have the scorecards, fetch the questions
+                        await fetchQuestions(transformedScorecards);
+                    } else {
+                        // If no scorecard data, fetch questions with empty scorecards
+                        await fetchQuestions();
+                    }
+                } catch (error) {
+                    console.error('Error fetching school scorecards:', error);
+                } finally {
+                    setIsLoadingScorecards(false);
+                }
+            } else {
+                // If no schoolId, just fetch questions with empty scorecards
+                await fetchQuestions();
+            }
+        };
+
+        // Define the fetchQuestions function that takes scorecards as a parameter
+        const fetchQuestions = async (availableScorecards: ScorecardTemplate[] = []) => {
             // Only fetch if we have a taskId, the status is published, and we haven't already fetched
             if (taskId && status === 'published' && !hasFetchedData) {
                 setIsLoadingQuestions(true);
@@ -128,8 +175,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                     if (data && data.questions && data.questions.length > 0) {
                         const updatedQuestions = data.questions.map((question: APIQuestionResponse) => {
                             // Map API question type to local questionType
-                            const questionType = question.type === 'coding' ? 'coding'
-                                : question.type === 'open-ended' ? 'open-ended' : 'default';
+                            const questionType = question.type === 'subjective' ? 'open-ended' : 'default';
 
                             // Create correct answer blocks from the answer text if it exists
                             const correctAnswerBlocks = question.answer ? [
@@ -138,6 +184,22 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                     content: question.answer
                                 }
                             ] : [];
+
+                            // Handle scorecard data if scorecard_id is present
+                            let scorecardData = undefined;
+                            if (question.scorecard_id && availableScorecards.length > 0) {
+                                // Find matching scorecard from school scorecards
+                                const matchingScorecard = availableScorecards.find(sc => sc.id === String(question.scorecard_id));
+
+                                if (matchingScorecard) {
+                                    console.log(`Found matching scorecard for question ${question.id}: ${matchingScorecard.name}`);
+                                    scorecardData = {
+                                        id: matchingScorecard.id,
+                                        name: matchingScorecard.name,
+                                        criteria: matchingScorecard.criteria,
+                                    };
+                                }
+                            }
 
                             return {
                                 id: String(question.id),
@@ -148,7 +210,8 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                     evaluationCriteria: [],
                                     correctAnswer: question.answer || '',
                                     correctAnswerBlocks: correctAnswerBlocks, // Use the answer-based blocks instead of question blocks
-                                    questionType: questionType as 'default' | 'open-ended' | 'coding'
+                                    questionType: questionType as 'default' | 'open-ended' | 'coding',
+                                    scorecardData: scorecardData
                                 }
                             };
                         });
@@ -180,7 +243,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             }
         };
 
-        fetchQuestions();
+        fetchSchoolScorecards();
     }, [taskId, status, hasFetchedData, onChange]);
 
     // Reset hasFetchedData when taskId changes
@@ -296,21 +359,27 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         setScorecardTitle("New Scorecard");
 
         // Create an empty scorecard
+        const newScorecardData: ScorecardTemplate = {
+            id: crypto.randomUUID(), // Generate a unique UUID for the scorecard
+            name: "New Scorecard",
+            criteria: [
+                { name: '', description: '', maxScore: 5 }
+            ]
+        };
+
         handleConfigChange({
-            scorecardData: {
-                title: "New Scorecard",
-                criteria: [
-                    { name: '', description: '', maxScore: 5 }
-                ]
-            }
+            scorecardData: newScorecardData
         });
+
+
+        setSchoolScorecards(prev => [...prev, newScorecardData]);
 
         // Switch to the scorecard tab
         setActiveEditorTab('scorecard');
 
         // Focus on the scorecard title after a short delay to allow rendering
         setTimeout(() => {
-            scorecardRef.current?.focusTitle();
+            scorecardRef.current?.focusName();
         }, 100);
     };
 
@@ -321,21 +390,25 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         // Set the scorecard title
         setScorecardTitle(template.name || "Scorecard Template");
 
+        const newScorecardData: ScorecardTemplate = {
+            id: crypto.randomUUID(),
+            name: template.name,
+            criteria: template.criteria || [],
+        }
+
         // Add the template data to the question's config
         handleConfigChange({
-            scorecardData: {
-                title: template.name,
-                criteria: template.criteria || [],
-                description: template.description
-            }
+            scorecardData: newScorecardData
         });
+
+        setSchoolScorecards(prev => [...prev, newScorecardData]);
 
         // Switch to the scorecard tab
         setActiveEditorTab('scorecard');
 
         // Focus on the scorecard title after a short delay to allow rendering
         setTimeout(() => {
-            scorecardRef.current?.focusTitle();
+            scorecardRef.current?.focusName();
         }, 100);
     };
 
@@ -629,16 +702,32 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 // Map inputType
                 const inputType = question.config.inputType
 
+                console.log(question.config.scorecardData)
+                let scorecard = null
+                if (question.config.scorecardData) {
+                    scorecard = {
+                        id: question.config.scorecardData.id,
+                        title: question.config.scorecardData.name,
+                        criteria: question.config.scorecardData.criteria.map(criterion => ({
+                            name: criterion.name,
+                            description: criterion.description,
+                            min_score: 1,
+                            max_score: criterion.maxScore
+                        }))
+                    }
+                }
+
                 return {
                     blocks: question.content,
                     answer: correctAnswerText,
                     input_type: inputType,
-                    response_type: "chat",
+                    response_type: questionType === 'open-ended' ? "report" : "chat",
                     coding_languages: null,
                     generation_model: null,
-                    type: questionType === 'coding' ? 'coding' : questionType === 'open-ended' ? 'open-ended' : 'objective',
+                    type: questionType === 'open-ended' ? 'subjective' : 'objective',
                     max_attempts: taskType === 'exam' ? 1 : null,
-                    is_feedback_shown: taskType === 'exam' ? false : true
+                    is_feedback_shown: taskType === 'exam' ? false : true,
+                    scorecard: scorecard
                 };
             });
 
@@ -1166,22 +1255,73 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                         currentQuestionConfig.scorecardData ? (
                                             <Scorecard
                                                 ref={scorecardRef}
-                                                title={currentQuestionConfig.scorecardData?.title || scorecardTitle}
+                                                name={currentQuestionConfig.scorecardData?.name || scorecardTitle}
                                                 criteria={currentQuestionConfig.scorecardData?.criteria || []}
                                                 onDelete={() => setShowScorecardDeleteConfirm(true)}
-                                                readOnly={readOnly}
-                                                onChange={(updatedCriteria) => {
+                                                readOnly={status === 'published'}
+                                                onNameChange={(newName) => {
                                                     const currentScorecardData = currentQuestionConfig.scorecardData || {
-                                                        title: scorecardTitle,
+                                                        name: scorecardTitle,
                                                         criteria: []
                                                     };
 
+                                                    // Update the title of the current scorecard
+                                                    const updatedScorecardData = {
+                                                        ...currentScorecardData,
+                                                        name: newName
+                                                    };
+
                                                     handleConfigChange({
-                                                        scorecardData: {
-                                                            ...currentScorecardData,
-                                                            criteria: updatedCriteria
-                                                        }
+                                                        scorecardData: updatedScorecardData
                                                     });
+
+                                                    // Update title in local scorecards if it exists
+                                                    const existingScorecard = schoolScorecards.find(
+                                                        s => s.name === currentScorecardData.name
+                                                    );
+
+                                                    if (existingScorecard) {
+                                                        setSchoolScorecards(prev =>
+                                                            prev.map(sc =>
+                                                                sc.id === existingScorecard.id
+                                                                    ? { ...sc, name: newName }
+                                                                    : sc
+                                                            )
+                                                        );
+                                                    }
+                                                }}
+                                                onChange={(updatedCriteria) => {
+                                                    const currentScorecardData = currentQuestionConfig.scorecardData || {
+                                                        name: scorecardTitle,
+                                                        criteria: []
+                                                    };
+
+                                                    // Update the current question's scorecard
+                                                    const updatedScorecardData = {
+                                                        ...currentScorecardData,
+                                                        criteria: updatedCriteria
+                                                    };
+
+                                                    handleConfigChange({
+                                                        scorecardData: updatedScorecardData
+                                                    });
+
+                                                    // Find and update this scorecard in the local scorecards array
+                                                    // Use current title to find if this scorecard already exists in local scorecards
+                                                    const existingScorecard = schoolScorecards.find(
+                                                        s => s.name === currentScorecardData.name
+                                                    );
+
+                                                    if (existingScorecard) {
+                                                        // Update existing scorecard
+                                                        setSchoolScorecards(prev =>
+                                                            prev.map(sc =>
+                                                                sc.id === existingScorecard.id
+                                                                    ? { ...sc, criteria: updatedCriteria }
+                                                                    : sc
+                                                            )
+                                                        );
+                                                    }
                                                 }}
                                             />
                                         ) : (
@@ -1220,6 +1360,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 onCreateNew={handleCreateNewScorecard}
                 onSelectTemplate={handleSelectScorecardTemplate}
                 position={scorecardDialogPosition || undefined}
+                schoolScorecards={schoolScorecards}
             />
         </div>
     );
