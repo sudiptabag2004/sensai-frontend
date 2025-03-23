@@ -6,4 +6,7 @@ export interface TaskData {
     status: string;
 }
 
+// Export all quiz types
+export * from './quiz';
+
 // Export other types as needed 

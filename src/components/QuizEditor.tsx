@@ -20,67 +20,12 @@ import ConfirmationDialog from "./ConfirmationDialog";
 import Dropdown, { DropdownOption } from "./Dropdown";
 // Import the ScorecardPickerDialog component
 import ScorecardPickerDialog, { CriterionData, ScorecardTemplate } from "./ScorecardPickerDialog";
-
-// Define the editor handle with methods that can be called by parent components
-export interface QuizEditorHandle {
-    save: () => Promise<void>;
-    cancel: () => void;
-    hasContent: () => boolean;
-}
-
-export interface QuizQuestionConfig {
-    inputType: 'text' | 'code' | 'audio';
-    responseStyle: 'coach' | 'examiner' | 'evaluator';
-    evaluationCriteria: string[];
-    correctAnswer?: string;
-    correctAnswerBlocks?: any[];
-    codeLanguage?: string; // For code input type
-    audioMaxDuration?: number; // For audio input type in seconds
-    questionType?: 'default' | 'open-ended' | 'coding'; // Add questionType property
-    scorecardData?: {
-        title: string;
-        criteria: CriterionData[];
-        description?: string;
-    };
-}
-
-export interface QuizQuestion {
-    id: string;
-    content: any[];
-    config: QuizQuestionConfig;
-}
-
-export interface QuizEditorProps {
-    initialQuestions?: QuizQuestion[]; // Kept for backward compatibility but not used anymore
-    onChange?: (questions: QuizQuestion[]) => void;
-    isDarkMode?: boolean;
-    className?: string;
-    isPreviewMode?: boolean;
-    readOnly?: boolean;
-    onPublish?: () => void;
-    taskId?: string;
-    status?: string;
-    onPublishSuccess?: (updatedData?: any) => void;
-    showPublishConfirmation?: boolean;
-    onPublishCancel?: () => void;
-    isEditMode?: boolean;
-    onSaveSuccess?: (updatedData?: any) => void;
-    taskType?: 'quiz' | 'exam';
-    currentQuestionId?: string;
-    onQuestionChange?: (questionId: string) => void;
-    onSubmitAnswer?: (questionId: string, answer: string) => void;
-    userId?: string;
-}
-
-// Define the API response question interface
-interface APIQuestionResponse {
-    id: number;
-    blocks: any[];
-    answer?: string;
-    type: string;
-    input_type: string;
-    response_type: string;
-}
+// Import the new Scorecard component
+import Scorecard, { ScorecardHandle } from "./Scorecard";
+// Import dropdown options
+import { questionTypeOptions, answerTypeOptions } from "./dropdownOptions";
+// Import quiz types
+import { QuizEditorHandle, QuizQuestionConfig, QuizQuestion, QuizEditorProps, APIQuestionResponse } from "../types";
 
 // Default configuration for new questions
 const defaultQuestionConfig: QuizQuestionConfig = {
@@ -323,6 +268,9 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     // If needed for the scorecard title, we'll keep that state
     const [scorecardTitle, setScorecardTitle] = useState<string>("Scorecard");
 
+    // Reference to the scorecard component
+    const scorecardRef = useRef<ScorecardHandle>(null);
+
     // Function to handle opening the scorecard templates dialog
     const handleOpenScorecardDialog = () => {
         const buttonElement = scorecardButtonRef.current;
@@ -352,13 +300,18 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             scorecardData: {
                 title: "New Scorecard",
                 criteria: [
-                    { name: "Criterion 1", description: "", maxScore: 5 }
+                    { name: '', description: '', maxScore: 5 }
                 ]
             }
         });
 
         // Switch to the scorecard tab
         setActiveEditorTab('scorecard');
+
+        // Focus on the scorecard title after a short delay to allow rendering
+        setTimeout(() => {
+            scorecardRef.current?.focusTitle();
+        }, 100);
     };
 
     // Function to handle selecting a scorecard template
@@ -379,6 +332,11 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
         // Switch to the scorecard tab
         setActiveEditorTab('scorecard');
+
+        // Focus on the scorecard title after a short delay to allow rendering
+        setTimeout(() => {
+            scorecardRef.current?.focusTitle();
+        }, 100);
     };
 
     // Function to set the editor reference
@@ -527,6 +485,9 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             const newIndex = currentQuestionIndex - 1;
             setCurrentQuestionIndex(newIndex);
 
+            // Reset active tab to question when navigating
+            setActiveEditorTab('question');
+
             // Call the onQuestionChange callback if provided
             if (onQuestionChange && questions[newIndex] && !isPreviewMode) {
                 onQuestionChange(questions[newIndex].id);
@@ -541,6 +502,9 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             lastContentUpdateRef.current = "";
             const newIndex = currentQuestionIndex + 1;
             setCurrentQuestionIndex(newIndex);
+
+            // Reset active tab to question when navigating
+            setActiveEditorTab('question');
 
             // Call the onQuestionChange callback if provided
             if (onQuestionChange && questions[newIndex] && !isPreviewMode) {
@@ -879,37 +843,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     }, [questions, isDarkMode, readOnly, onSubmitAnswer, taskType, activeQuestionId, userId, currentQuestionIndex, extractCurrentCorrectAnswer]);
 
     // Define dropdown options
-    const questionTypeOptions = [
-        {
-            "label": "Default",
-            "value": "default",
-            "color": "#3A506B",
-        },
-        {
-            "label": "Open-Ended",
-            "value": "open-ended",
-            "color": "#3C6E47",
-            "tooltip": "Questions without any fixed correct answer"
-        },
-        // {
-        //     "label": "Coding",
-        //     "value": "coding",
-        //     "color": "#614A82",
-        //     "tooltip": "Questions where learners need to submit code"
-        // }
-    ];
-    const answerTypeOptions = [
-        {
-            "label": "Text",
-            "value": "text",
-            "color": "#2D6A4F",
-        },
-        {
-            "label": "Audio",
-            "value": "audio",
-            "color": "#9D4E4E",
-        }
-    ];
+    // Now removed and imported from dropdownOptions.ts
 
     // Get dropdown option objects based on config values
     const getQuestionTypeOption = useCallback((type: string = 'default') => {
@@ -968,87 +902,31 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
-            {/* Delete confirmation modal */}
-            {showDeleteConfirm && !isPreviewMode && (
-                <div
-                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                    onClick={() => setShowDeleteConfirm(false)}
-                >
-                    <div
-                        className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl border border-gray-800"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="p-6">
-                            <h2 className="text-xl font-light text-white mb-4">Delete Question</h2>
-                            <p className="text-gray-300">Are you sure you want to delete this question? This action cannot be undone.</p>
-                        </div>
-                        <div className="flex justify-end gap-4 p-6 border-t border-gray-800">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation(); // Prevent event bubbling
-                                    setShowDeleteConfirm(false);
-                                }}
-                                className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation(); // Prevent event bubbling
-                                    deleteQuestion();
-                                }}
-                                className="px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-full hover:bg-red-700 transition-colors focus:outline-none cursor-pointer flex items-center"
-                            >
-                                <Trash2 size={16} className="mr-2" />
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Scorecard delete confirmation modal */}
-            {showScorecardDeleteConfirm && !isPreviewMode && (
-                <div
-                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                    onClick={() => setShowScorecardDeleteConfirm(false)}
-                >
-                    <div
-                        className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl border border-gray-800"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="p-6">
-                            <h2 className="text-xl font-light text-white mb-4">Delete Scorecard</h2>
-                            <p className="text-gray-300">Are you sure you want to delete this scorecard? This action cannot be undone.</p>
-                        </div>
-                        <div className="flex justify-end gap-4 p-6 border-t border-gray-800">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation(); // Prevent event bubbling
-                                    setShowScorecardDeleteConfirm(false);
-                                }}
-                                className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation(); // Prevent event bubbling
-                                    // Remove scorecard data from question config
-                                    handleConfigChange({
-                                        scorecardData: undefined
-                                    });
-                                    setShowScorecardDeleteConfirm(false);
-                                }}
-                                className="px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-full hover:bg-red-700 transition-colors focus:outline-none cursor-pointer flex items-center"
-                            >
-                                <Trash2 size={16} className="mr-2" />
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmationDialog
+                show={showScorecardDeleteConfirm && !isPreviewMode}
+                title="Delete Scorecard"
+                message="Are you sure you want to delete this scorecard? This action cannot be undone."
+                onConfirm={() => {
+                    // Remove scorecard data from question config
+                    handleConfigChange({
+                        scorecardData: undefined
+                    });
+                    setShowScorecardDeleteConfirm(false);
+                }}
+                onCancel={() => setShowScorecardDeleteConfirm(false)}
+                type="delete"
+            />
+
+            {/* Question delete confirmation modal */}
+            <ConfirmationDialog
+                show={showDeleteConfirm && !isPreviewMode}
+                title="Delete Question"
+                message="Are you sure you want to delete this question? This action cannot be undone."
+                onConfirm={deleteQuestion}
+                onCancel={() => setShowDeleteConfirm(false)}
+                type="delete"
+            />
 
             {/* Publish Confirmation Dialog */}
             <ConfirmationDialog
@@ -1284,77 +1162,26 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                     ) : (
                                         // Scorecard tab - show empty table if scorecard is selected, otherwise show placeholder
                                         currentQuestionConfig.scorecardData ? (
-                                            <div className="w-full bg-[#2F2F2F] rounded-lg shadow-xl p-2">
-                                                {/* Header with title */}
-                                                <div className="p-5 pb-3 bg-[#1F1F1F] mb-2">
-                                                    <div className="flex items-center mb-4">
-                                                        <h3 className="text-white text-lg font-normal">
-                                                            {currentQuestionConfig.scorecardData.title || scorecardTitle}
-                                                        </h3>
-                                                        <button
-                                                            onClick={() => {
-                                                                // Show confirmation dialog before deleting
-                                                                setShowScorecardDeleteConfirm(true);
-                                                            }}
-                                                            className="ml-auto flex items-center justify-center p-2 rounded-full hover:bg-[#4F2828] text-gray-400 hover:text-red-300 transition-colors cursor-pointer"
-                                                            aria-label="Delete scorecard"
-                                                            disabled={readOnly}
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </div>
+                                            <Scorecard
+                                                ref={scorecardRef}
+                                                title={currentQuestionConfig.scorecardData?.title || scorecardTitle}
+                                                criteria={currentQuestionConfig.scorecardData?.criteria || []}
+                                                onDelete={() => setShowScorecardDeleteConfirm(true)}
+                                                readOnly={readOnly}
+                                                onChange={(updatedCriteria) => {
+                                                    const currentScorecardData = currentQuestionConfig.scorecardData || {
+                                                        title: scorecardTitle,
+                                                        criteria: []
+                                                    };
 
-                                                    {/* Table header */}
-                                                    <div className="grid grid-cols-3 gap-2 mb-2 text-xs text-gray-300">
-                                                        <div className="px-2">Criterion</div>
-                                                        <div className="px-2">Description</div>
-                                                        <div className="px-2">Max Score</div>
-                                                    </div>
-
-                                                    {/* Criteria rows */}
-                                                    <div className="space-y-2 mb-3">
-                                                        {currentQuestionConfig.scorecardData.criteria?.map((criterion, index) => {
-                                                            // Generate a unique background color for each criterion pill
-                                                            const pillColors = ["#5E3B5D", "#3B5E4F", "#3B4E5E", "#5E3B3B", "#4F5E3B"];
-                                                            const pillColor = pillColors[index % pillColors.length];
-
-                                                            return (
-                                                                <div key={index} className="grid grid-cols-3 gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
-                                                                    <div className="px-2 py-1 text-sm flex items-center">
-                                                                        <span
-                                                                            className="inline-block px-2 py-0.5 rounded-full text-xs text-white"
-                                                                            style={{ backgroundColor: pillColor }}
-                                                                        >
-                                                                            {criterion.name}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="px-2 py-1 text-sm">
-                                                                        {criterion.description || ""}
-                                                                    </div>
-                                                                    <div className="px-2 py-1 text-sm text-center">
-                                                                        {criterion.maxScore}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-
-                                                        {/* If no criteria, show empty state */}
-                                                        {(!currentQuestionConfig.scorecardData.criteria || currentQuestionConfig.scorecardData.criteria.length === 0) && (
-                                                            <div className="grid grid-cols-3 gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
-                                                                <div className="px-2 py-1 text-sm flex items-center">
-                                                                    <span className="inline-block px-2 py-0.5 rounded-full text-xs text-white bg-[#5E3B5D]">
-                                                                        Add criteria
-                                                                    </span>
-                                                                </div>
-                                                                <div className="px-2 py-1 flex items-center">
-                                                                    <div className="h-3 bg-[#333] rounded w-full"></div>
-                                                                </div>
-                                                                <div className="px-2 py-1 text-sm text-center"></div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                    handleConfigChange({
+                                                        scorecardData: {
+                                                            ...currentScorecardData,
+                                                            criteria: updatedCriteria
+                                                        }
+                                                    });
+                                                }}
+                                            />
                                         ) : (
                                             <div className="w-full flex flex-col items-center justify-center p-8 text-center border border-dashed border-gray-700 rounded-lg bg-[#1A1A1A]">
                                                 <div className="max-w-md">
