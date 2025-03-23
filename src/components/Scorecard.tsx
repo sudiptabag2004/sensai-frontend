@@ -20,7 +20,7 @@ export interface ScorecardHandle {
 // Interface to track which cell is being edited
 interface EditingCell {
     rowIndex: number;
-    field: 'name' | 'description' | 'maxScore';
+    field: 'name' | 'description' | 'maxScore' | 'minScore';
 }
 
 const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
@@ -56,7 +56,8 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
         const newCriterion: CriterionData = {
             name: '',
             description: '',
-            maxScore: 5
+            maxScore: 5,
+            minScore: 1
         };
 
         const updatedCriteria = [...(criteria || []), newCriterion];
@@ -72,11 +73,11 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
     };
 
     // Function to start editing a cell
-    const startEditing = (rowIndex: number, field: 'name' | 'description' | 'maxScore') => {
+    const startEditing = (rowIndex: number, field: 'name' | 'description' | 'maxScore' | 'minScore') => {
         if (readOnly || linked) return;
 
-        const value = field === 'maxScore'
-            ? criteria[rowIndex].maxScore.toString()
+        const value = field === 'maxScore' || field === 'minScore'
+            ? criteria[rowIndex][field].toString()
             : criteria[rowIndex][field] || '';
 
         setEditingCell({ rowIndex, field });
@@ -90,13 +91,13 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
         const { rowIndex, field } = editingCell;
         const updatedCriteria = [...criteria];
 
-        if (field === 'maxScore') {
+        if (field === 'maxScore' || field === 'minScore') {
             // Convert to number and validate
             const numberValue = parseInt(editValue, 10);
             if (!isNaN(numberValue) && numberValue >= 0) {
                 updatedCriteria[rowIndex] = {
                     ...updatedCriteria[rowIndex],
-                    maxScore: numberValue
+                    [field]: numberValue
                 };
             }
         } else {
@@ -121,22 +122,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
     return (
         <div className="w-full">
-            {/* Linked scorecard message */}
-            {linked && (
-                <div className="bg-gradient-to-r from-[#252525] to-[#292536] p-4 mb-3 rounded-xl shadow-sm border border-[#333342] flex items-start gap-3">
-                    <div className="p-1.5 rounded-full bg-[#3b3d5e] text-[#a3a8ff] flex-shrink-0">
-                        <Info size={14} />
-                    </div>
-                    <div>
-                        <h4 className="text-white text-sm font-light mb-1">Read-only Scorecard</h4>
-                        <p className="text-gray-400 text-xs leading-relaxed">
-                            You cannot edit an existing scorecard. If you want to make changes, please delete it and either begin with a template or start from an empty scorecard.
-                        </p>
-                    </div>
-                </div>
-            )}
-
-            <div className="w-full bg-[#2F2F2F] rounded-lg shadow-xl p-2">
+            <div className="w-full bg-[#2F2F2F] rounded-lg shadow-xl p-2 mb-3">
                 {/* Header with name */}
                 <div className="p-5 pb-3 bg-[#1F1F1F] mb-2">
                     <div className="flex items-center mb-4">
@@ -172,9 +158,10 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                     </div>
 
                     {/* Table header */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '25% 55% 10% 10%' }} className="gap-2 mb-2 text-xs text-gray-300">
+                    <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr 80px 80px 40px' }} className="gap-2 mb-2 text-xs text-gray-300">
                         <div className="px-2">Criterion</div>
                         <div className="px-2">Description</div>
+                        <div className="px-2 text-center">Min Score</div>
                         <div className="px-2 text-center">Max Score</div>
                         <div className="px-2"></div> {/* Empty header for delete button */}
                     </div>
@@ -187,7 +174,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                             const pillColor = pillColors[index % pillColors.length];
 
                             return (
-                                <div key={index} style={{ display: 'grid', gridTemplateColumns: '25% 55% 10% 10%' }} className="gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
+                                <div key={index} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 80px 80px 40px' }} className="gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
                                     {/* Criterion Name Cell */}
                                     <div className="px-2 py-1 text-sm flex items-center">
                                         {editingCell?.rowIndex === index && editingCell.field === 'name' ? (
@@ -227,13 +214,39 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                             />
                                         ) : (
                                             <span
-                                                className={`block truncate text-sm ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80' : ''} ${criterion.description ? '' : 'text-gray-500'}`}
+                                                className={`block break-words text-sm ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80' : ''} ${criterion.description ? '' : 'text-gray-500'}`}
                                                 onClick={() => startEditing(index, 'description')}
                                             >
                                                 {criterion.description || 'Click to add description'}
                                             </span>
                                         )}
                                     </div>
+
+                                    {/* Min Score Cell */}
+                                    <div className="px-2 py-1 text-sm text-center">
+                                        {editingCell?.rowIndex === index && editingCell.field === 'minScore' ? (
+                                            <input
+                                                type="number"
+                                                value={editValue}
+                                                onChange={(e) => setEditValue(e.target.value)}
+                                                onBlur={saveChanges}
+                                                onKeyDown={handleKeyDown}
+                                                autoFocus
+                                                min="0"
+                                                max="100"
+                                                className="bg-[#333] rounded w-full text-xs p-1 outline-none text-center"
+                                                style={{ caretColor: 'white' }}
+                                            />
+                                        ) : (
+                                            <span
+                                                className={`block ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                                onClick={() => startEditing(index, 'minScore')}
+                                            >
+                                                {criterion.minScore}
+                                            </span>
+                                        )}
+                                    </div>
+
 
                                     {/* Max Score Cell */}
                                     <div className="px-2 py-1 text-sm text-center">
@@ -260,6 +273,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                         )}
                                     </div>
 
+
                                     {/* Delete Button Cell */}
                                     <div className="flex items-center justify-center">
                                         {!readOnly && !linked && criteria.length > 1 && (
@@ -278,7 +292,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
                         {/* If no criteria, show empty state */}
                         {(!criteria || criteria.length === 0) && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '25% 55% 10% 10%' }} className="gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
+                            <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr 80px 80px' }} className="gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
                                 <div className="px-2 py-1 text-sm flex items-center">
                                     <span className="inline-block px-2 py-0.5 rounded-full text-xs text-white bg-[#5E3B5D]">
                                         Add criteria
@@ -308,6 +322,21 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                     )}
                 </div>
             </div>
+            {/* Linked scorecard message */}
+            {linked && (
+                <div className="bg-gradient-to-r from-[#252525] to-[#292536] p-4 rounded-xl shadow-sm border border-[#333342] flex items-start gap-3">
+                    <div className="p-1.5 rounded-full bg-[#3b3d5e] text-[#a3a8ff] flex-shrink-0">
+                        <Info size={14} />
+                    </div>
+                    <div>
+                        <h4 className="text-white text-sm font-light mb-1">Read-only Scorecard</h4>
+                        <p className="text-gray-400 text-xs leading-relaxed">
+                            You cannot edit an existing scorecard. If you want to make changes, please delete it and either begin with a template or start from an empty scorecard.
+                        </p>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 });
