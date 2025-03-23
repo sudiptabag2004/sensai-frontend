@@ -340,12 +340,11 @@ export default function LearnerQuizView({
                         try {
                             // Get presigned URL
                             const file_uuid = message.content;
-                            const presignedResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/presigned-url/get`, {
-                                method: 'POST',
+                            const presignedResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/presigned-url/get?uuid=${file_uuid}`, {
+                                method: 'GET',
                                 headers: {
                                     'Content-Type': 'application/json',
                                 },
-                                body: JSON.stringify({ file_uuid })
                             });
 
                             if (!presignedResponse.ok) {
@@ -731,7 +730,7 @@ export default function LearnerQuizView({
                 try {
                     // First, get a presigned URL for the audio file
                     const presignedUrlResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/presigned-url/create`, {
-                        method: 'POST',
+                        method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
                         },
