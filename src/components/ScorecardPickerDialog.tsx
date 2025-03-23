@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { X, Plus, Check, Sparkles, FileText } from 'lucide-react';
 
-interface CriterionData {
+export interface CriterionData {
     name: string;
     description: string;
     maxScore: number;
 }
 
-interface ScorecardTemplate {
+export interface ScorecardTemplate {
     id: string;
     name: string;
     icon: React.ReactNode;
@@ -19,7 +19,7 @@ interface ScorecardTemplatesDialogProps {
     isOpen: boolean;
     onClose: () => void;
     onCreateNew: () => void;
-    onSelectTemplate: (templateId: string) => void;
+    onSelectTemplate: (template: ScorecardTemplate) => void;
     position?: { top: number; left: number };
 }
 
@@ -97,15 +97,28 @@ const TemplatePreview: React.FC<{ template: ScorecardTemplate; templateElement: 
 
                 {/* Table rows */}
                 <div className="space-y-2 mb-3">
-                    {criteria.map((criterion, index) => (
-                        <div key={index} className="grid grid-cols-3 gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
-                            <div className="px-2 py-1 text-sm">{criterion.name}</div>
-                            <div className="px-2 py-1 flex items-center">
-                                <div className="h-3 bg-[#333] rounded w-full"></div>
+                    {criteria.map((criterion, index) => {
+                        // Generate a unique background color for each criterion pill
+                        const pillColors = ["#5E3B5D", "#3B5E4F", "#3B4E5E", "#5E3B3B", "#4F5E3B"];
+                        const pillColor = pillColors[index % pillColors.length];
+
+                        return (
+                            <div key={index} className="grid grid-cols-3 gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
+                                <div className="px-2 py-1 text-sm flex items-center">
+                                    <span
+                                        className="inline-block px-2 py-0.5 rounded-full text-xs text-white"
+                                        style={{ backgroundColor: pillColor }}
+                                    >
+                                        {criterion.name}
+                                    </span>
+                                </div>
+                                <div className="px-2 py-1 flex items-center">
+                                    <div className="h-3 bg-[#333] rounded w-full"></div>
+                                </div>
+                                <div className="px-2 py-1 text-sm text-center">{criterion.maxScore}</div>
                             </div>
-                            <div className="px-2 py-1 text-sm text-center">{criterion.maxScore}</div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 
@@ -240,7 +253,7 @@ const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
                         <div
                             key={template.id}
                             className="flex items-center px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors relative"
-                            onClick={() => onSelectTemplate(template.id)}
+                            onClick={() => onSelectTemplate(template)}
                             onMouseEnter={(e) => {
                                 setHoveredTemplate(template.id);
                                 setHoveredElement(e.currentTarget as HTMLDivElement);

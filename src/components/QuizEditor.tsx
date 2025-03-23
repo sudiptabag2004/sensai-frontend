@@ -19,7 +19,7 @@ import ConfirmationDialog from "./ConfirmationDialog";
 // Import the new Dropdown component
 import Dropdown, { DropdownOption } from "./Dropdown";
 // Import the ScorecardPickerDialog component
-import ScorecardPickerDialog from "./ScorecardPickerDialog";
+import ScorecardPickerDialog, { CriterionData, ScorecardTemplate } from "./ScorecardPickerDialog";
 
 // Define the editor handle with methods that can be called by parent components
 export interface QuizEditorHandle {
@@ -37,6 +37,11 @@ export interface QuizQuestionConfig {
     codeLanguage?: string; // For code input type
     audioMaxDuration?: number; // For audio input type in seconds
     questionType?: 'default' | 'open-ended' | 'coding'; // Add questionType property
+    scorecardData?: {
+        title: string;
+        criteria: CriterionData[];
+        description?: string;
+    };
 }
 
 export interface QuizQuestion {
@@ -291,6 +296,8 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
     // State for delete confirmation
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    // Add state for scorecard delete confirmation
+    const [showScorecardDeleteConfirm, setShowScorecardDeleteConfirm] = useState(false);
 
     // State for tracking publishing status
     const [isPublishing, setIsPublishing] = useState(false);
@@ -311,6 +318,10 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     const [showScorecardDialog, setShowScorecardDialog] = useState(false);
     const [scorecardDialogPosition, setScorecardDialogPosition] = useState<{ top: number, left: number } | null>(null);
     const scorecardButtonRef = useRef<HTMLButtonElement>(null);
+
+    // We don't need the hasScorecard state anymore since we're using currentQuestionConfig.scorecardData
+    // If needed for the scorecard title, we'll keep that state
+    const [scorecardTitle, setScorecardTitle] = useState<string>("Scorecard");
 
     // Function to handle opening the scorecard templates dialog
     const handleOpenScorecardDialog = () => {
@@ -333,15 +344,41 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     // Function to handle creating a new scorecard
     const handleCreateNewScorecard = () => {
         setShowScorecardDialog(false);
-        // Logic to create a new scorecard will be added here
-        console.log('Creating new scorecard');
+        // Set the scorecard title
+        setScorecardTitle("New Scorecard");
+
+        // Create an empty scorecard
+        handleConfigChange({
+            scorecardData: {
+                title: "New Scorecard",
+                criteria: [
+                    { name: "Criterion 1", description: "", maxScore: 5 }
+                ]
+            }
+        });
+
+        // Switch to the scorecard tab
+        setActiveEditorTab('scorecard');
     };
 
     // Function to handle selecting a scorecard template
-    const handleSelectScorecardTemplate = (templateId: string) => {
+    const handleSelectScorecardTemplate = (template: ScorecardTemplate) => {
         setShowScorecardDialog(false);
-        // Logic to apply the selected template will be added here
-        console.log('Selected template:', templateId);
+
+        // Set the scorecard title
+        setScorecardTitle(template.name || "Scorecard Template");
+
+        // Add the template data to the question's config
+        handleConfigChange({
+            scorecardData: {
+                title: template.name,
+                criteria: template.criteria || [],
+                description: template.description
+            }
+        });
+
+        // Switch to the scorecard tab
+        setActiveEditorTab('scorecard');
     };
 
     // Function to set the editor reference
@@ -970,6 +1007,49 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 </div>
             )}
 
+            {/* Scorecard delete confirmation modal */}
+            {showScorecardDeleteConfirm && !isPreviewMode && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    onClick={() => setShowScorecardDeleteConfirm(false)}
+                >
+                    <div
+                        className="w-full max-w-md bg-[#1A1A1A] rounded-lg shadow-2xl border border-gray-800"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-6">
+                            <h2 className="text-xl font-light text-white mb-4">Delete Scorecard</h2>
+                            <p className="text-gray-300">Are you sure you want to delete this scorecard? This action cannot be undone.</p>
+                        </div>
+                        <div className="flex justify-end gap-4 p-6 border-t border-gray-800">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent event bubbling
+                                    setShowScorecardDeleteConfirm(false);
+                                }}
+                                className="px-4 py-2 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent event bubbling
+                                    // Remove scorecard data from question config
+                                    handleConfigChange({
+                                        scorecardData: undefined
+                                    });
+                                    setShowScorecardDeleteConfirm(false);
+                                }}
+                                className="px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-full hover:bg-red-700 transition-colors focus:outline-none cursor-pointer flex items-center"
+                            >
+                                <Trash2 size={16} className="mr-2" />
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Publish Confirmation Dialog */}
             <ConfirmationDialog
                 show={showPublishConfirmation}
@@ -1202,26 +1282,100 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                             />
                                         </div>
                                     ) : (
-                                        // Scorecard tab - empty for now
-                                        <div className="w-full flex flex-col items-center justify-center p-8 text-center border border-dashed border-gray-700 rounded-lg bg-[#1A1A1A]">
-                                            <div className="max-w-md">
-                                                <h3 className="text-xl font-light text-white mb-3">What is a scorecard?</h3>
-                                                <p className="text-gray-400 mb-6">
-                                                    A scorecard is a set of criteria used to grade the answer to an open-ended question - either use one of our templates or create your own
-                                                </p>
-                                                <button
-                                                    className="flex items-center px-5 py-2.5 text-sm text-black bg-white hover:bg-gray-100 rounded-md transition-colors cursor-pointer mx-auto"
-                                                    ref={scorecardButtonRef}
-                                                    onClick={handleOpenScorecardDialog}
-                                                    disabled={readOnly}
-                                                >
-                                                    <div className="w-5 h-5 rounded-full border border-black flex items-center justify-center mr-2">
-                                                        <Plus size={12} className="text-black" />
+                                        // Scorecard tab - show empty table if scorecard is selected, otherwise show placeholder
+                                        currentQuestionConfig.scorecardData ? (
+                                            <div className="w-full bg-[#2F2F2F] rounded-lg shadow-xl p-2">
+                                                {/* Header with title */}
+                                                <div className="p-5 pb-3 bg-[#1F1F1F] mb-2">
+                                                    <div className="flex items-center mb-4">
+                                                        <h3 className="text-white text-lg font-normal">
+                                                            {currentQuestionConfig.scorecardData.title || scorecardTitle}
+                                                        </h3>
+                                                        <button
+                                                            onClick={() => {
+                                                                // Show confirmation dialog before deleting
+                                                                setShowScorecardDeleteConfirm(true);
+                                                            }}
+                                                            className="ml-auto flex items-center justify-center p-2 rounded-full hover:bg-[#4F2828] text-gray-400 hover:text-red-300 transition-colors cursor-pointer"
+                                                            aria-label="Delete scorecard"
+                                                            disabled={readOnly}
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
                                                     </div>
-                                                    Add a scorecard
-                                                </button>
+
+                                                    {/* Table header */}
+                                                    <div className="grid grid-cols-3 gap-2 mb-2 text-xs text-gray-300">
+                                                        <div className="px-2">Criterion</div>
+                                                        <div className="px-2">Description</div>
+                                                        <div className="px-2">Max Score</div>
+                                                    </div>
+
+                                                    {/* Criteria rows */}
+                                                    <div className="space-y-2 mb-3">
+                                                        {currentQuestionConfig.scorecardData.criteria?.map((criterion, index) => {
+                                                            // Generate a unique background color for each criterion pill
+                                                            const pillColors = ["#5E3B5D", "#3B5E4F", "#3B4E5E", "#5E3B3B", "#4F5E3B"];
+                                                            const pillColor = pillColors[index % pillColors.length];
+
+                                                            return (
+                                                                <div key={index} className="grid grid-cols-3 gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
+                                                                    <div className="px-2 py-1 text-sm flex items-center">
+                                                                        <span
+                                                                            className="inline-block px-2 py-0.5 rounded-full text-xs text-white"
+                                                                            style={{ backgroundColor: pillColor }}
+                                                                        >
+                                                                            {criterion.name}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="px-2 py-1 text-sm">
+                                                                        {criterion.description || ""}
+                                                                    </div>
+                                                                    <div className="px-2 py-1 text-sm text-center">
+                                                                        {criterion.maxScore}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+
+                                                        {/* If no criteria, show empty state */}
+                                                        {(!currentQuestionConfig.scorecardData.criteria || currentQuestionConfig.scorecardData.criteria.length === 0) && (
+                                                            <div className="grid grid-cols-3 gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
+                                                                <div className="px-2 py-1 text-sm flex items-center">
+                                                                    <span className="inline-block px-2 py-0.5 rounded-full text-xs text-white bg-[#5E3B5D]">
+                                                                        Add criteria
+                                                                    </span>
+                                                                </div>
+                                                                <div className="px-2 py-1 flex items-center">
+                                                                    <div className="h-3 bg-[#333] rounded w-full"></div>
+                                                                </div>
+                                                                <div className="px-2 py-1 text-sm text-center"></div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
+                                        ) : (
+                                            <div className="w-full flex flex-col items-center justify-center p-8 text-center border border-dashed border-gray-700 rounded-lg bg-[#1A1A1A]">
+                                                <div className="max-w-md">
+                                                    <h3 className="text-xl font-light text-white mb-3">What is a scorecard?</h3>
+                                                    <p className="text-gray-400 mb-6">
+                                                        A scorecard is a set of criteria used to grade the answer to an open-ended question - either use one of our templates or create your own
+                                                    </p>
+                                                    <button
+                                                        className="flex items-center px-5 py-2.5 text-sm text-black bg-white hover:bg-gray-100 rounded-md transition-colors cursor-pointer mx-auto"
+                                                        ref={scorecardButtonRef}
+                                                        onClick={handleOpenScorecardDialog}
+                                                        disabled={readOnly}
+                                                    >
+                                                        <div className="w-5 h-5 rounded-full border border-black flex items-center justify-center mr-2">
+                                                            <Plus size={12} className="text-black" />
+                                                        </div>
+                                                        Add a scorecard
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )
                                     )}
                                 </div>
                             </div>
