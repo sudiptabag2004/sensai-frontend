@@ -1028,7 +1028,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                         ) : (
                             <div className="w-full flex flex-col mx-6">
                                 <div className="flex flex-col space-y-2 mb-4">
-                                    {/* <div className="flex items-center">
+                                    <div className="flex items-center">
                                         <Dropdown
                                             icon={<HelpCircle size={16} />}
                                             title="Question Type"
@@ -1037,20 +1037,20 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                             onChange={handleQuestionTypeChange}
                                             disabled={readOnly}
                                         />
-                                    </div> */}
-
-                                    {/* {(selectedQuestionType.value === 'default' || selectedQuestionType.value === 'open-ended') && ( */}
-                                    <div className="mb-4 flex items-center">
-                                        <Dropdown
-                                            icon={<Pen size={16} />}
-                                            title="Answer Type"
-                                            options={answerTypeOptions}
-                                            selectedOption={selectedAnswerType}
-                                            onChange={handleAnswerTypeChange}
-                                            disabled={readOnly}
-                                        />
                                     </div>
-                                    {/* )} */}
+
+                                    {(selectedQuestionType.value === 'default' || selectedQuestionType.value === 'open-ended') && (
+                                        <div className="mb-4 flex items-center">
+                                            <Dropdown
+                                                icon={<Pen size={16} />}
+                                                title="Answer Type"
+                                                options={answerTypeOptions}
+                                                selectedOption={selectedAnswerType}
+                                                onChange={handleAnswerTypeChange}
+                                                disabled={readOnly}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Segmented control for editor tabs */}

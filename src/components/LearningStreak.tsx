@@ -6,11 +6,50 @@ interface LearningStreakProps {
 }
 
 export default function LearningStreak({ streakDays, activeDays }: LearningStreakProps) {
-    // Reordered days of week to start with Sunday, end with Saturday, with Wednesday in the middle
-    const daysOfWeek = ["S", "M", "T", "W", "T", "F", "S"];
+    // Get current day in IST
+    const getCurrentDayInIST = useMemo(() => {
+        // Create a date in IST (UTC+5:30)
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+        const istDate = new Date(now.getTime() + istOffset + now.getTimezoneOffset() * 60 * 1000);
+        return istDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    }, []);
 
-    // Map display days to their internal identifiers
-    const dayToIdentifierMap = ["S_0", "M", "T", "W", "T", "F", "S_6"];
+    // All days of week for reference
+    const allDaysOfWeek = ["S", "M", "T", "W", "T", "F", "S"];
+    const allDayIdentifiers = ["S_0", "M", "T", "W", "T", "F", "S_6"];
+
+    // Reorder days to put current day in the middle (4th position)
+    const { daysOfWeek, dayToIdentifierMap } = useMemo(() => {
+        const currentDayIndex = getCurrentDayInIST;
+
+        // Calculate days before and after to create a balanced view with current day in center
+        let reorderedDays = [];
+        let reorderedIdentifiers = [];
+
+        // Add 3 days before the current day
+        for (let i = 3; i > 0; i--) {
+            const index = (currentDayIndex - i + 7) % 7;
+            reorderedDays.push(allDaysOfWeek[index]);
+            reorderedIdentifiers.push(allDayIdentifiers[index]);
+        }
+
+        // Add current day
+        reorderedDays.push(allDaysOfWeek[currentDayIndex]);
+        reorderedIdentifiers.push(allDayIdentifiers[currentDayIndex]);
+
+        // Add 3 days after the current day
+        for (let i = 1; i <= 3; i++) {
+            const index = (currentDayIndex + i) % 7;
+            reorderedDays.push(allDaysOfWeek[index]);
+            reorderedIdentifiers.push(allDayIdentifiers[index]);
+        }
+
+        return {
+            daysOfWeek: reorderedDays,
+            dayToIdentifierMap: reorderedIdentifiers
+        };
+    }, [getCurrentDayInIST]);
 
     // List of energizing emojis
     const energizing_emojis = [
@@ -54,6 +93,7 @@ export default function LearningStreak({ streakDays, activeDays }: LearningStrea
                                 ${isDayActive(index)
                                     ? "bg-[#F9B84E] text-black font-light"
                                     : "bg-gray-800 text-gray-400 font-light"}
+                                ${index === 3 ? "border-2 border-[#F9B84E] bg-opacity-80" : ""}
                             `}
                         >
                             {day}
