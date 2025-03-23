@@ -474,6 +474,8 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             onChange(updatedQuestions);
         }
 
+        setActiveEditorTab('question');
+
         // Removed slash menu opening after adding a new question
     }, [questions, onChange]);
 
