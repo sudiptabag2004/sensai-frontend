@@ -246,7 +246,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         };
 
         fetchSchoolScorecards();
-    }, [taskId, status, hasFetchedData, onChange]);
+    }, [taskId, status]);
 
     // Reset hasFetchedData when taskId changes
     useEffect(() => {
@@ -357,6 +357,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     // Function to handle creating a new scorecard
     const handleCreateNewScorecard = () => {
         setShowScorecardDialog(false);
+
         // Set the scorecard title
         setScorecardTitle("New Scorecard");
 
@@ -371,11 +372,14 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             ]
         };
 
+        // Add the new scorecard to the question's config
         handleConfigChange({
             scorecardData: newScorecardData
         });
 
-        setSchoolScorecards(prev => [...prev, newScorecardData]);
+        // Update school scorecards state with new scorecard
+        const updatedScorecards = [...schoolScorecards, newScorecardData];
+        setSchoolScorecards(updatedScorecards);
 
         // Switch to the scorecard tab
         setActiveEditorTab('scorecard');
@@ -393,33 +397,33 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         // Set the scorecard title
         setScorecardTitle(template.name || "Scorecard Template");
 
-        const newScorecardData: ScorecardTemplate = {
+        let scorecard: ScorecardTemplate;
+
+        // Create a new scorecard based on the template
+        scorecard = {
             id: crypto.randomUUID(),
             name: template.name,
-            new: template.is_template, // Only mark as new if it's created from a template
+            new: true,
             is_template: false,
             criteria: template.criteria || [],
         };
 
-        // Add the template data to the question's config
-        handleConfigChange({
-            scorecardData: newScorecardData
-        });
+        // Update school scorecards state with new scorecard
+        const updatedScorecards = [...schoolScorecards, scorecard];
+        setSchoolScorecards(updatedScorecards);
 
-        // Only add to school scorecards if it's a new scorecard created from a template
-        if (template.is_template) {
-            setSchoolScorecards(prev => [...prev, newScorecardData]);
-        }
+        // Add the scorecard data to the question's config
+        handleConfigChange({
+            scorecardData: scorecard
+        });
 
         // Switch to the scorecard tab
         setActiveEditorTab('scorecard');
 
-        // Focus on the scorecard title after a short delay to allow rendering, but only if it's a new scorecard
-        if (template.is_template) {
-            setTimeout(() => {
-                scorecardRef.current?.focusName();
-            }, 100);
-        }
+        // Focus on the scorecard title after a short delay to allow rendering
+        setTimeout(() => {
+            scorecardRef.current?.focusName();
+        }, 100);
     };
 
     // Function to set the editor reference
@@ -1143,7 +1147,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                 <EmptyQuizPlaceholder />
                             </div>
                         ) : (
-                            <div className="w-full flex flex-col mx-6">
+                            <div className="w-full flex flex-col mx-6 mb-4">
                                 <div className="flex flex-col space-y-2 mb-4">
                                     {taskType !== 'exam' && (
                                         <div className="flex items-center">
@@ -1303,30 +1307,18 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                         scorecardData: updatedScorecardData
                                                     });
 
-                                                    // Update title in local scorecards if it exists
-                                                    const existingScorecard = schoolScorecards.find(
-                                                        s => s.name === currentScorecardData.name
+                                                    // Update the scorecard in schoolScorecards state
+                                                    const updatedScorecards = schoolScorecards.map(sc =>
+                                                        sc.id === currentScorecardData.id ? { ...sc, name: newName } : sc
                                                     );
-
-                                                    if (existingScorecard) {
-                                                        setSchoolScorecards(prev =>
-                                                            prev.map(sc =>
-                                                                sc.id === existingScorecard.id
-                                                                    ? { ...sc, name: newName }
-                                                                    : sc
-                                                            )
-                                                        );
-                                                    }
+                                                    setSchoolScorecards(updatedScorecards);
                                                 }}
                                                 onChange={(updatedCriteria) => {
                                                     if (!currentQuestionConfig.scorecardData) {
                                                         return;
                                                     }
 
-                                                    const currentScorecardData = currentQuestionConfig.scorecardData || {
-                                                        name: scorecardTitle,
-                                                        criteria: []
-                                                    };
+                                                    const currentScorecardData = currentQuestionConfig.scorecardData;
 
                                                     // Update the current question's scorecard
                                                     const updatedScorecardData = {
@@ -1338,22 +1330,11 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                         scorecardData: updatedScorecardData
                                                     });
 
-                                                    // Find and update this scorecard in the local scorecards array
-                                                    // Use current title to find if this scorecard already exists in local scorecards
-                                                    const existingScorecard = schoolScorecards.find(
-                                                        s => s.name === currentScorecardData.name
+                                                    // Update the scorecard in schoolScorecards state
+                                                    const updatedScorecards = schoolScorecards.map(sc =>
+                                                        sc.id === currentScorecardData.id ? { ...sc, criteria: updatedCriteria } : sc
                                                     );
-
-                                                    if (existingScorecard) {
-                                                        // Update existing scorecard
-                                                        setSchoolScorecards(prev =>
-                                                            prev.map(sc =>
-                                                                sc.id === existingScorecard.id
-                                                                    ? { ...sc, criteria: updatedCriteria }
-                                                                    : sc
-                                                            )
-                                                        );
-                                                    }
+                                                    setSchoolScorecards(updatedScorecards);
                                                 }}
                                             />
                                         ) : (
@@ -1387,6 +1368,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
             {/* Scorecard Templates Dialog */}
             <ScorecardPickerDialog
+                key={`scorecard-picker-${schoolScorecards.length}`}
                 isOpen={showScorecardDialog}
                 onClose={() => setShowScorecardDialog(false)}
                 onCreateNew={handleCreateNewScorecard}

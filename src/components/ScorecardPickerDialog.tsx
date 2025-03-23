@@ -138,7 +138,7 @@ const TemplatePreview: React.FC<{ template: ScorecardTemplate; templateElement: 
     );
 };
 
-const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
+const ScorecardPickerDialog: React.FC<ScorecardTemplatesDialogProps> = ({
     isOpen,
     onClose,
     onCreateNew,
@@ -226,6 +226,8 @@ const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
     // Check if there are any school-specific scorecards to show
     const hasSchoolScorecards = schoolScorecards.length > 0;
 
+    console.log(schoolScorecards)
+
     return (
         <div
             className="fixed inset-0 z-50"
@@ -282,6 +284,11 @@ const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
                                 }}
                             >
                                 <span className="text-white text-sm">{template.name}</span>
+                                {template.new && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-700 text-white ml-2">
+                                        NEW
+                                    </span>
+                                )}
 
                                 {/* Preview on hover */}
                                 {hoveredTemplate === template.id && hoveredElement && (
@@ -334,4 +341,4 @@ const ScorecardTemplatesDialog: React.FC<ScorecardTemplatesDialogProps> = ({
     );
 };
 
-export default ScorecardTemplatesDialog; 
+export default ScorecardPickerDialog; 
