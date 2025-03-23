@@ -4,7 +4,7 @@ import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
-import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap, Sparkles, Check, HelpCircle, X, ChevronDown, Pen } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, FileText, Trash2, FileCode, AudioLines, Zap, Sparkles, Check, HelpCircle, X, ChevronDown, Pen, ClipboardCheck } from "lucide-react";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteSchema } from "@blocknote/core";
 
@@ -18,6 +18,8 @@ import LearnerQuizView from "./LearnerQuizView";
 import ConfirmationDialog from "./ConfirmationDialog";
 // Import the new Dropdown component
 import Dropdown, { DropdownOption } from "./Dropdown";
+// Import the ScorecardPickerDialog component
+import ScorecardPickerDialog from "./ScorecardPickerDialog";
 
 // Define the editor handle with methods that can be called by parent components
 export interface QuizEditorHandle {
@@ -304,6 +306,43 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
     // Reference to the correct answer editor
     const correctAnswerEditorRef = useRef<any>(null);
+
+    // State for scorecard templates dialog
+    const [showScorecardDialog, setShowScorecardDialog] = useState(false);
+    const [scorecardDialogPosition, setScorecardDialogPosition] = useState<{ top: number, left: number } | null>(null);
+    const scorecardButtonRef = useRef<HTMLButtonElement>(null);
+
+    // Function to handle opening the scorecard templates dialog
+    const handleOpenScorecardDialog = () => {
+        const buttonElement = scorecardButtonRef.current;
+        if (buttonElement) {
+            const rect = buttonElement.getBoundingClientRect();
+
+            // Approximate height of the dialog (templates + header)
+            const estimatedDialogHeight = 350;
+
+            // Position the bottom of the dialog above the button with some spacing
+            setScorecardDialogPosition({
+                top: Math.max(10, rect.top - estimatedDialogHeight - 10), // Ensure at least 10px from top of viewport
+                left: Math.max(10, rect.left - 120) // Center horizontally but ensure it's not off-screen
+            });
+            setShowScorecardDialog(true);
+        }
+    };
+
+    // Function to handle creating a new scorecard
+    const handleCreateNewScorecard = () => {
+        setShowScorecardDialog(false);
+        // Logic to create a new scorecard will be added here
+        console.log('Creating new scorecard');
+    };
+
+    // Function to handle selecting a scorecard template
+    const handleSelectScorecardTemplate = (templateId: string) => {
+        setShowScorecardDialog(false);
+        // Logic to apply the selected template will be added here
+        console.log('Selected template:', templateId);
+    };
 
     // Function to set the editor reference
     const setEditorInstance = useCallback((editor: any) => {
@@ -865,6 +904,9 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         handleConfigChange({
             questionType: option.value as 'default' | 'open-ended' | 'coding'
         });
+
+        // Set active tab to question whenever question type changes
+        setActiveEditorTab('question');
     }, [handleConfigChange]);
 
     // Handle answer type change
@@ -885,7 +927,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     const [selectedAnswerType, setSelectedAnswerType] = useState<DropdownOption>(answerTypeOptions[0]);
 
     // State for tracking active tab (question or answer)
-    const [activeEditorTab, setActiveEditorTab] = useState<'question' | 'answer'>('question');
+    const [activeEditorTab, setActiveEditorTab] = useState<'question' | 'answer' | 'scorecard'>('question');
 
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
@@ -1028,16 +1070,18 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                         ) : (
                             <div className="w-full flex flex-col mx-6">
                                 <div className="flex flex-col space-y-2 mb-4">
-                                    <div className="flex items-center">
-                                        <Dropdown
-                                            icon={<HelpCircle size={16} />}
-                                            title="Question Type"
-                                            options={questionTypeOptions}
-                                            selectedOption={selectedQuestionType}
-                                            onChange={handleQuestionTypeChange}
-                                            disabled={readOnly}
-                                        />
-                                    </div>
+                                    {taskType !== 'exam' && (
+                                        <div className="flex items-center">
+                                            <Dropdown
+                                                icon={<HelpCircle size={16} />}
+                                                title="Question Type"
+                                                options={questionTypeOptions}
+                                                selectedOption={selectedQuestionType}
+                                                onChange={handleQuestionTypeChange}
+                                                disabled={readOnly}
+                                            />
+                                        </div>
+                                    )}
 
                                     {(selectedQuestionType.value === 'default' || selectedQuestionType.value === 'open-ended') && (
                                         <div className="mb-4 flex items-center">
@@ -1066,16 +1110,29 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                             <HelpCircle size={16} className="mr-2" />
                                             Question
                                         </button>
-                                        <button
-                                            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${activeEditorTab === 'answer'
-                                                ? 'bg-[#333333] text-white'
-                                                : 'text-gray-400 hover:text-white'
-                                                }`}
-                                            onClick={() => setActiveEditorTab('answer')}
-                                        >
-                                            <Check size={16} className="mr-2" />
-                                            Correct Answer
-                                        </button>
+                                        {selectedQuestionType.value === 'default' ? (
+                                            <button
+                                                className={`flex items-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${activeEditorTab === 'answer'
+                                                    ? 'bg-[#333333] text-white'
+                                                    : 'text-gray-400 hover:text-white'
+                                                    }`}
+                                                onClick={() => setActiveEditorTab('answer')}
+                                            >
+                                                <Check size={16} className="mr-2" />
+                                                Correct Answer
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className={`flex items-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${activeEditorTab === 'scorecard'
+                                                    ? 'bg-[#333333] text-white'
+                                                    : 'text-gray-400 hover:text-white'
+                                                    }`}
+                                                onClick={() => setActiveEditorTab('scorecard')}
+                                            >
+                                                <ClipboardCheck size={16} className="mr-2" />
+                                                Scorecard
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1095,7 +1152,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                 />
                                             </div>
                                         </div>
-                                    ) : (
+                                    ) : activeEditorTab === 'answer' ? (
                                         <div className="w-full flex-1 bg-[#1A1A1A] rounded-md overflow-hidden"
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -1144,6 +1201,27 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                 placeholder="Enter the correct answer here"
                                             />
                                         </div>
+                                    ) : (
+                                        // Scorecard tab - empty for now
+                                        <div className="w-full flex flex-col items-center justify-center p-8 text-center border border-dashed border-gray-700 rounded-lg bg-[#1A1A1A]">
+                                            <div className="max-w-md">
+                                                <h3 className="text-xl font-light text-white mb-3">What is a scorecard?</h3>
+                                                <p className="text-gray-400 mb-6">
+                                                    A scorecard is a set of criteria used to grade the answer to an open-ended question - either use one of our templates or create your own
+                                                </p>
+                                                <button
+                                                    className="flex items-center px-5 py-2.5 text-sm text-black bg-white hover:bg-gray-100 rounded-md transition-colors cursor-pointer mx-auto"
+                                                    ref={scorecardButtonRef}
+                                                    onClick={handleOpenScorecardDialog}
+                                                    disabled={readOnly}
+                                                >
+                                                    <div className="w-5 h-5 rounded-full border border-black flex items-center justify-center mr-2">
+                                                        <Plus size={12} className="text-black" />
+                                                    </div>
+                                                    Add a scorecard
+                                                </button>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -1151,6 +1229,15 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                     </>
                 )}
             </div>
+
+            {/* Scorecard Templates Dialog */}
+            <ScorecardPickerDialog
+                isOpen={showScorecardDialog}
+                onClose={() => setShowScorecardDialog(false)}
+                onCreateNew={handleCreateNewScorecard}
+                onSelectTemplate={handleSelectScorecardTemplate}
+                position={scorecardDialogPosition || undefined}
+            />
         </div>
     );
 });
