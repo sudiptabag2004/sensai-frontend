@@ -213,7 +213,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                             return (
                                 <div key={index} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 80px 80px 40px' }} className="gap-2 bg-[#2A2A2A] rounded-md p-1 text-white">
                                     {/* Criterion Name Cell */}
-                                    <div className="px-2 py-1 text-sm flex items-center">
+                                    <div className="px-2 py-1 text-sm h-full flex items-center">
                                         {editingCell?.rowIndex === index && editingCell.field === 'name' ? (
                                             <input
                                                 type="text"
@@ -243,7 +243,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                     </div>
 
                                     {/* Description Cell */}
-                                    <div className="px-2 py-1 text-sm">
+                                    <div className="px-2 py-1 text-sm flex items-start h-full">
                                         {editingCell?.rowIndex === index && editingCell.field === 'description' ? (
                                             <input
                                                 type="text"
@@ -257,7 +257,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                             />
                                         ) : (
                                             <span
-                                                className={`block break-words text-sm ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80 relative group' : ''} ${criterion.description ? '' : 'text-gray-500'}`}
+                                                className={`block break-words text-sm w-full ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80 relative group' : ''} ${criterion.description ? '' : 'text-gray-500'}`}
                                                 onClick={() => startEditing(index, 'description')}
                                             >
                                                 {criterion.description || 'Click to add description'}
@@ -272,7 +272,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                     </div>
 
                                     {/* Min Score Cell */}
-                                    <div className="px-2 py-1 text-sm text-center">
+                                    <div className="px-2 py-1 text-sm text-center h-full flex items-center justify-center">
                                         {editingCell?.rowIndex === index && editingCell.field === 'minScore' ? (
                                             <input
                                                 type="number"
@@ -304,7 +304,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
 
                                     {/* Max Score Cell */}
-                                    <div className="px-2 py-1 text-sm text-center">
+                                    <div className="px-2 py-1 text-sm text-center h-full flex items-center justify-center">
                                         {editingCell?.rowIndex === index && editingCell.field === 'maxScore' ? (
                                             <input
                                                 type="number"
@@ -336,7 +336,7 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
 
                                     {/* Delete Button Cell */}
-                                    <div className="flex items-center justify-center">
+                                    <div className="h-full flex items-center justify-center">
                                         {!readOnly && !linked && criteria.length > 1 && (
                                             <button
                                                 onClick={() => handleDeleteCriterion(index)}
