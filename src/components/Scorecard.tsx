@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, forwardRef, useImperativeHandle, useState } from 'react';
-import { Trash2, Plus, X, Info } from 'lucide-react';
+import { Trash2, Plus, X, Info, HelpCircle } from 'lucide-react';
 import { CriterionData } from './ScorecardPickerDialog';
 import './scorecard-styles.css'; // We'll create this CSS file
+import SimpleTooltip from './SimpleTooltip';
 
 interface ScorecardProps {
     name: string;
@@ -159,10 +160,46 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
                     {/* Table header */}
                     <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr 80px 80px 40px' }} className="gap-2 mb-2 text-xs text-gray-300">
-                        <div className="px-2">Criterion</div>
-                        <div className="px-2">Description</div>
-                        <div className="px-2 text-center">Min Score</div>
-                        <div className="px-2 text-center">Max Score</div>
+                        <div className="px-2 flex items-center">
+                            Criterion
+                            <div className="relative ml-1 text-gray-500 hover:text-gray-300 cursor-pointer group">
+                                <HelpCircle size={12} />
+                                <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 hidden group-hover:block px-3 py-1.5 rounded bg-gray-900 text-white text-xs whitespace-nowrap z-[10000]">
+                                    The specific aspect or skill being evaluated in this scorecard
+                                    <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-2 flex items-center">
+                            Description
+                            <div className="relative ml-1 text-gray-500 hover:text-gray-300 cursor-pointer group">
+                                <HelpCircle size={12} />
+                                <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 hidden group-hover:block px-3 py-1.5 rounded bg-gray-900 text-white text-xs whitespace-nowrap z-[10000]">
+                                    A detailed explanation of what is being measured by this criterion
+                                    <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-2 text-center flex items-center justify-center">
+                            Minimum
+                            <div className="relative ml-1 text-gray-500 hover:text-gray-300 cursor-pointer group">
+                                <HelpCircle size={12} />
+                                <div className="absolute right-full top-1/2 transform -translate-y-1/2 mr-2 hidden group-hover:block px-3 py-1.5 rounded bg-gray-900 text-white text-xs whitespace-nowrap z-[10000]">
+                                    The lowest possible score for this criterion
+                                    <div className="absolute left-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-l-gray-900"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-2 text-center flex items-center justify-center">
+                            Maximum
+                            <div className="relative ml-1 text-gray-500 hover:text-gray-300 cursor-pointer group">
+                                <HelpCircle size={12} />
+                                <div className="absolute right-full top-1/2 transform -translate-y-1/2 mr-2 hidden group-hover:block px-3 py-1.5 rounded bg-gray-900 text-white text-xs whitespace-nowrap z-[10000]">
+                                    The highest possible score for this criterion
+                                    <div className="absolute left-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-l-gray-900"></div>
+                                </div>
+                            </div>
+                        </div>
                         <div className="px-2"></div> {/* Empty header for delete button */}
                     </div>
 
@@ -190,11 +227,17 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                             />
                                         ) : (
                                             <span
-                                                className={`inline-block px-2 py-0.5 rounded-full text-xs text-white ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                                className={`inline-block px-2 py-0.5 rounded-full text-xs text-white ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80 relative group' : ''}`}
                                                 style={{ backgroundColor: pillColor }}
                                                 onClick={() => startEditing(index, 'name')}
                                             >
                                                 {criterion.name || 'New Criterion'}
+                                                {!readOnly && !linked && (
+                                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 hidden group-hover:block px-2 py-1 rounded bg-gray-900 text-white text-xs whitespace-nowrap z-[10000]">
+                                                        Click to edit
+                                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-b-gray-900"></div>
+                                                    </div>
+                                                )}
                                             </span>
                                         )}
                                     </div>
@@ -214,10 +257,16 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                             />
                                         ) : (
                                             <span
-                                                className={`block break-words text-sm ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80' : ''} ${criterion.description ? '' : 'text-gray-500'}`}
+                                                className={`block break-words text-sm ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80 relative group' : ''} ${criterion.description ? '' : 'text-gray-500'}`}
                                                 onClick={() => startEditing(index, 'description')}
                                             >
                                                 {criterion.description || 'Click to add description'}
+                                                {!readOnly && !linked && (
+                                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 hidden group-hover:block px-2 py-1 rounded bg-gray-900 text-white text-xs whitespace-nowrap z-[10000]">
+                                                        Click to edit
+                                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-b-gray-900"></div>
+                                                    </div>
+                                                )}
                                             </span>
                                         )}
                                     </div>
@@ -239,10 +288,16 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                             />
                                         ) : (
                                             <span
-                                                className={`block ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                                className={`block ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80 relative group' : ''}`}
                                                 onClick={() => startEditing(index, 'minScore')}
                                             >
                                                 {criterion.minScore}
+                                                {!readOnly && !linked && (
+                                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 hidden group-hover:block px-2 py-1 rounded bg-gray-900 text-white text-xs whitespace-nowrap z-[10000]">
+                                                        Click to edit
+                                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-b-gray-900"></div>
+                                                    </div>
+                                                )}
                                             </span>
                                         )}
                                     </div>
@@ -265,10 +320,16 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                                             />
                                         ) : (
                                             <span
-                                                className={`block ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                                className={`block ${!readOnly && !linked ? 'cursor-pointer hover:opacity-80 relative group' : ''}`}
                                                 onClick={() => startEditing(index, 'maxScore')}
                                             >
                                                 {criterion.maxScore}
+                                                {!readOnly && !linked && (
+                                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 hidden group-hover:block px-2 py-1 rounded bg-gray-900 text-white text-xs whitespace-nowrap z-[10000]">
+                                                        Click to edit
+                                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-b-gray-900"></div>
+                                                    </div>
+                                                )}
                                             </span>
                                         )}
                                     </div>
