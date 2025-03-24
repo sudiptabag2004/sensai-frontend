@@ -288,6 +288,14 @@ export default function LearnerQuizView({
         return history;
     }, [chatHistories, currentQuestionIndex, validQuestions, taskType, completedQuestionIds, pendingSubmissionQuestionIds]);
 
+    // Get the last user message for the current question
+    const getLastUserMessage = useMemo(() => {
+        // Filter for user messages only
+        const userMessages = currentChatHistory.filter(msg => msg.sender === 'user');
+        // Return the last user message if exists
+        return userMessages.length > 0 ? userMessages[userMessages.length - 1] : null;
+    }, [currentChatHistory]);
+
     // Fetch chat history from backend when component mounts or task changes
     useEffect(() => {
         // Skip if we're in test mode or if userId is not available or if we've already loaded chat history
@@ -1229,6 +1237,8 @@ export default function LearnerQuizView({
     const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     // Ref to store the current thinking message to avoid dependency issues
     const currentThinkingMessageRef = useRef("");
+    // Ref to track if initial message has been set
+    const initialMessageSetRef = useRef(false);
 
     // Update the ref when the state changes
     useEffect(() => {
@@ -1248,13 +1258,18 @@ export default function LearnerQuizView({
                 clearTimeout(transitionTimeoutRef.current);
                 transitionTimeoutRef.current = null;
             }
+            // Reset the initial message flag when AI stops responding
+            initialMessageSetRef.current = false;
             return;
         }
 
-        // Initial random message
-        const randomMessage = thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
-        setCurrentThinkingMessage(randomMessage);
-        setIsTransitioning(false);
+        // Set initial message only if it hasn't been set yet
+        if (!initialMessageSetRef.current) {
+            const randomMessage = thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
+            setCurrentThinkingMessage(randomMessage);
+            setIsTransitioning(false);
+            initialMessageSetRef.current = true;
+        }
 
         // Set interval to change message every 2 seconds
         messageIntervalRef.current = setInterval(() => {
@@ -1289,7 +1304,7 @@ export default function LearnerQuizView({
                 transitionTimeoutRef.current = null;
             }
         };
-    }, [isAiResponding, thinkingMessages]);
+    }, [isAiResponding]);
 
     // Custom styles for the pulsating animation and hidden scrollbar
     const customStyles = `
@@ -1452,15 +1467,35 @@ export default function LearnerQuizView({
                     {isViewingScorecard ? (
                         /* Scorecard View */
                         <div className="flex flex-col h-full px-6 py-6 overflow-hidden">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-light text-white">Detailed Report</h2>
+                            <div className="flex flex-col mb-6 relative">
                                 <button
                                     onClick={handleBackToChat}
-                                    className="px-4 py-2 bg-[#222222] text-white rounded-full hover:bg-[#333333] transition-colors flex items-center"
+                                    className="absolute left-0 top-0 px-3 py-1.5 bg-[#222222] text-sm text-white rounded-full hover:bg-[#333333] transition-colors flex items-center cursor-pointer"
                                 >
-                                    <ChevronLeft size={16} className="mr-1" />
-                                    Back to Chat
+                                    <ChevronLeft size={14} className="mr-1" />
+                                    Back
                                 </button>
+                                <div className="text-center mt-8">
+                                    {getLastUserMessage ? (
+                                        getLastUserMessage.messageType === 'audio' && getLastUserMessage.audioData ? (
+                                            <div className="flex flex-col items-center">
+                                                <h2 className="text-xl font-light text-white mb-2">Your Audio Response</h2>
+                                                <audio
+                                                    controls
+                                                    className="w-3/4 max-w-xs mt-2"
+                                                    src={`data:audio/wav;base64,${getLastUserMessage.audioData}`}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <h2 className="text-xl font-light text-white mb-2">Your Response</h2>
+                                                <p className="text-gray-300 text-sm max-w-lg mx-auto">{getLastUserMessage.content}</p>
+                                            </div>
+                                        )
+                                    ) : (
+                                        <h2 className="text-xl font-light text-white">Detailed Report</h2>
+                                    )}
+                                </div>
                             </div>
                             <div
                                 ref={scorecardContainerRef}
