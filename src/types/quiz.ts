@@ -102,4 +102,5 @@ export interface ScorecardItem {
 export interface AIResponse {
     feedback: string;
     is_correct: boolean;
+    scorecard?: ScorecardItem[];
 }

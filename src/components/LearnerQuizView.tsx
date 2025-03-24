@@ -373,8 +373,31 @@ export default function LearnerQuizView({
                         sender: message.role === 'user' ? 'user' : 'ai',
                         timestamp: new Date(message.created_at),
                         messageType: message.response_type,
-                        audioData: audioData
+                        audioData: audioData,
+                        scorecard: []
                     };
+
+                    // If this is an AI message, try to parse the content as JSON
+                    if (message.role === 'assistant') {
+                        try {
+                            // Try to parse the content as JSON
+                            const contentObj = JSON.parse(message.content);
+
+                            // Extract the feedback field to display as the message content
+                            if (contentObj && contentObj.feedback) {
+                                chatMessage.content = contentObj.feedback;
+                            }
+
+                            // Extract scorecard if available
+                            if (contentObj && contentObj.scorecard) {
+                                chatMessage.scorecard = contentObj.scorecard;
+                            }
+                        } catch (error) {
+                            // If parsing fails, assume it's the old format (plain text)
+                            // Keep the original content as is - it's already set in chatMessage
+                            console.log('Message is in old format (plain text), using as is:', message.content);
+                        }
+                    }
 
                     // Track questions with user responses for exam questions
                     if (message.role === 'user') {
@@ -505,7 +528,7 @@ export default function LearnerQuizView({
     }, [readOnly]); // Only depend on readOnly
 
     // Function to store chat history in backend
-    const storeChatHistory = useCallback(async (questionId: string, userMessage: ChatMessage, aiMessage: AIResponse) => {
+    const storeChatHistory = useCallback(async (questionId: string, userMessage: ChatMessage, aiResponse: AIResponse) => {
         if (!userId || isTestMode) return;
 
         // For both exam and quiz questions, use the completedQuestionIds state
@@ -516,12 +539,32 @@ export default function LearnerQuizView({
         let aiIsSolved = false;
         try {
             // Try to parse the AI message as JSON to see if it contains is_correct
-            if (aiMessage && typeof aiMessage.is_correct === 'boolean') {
-                aiIsSolved = aiMessage.is_correct;
+            if (aiResponse && typeof aiResponse.is_correct === 'boolean') {
+                aiIsSolved = aiResponse.is_correct;
             }
         } catch (e) {
             console.error('Error parsing AI message:', e);
         }
+
+        // Get the response type from the current question config
+        const currentQuestion = validQuestions.find(q => q.id === questionId);
+        const responseType = currentQuestion?.config?.responseType;
+
+        // Create content based on the response type
+        let contentObj = {};
+        if (responseType === 'report') {
+            // For report type, include both feedback and scorecard
+            contentObj = {
+                feedback: aiResponse.feedback,
+                scorecard: aiResponse.scorecard || []
+            };
+        } else {
+            // For chat type or any other type, just include feedback
+            contentObj = {
+                feedback: aiResponse.feedback
+            };
+        }
+        let aiContent = JSON.stringify(contentObj);
 
         const messages = [
             {
@@ -533,7 +576,7 @@ export default function LearnerQuizView({
             },
             {
                 role: "assistant",
-                content: aiMessage.feedback,
+                content: aiContent,
                 response_type: null,
                 created_at: new Date()
             }
@@ -563,7 +606,7 @@ export default function LearnerQuizView({
         } catch (error) {
             console.error('Error storing chat history:', error);
         }
-    }, [userId, isTestMode, completedQuestionIds, taskType]);
+    }, [userId, isTestMode, completedQuestionIds, taskType, validQuestions]);
 
     // Process a user response (shared logic between text and audio submission)
     const processUserResponse = useCallback(
@@ -1001,7 +1044,8 @@ export default function LearnerQuizView({
                             if (!isTestMode) {
                                 const aiResponse: AIResponse = {
                                     feedback: accumulatedFeedback,
-                                    is_correct: isCorrect
+                                    is_correct: isCorrect,
+                                    scorecard: completeScorecard
                                 };
                                 storeChatHistory(currentQuestionId, userMessage, aiResponse);
                             }

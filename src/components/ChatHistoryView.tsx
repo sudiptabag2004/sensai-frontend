@@ -6,13 +6,15 @@ interface ChatHistoryViewProps {
     onViewScorecard: (scorecard: ScorecardItem[]) => void;
     isAiResponding: boolean;
     showPreparingReport: boolean;
+    currentQuestionConfig?: any;
 }
 
 const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
     chatHistory,
     onViewScorecard,
     isAiResponding,
-    showPreparingReport
+    showPreparingReport,
+    currentQuestionConfig
 }) => {
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -171,6 +173,18 @@ const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
     }
     `;
 
+    // Helper to determine if "View Report" button should be shown
+    const shouldShowViewReport = (message: ChatMessage) => {
+        // Check if message is from AI and has scorecard data
+        return (
+            message.sender === 'ai' &&
+            message.scorecard &&
+            message.scorecard.length > 0 &&
+            // Check if the current question is configured for report responses
+            currentQuestionConfig?.responseType === 'report'
+        );
+    };
+
     return (
         <>
             <style jsx>{customStyles}</style>
@@ -198,7 +212,7 @@ const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
                                 ) : (
                                     <div>
                                         <p className="text-sm">{message.content}</p>
-                                        {message.scorecard && message.scorecard.length > 0 && (
+                                        {shouldShowViewReport(message) && (
                                             <div className="mt-3">
                                                 <button
                                                     onClick={() => onViewScorecard(message.scorecard || [])}

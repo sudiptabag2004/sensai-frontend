@@ -81,11 +81,12 @@ const ChatView: React.FC<ChatViewProps> = ({
                     onViewScorecard={handleViewScorecard}
                     isAiResponding={isAiResponding}
                     showPreparingReport={showPreparingReport}
+                    currentQuestionConfig={currentQuestionConfig}
                 />
             )}
 
             {/* Input area with fixed position at bottom */}
-            <div className="pt-2 bg-[#111111]">
+            <div className="fpt-2 bg-[#111111]">
                 {!(taskType === 'exam' && isQuestionCompleted) && (
                     /* Input area - conditional render based on input type */
                     <>
