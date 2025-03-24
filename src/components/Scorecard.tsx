@@ -38,6 +38,13 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
     const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
     // State to track the current value being edited
     const [editValue, setEditValue] = useState<string>('');
+    // State to track name input value for controlled component
+    const [nameValue, setNameValue] = useState<string>(name || '');
+
+    // Update nameValue when prop changes
+    useEffect(() => {
+        setNameValue(name || '');
+    }, [name]);
 
     // Expose the focusName method to parent components
     useImperativeHandle(ref, () => ({
@@ -130,7 +137,8 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                         <input
                             ref={nameRef}
                             type="text"
-                            defaultValue={name}
+                            value={nameValue}
+                            onChange={(e) => setNameValue(e.target.value)}
                             readOnly={readOnly || linked}
                             placeholder="Scorecard Name"
                             className={`text-white text-lg font-normal bg-transparent border-none outline-none focus:outline-none focus:ring-0 focus:border-b focus:border-white/50 w-full max-w-full`}
