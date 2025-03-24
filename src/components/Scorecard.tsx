@@ -130,7 +130,21 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
 
     return (
         <div className="w-full">
-            <div className="w-full bg-[#2F2F2F] rounded-lg shadow-xl p-2 mb-3">
+            {/* Linked scorecard message */}
+            {linked && (
+                <div className="bg-gradient-to-r from-[#252525] to-[#292536] p-4 rounded-xl shadow-sm border border-[#333342] flex items-start gap-3 mb-3">
+                    <div className="p-1.5 rounded-full bg-[#3b3d5e] text-[#a3a8ff] flex-shrink-0">
+                        <Info size={14} />
+                    </div>
+                    <div>
+                        <h4 className="text-white text-sm font-light mb-1">Read-only Scorecard</h4>
+                        <p className="text-gray-400 text-xs leading-relaxed">
+                            You cannot edit an existing scorecard. If you want to make changes, please delete it and either begin with a template or start from an empty scorecard.
+                        </p>
+                    </div>
+                </div>
+            )}
+            <div className="w-full bg-[#2F2F2F] rounded-lg shadow-xl p-2">
                 {/* Header with name */}
                 <div className="p-5 pb-3 bg-[#1F1F1F] mb-2">
                     <div className="flex items-center mb-4">
@@ -391,20 +405,6 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
                     )}
                 </div>
             </div>
-            {/* Linked scorecard message */}
-            {linked && (
-                <div className="bg-gradient-to-r from-[#252525] to-[#292536] p-4 rounded-xl shadow-sm border border-[#333342] flex items-start gap-3">
-                    <div className="p-1.5 rounded-full bg-[#3b3d5e] text-[#a3a8ff] flex-shrink-0">
-                        <Info size={14} />
-                    </div>
-                    <div>
-                        <h4 className="text-white text-sm font-light mb-1">Read-only Scorecard</h4>
-                        <p className="text-gray-400 text-xs leading-relaxed">
-                            You cannot edit an existing scorecard. If you want to make changes, please delete it and either begin with a template or start from an empty scorecard.
-                        </p>
-                    </div>
-                </div>
-            )}
 
         </div>
     );

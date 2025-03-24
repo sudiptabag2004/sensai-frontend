@@ -1069,6 +1069,50 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         return isPublishedScorecard(scorecardData) || isUserCreatedNewScorecard(scorecardData);
     };
 
+    // New function to sync all questions with a source scorecard when it changes
+    const syncLinkedScorecards = useCallback((sourceId: string, newName?: string, newCriteria?: CriterionData[]) => {
+        if (!sourceId) return;
+
+        console.log("questions before:", questions);
+
+        // Update all questions that have scorecard linked to this source
+        const updatedQuestions = questions.map(question => {
+            // Check if this question has a linked scorecard with the matching id
+            // Only sync scorecards that are user-created (string id) and match the source id
+            if (question.config.scorecardData &&
+                typeof question.config.scorecardData.id === 'string' &&
+                question.config.scorecardData.id === sourceId) {
+
+                // Create an updated scorecard data
+                const updatedScorecardData = {
+                    ...question.config.scorecardData,
+                    name: newName !== undefined ? newName : question.config.scorecardData.name,
+                    criteria: newCriteria !== undefined ? newCriteria : question.config.scorecardData.criteria
+                };
+
+                // Return updated question with synced scorecard
+                return {
+                    ...question,
+                    config: {
+                        ...question.config,
+                        scorecardData: updatedScorecardData
+                    }
+                };
+            }
+
+            // Return question unchanged if it doesn't have a matching scorecard
+            return question;
+        });
+
+        console.log("Updated questions after:", updatedQuestions);
+
+        // Update questions state and notify parent
+        setQuestions(updatedQuestions);
+        if (onChange) {
+            onChange(updatedQuestions);
+        }
+    }, [questions, onChange]);
+
     return (
         <div className="flex flex-col h-full relative" key={`quiz-${taskId}-${isEditMode ? 'edit' : 'view'}`}>
             {/* Scorecard delete confirmation modal */}
@@ -1357,6 +1401,12 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                         sc.id === currentScorecardData.id ? { ...sc, name: newName } : sc
                                                     );
                                                     setSchoolScorecards(updatedScorecards);
+
+                                                    // If this is a source scorecard (created by user in this quiz),
+                                                    // sync all linked scorecards to reflect the name change
+                                                    if (currentScorecardData.new) {
+                                                        syncLinkedScorecards(currentScorecardData.id, newName);
+                                                    }
                                                 }}
                                                 onChange={(updatedCriteria) => {
                                                     if (!currentQuestionConfig.scorecardData) {
@@ -1380,6 +1430,12 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                                         sc.id === currentScorecardData.id ? { ...sc, criteria: updatedCriteria } : sc
                                                     );
                                                     setSchoolScorecards(updatedScorecards);
+
+                                                    // If this is a source scorecard (created by user in this quiz),
+                                                    // sync all linked scorecards to reflect the criteria changes
+                                                    if (currentScorecardData.new) {
+                                                        syncLinkedScorecards(currentScorecardData.id, undefined, updatedCriteria);
+                                                    }
                                                 }}
                                             />
                                         ) : (
