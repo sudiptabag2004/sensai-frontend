@@ -77,7 +77,7 @@ export default function ConfirmationDialog({
 
     return (
         <div
-            className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
             onClick={(e) => {
                 e.stopPropagation();
                 onCancel();

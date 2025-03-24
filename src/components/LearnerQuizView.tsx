@@ -9,6 +9,7 @@ import { QuizQuestion, ChatMessage, ScorecardItem, AIResponse } from "../types/q
 import LearnerScorecard from "./LearnerScorecard";
 import ChatView from './ChatView';
 import ScorecardView from './ScorecardView';
+import ConfirmationDialog from './ConfirmationDialog';
 
 // Custom styles for the pulsating animation
 const styles = `
@@ -67,6 +68,7 @@ export interface LearnerQuizViewProps {
     isTestMode?: boolean;
     taskId?: string;
     completedQuestionIds?: Record<string, boolean>;
+    onAiRespondingChange?: (isResponding: boolean) => void;
 }
 
 export default function LearnerQuizView({
@@ -82,7 +84,8 @@ export default function LearnerQuizView({
     userId = '',
     isTestMode = false,
     taskId = '',
-    completedQuestionIds: initialCompletedQuestionIds = {}
+    completedQuestionIds: initialCompletedQuestionIds = {},
+    onAiRespondingChange
 }: LearnerQuizViewProps) {
     // Constant message for exam submission confirmation
     const EXAM_CONFIRMATION_MESSAGE = "Thank you for your submission. We will review it shortly";
@@ -206,6 +209,10 @@ export default function LearnerQuizView({
 
     // Add state to remember chat scroll position
     const [chatScrollPosition, setChatScrollPosition] = useState(0);
+
+    // Add state for navigation confirmation dialog
+    const [showNavigationConfirmation, setShowNavigationConfirmation] = useState(false);
+    const [pendingNavigation, setPendingNavigation] = useState<'next' | 'prev' | null>(null);
 
     // Reference to the input element to maintain focus
     const inputRef = useRef<HTMLInputElement>(null);
@@ -497,6 +504,19 @@ export default function LearnerQuizView({
 
     // Navigate to previous question
     const goToPreviousQuestion = useCallback(() => {
+        // If AI is responding, show confirmation dialog
+        if (isAiResponding) {
+            setPendingNavigation('prev');
+            setShowNavigationConfirmation(true);
+            return;
+        }
+
+        // Otherwise proceed with navigation
+        executeGoToPreviousQuestion();
+    }, [currentQuestionIndex, onQuestionChange, validQuestions, isAiResponding]);
+
+    // Execute navigation to previous question without checks
+    const executeGoToPreviousQuestion = useCallback(() => {
         if (currentQuestionIndex > 0) {
             const newIndex = currentQuestionIndex - 1;
             setCurrentQuestionIndex(newIndex);
@@ -513,6 +533,19 @@ export default function LearnerQuizView({
 
     // Navigate to next question
     const goToNextQuestion = useCallback(() => {
+        // If AI is responding, show confirmation dialog
+        if (isAiResponding) {
+            setPendingNavigation('next');
+            setShowNavigationConfirmation(true);
+            return;
+        }
+
+        // Otherwise proceed with navigation
+        executeGoToNextQuestion();
+    }, [currentQuestionIndex, validQuestions.length, onQuestionChange, validQuestions, isAiResponding]);
+
+    // Execute navigation to next question without checks
+    const executeGoToNextQuestion = useCallback(() => {
         if (currentQuestionIndex < validQuestions.length - 1) {
             const newIndex = currentQuestionIndex + 1;
             setCurrentQuestionIndex(newIndex);
@@ -526,6 +559,26 @@ export default function LearnerQuizView({
             }
         }
     }, [currentQuestionIndex, validQuestions.length, onQuestionChange, validQuestions]);
+
+    // Handle navigation confirmation
+    const handleNavigationConfirm = useCallback(() => {
+        setShowNavigationConfirmation(false);
+
+        // Execute the navigation based on pending action
+        if (pendingNavigation === 'next') {
+            executeGoToNextQuestion();
+        } else if (pendingNavigation === 'prev') {
+            executeGoToPreviousQuestion();
+        }
+
+        setPendingNavigation(null);
+    }, [executeGoToNextQuestion, executeGoToPreviousQuestion, pendingNavigation]);
+
+    // Handle navigation cancellation
+    const handleNavigationCancel = useCallback(() => {
+        setShowNavigationConfirmation(false);
+        setPendingNavigation(null);
+    }, []);
 
     // Handle input change with focus preservation
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -980,19 +1033,6 @@ export default function LearnerQuizView({
                                         // Handle is_correct when available - for quiz questions
                                         if (taskType === 'quiz' && data.is_correct !== undefined) {
                                             isCorrect = data.is_correct;
-
-                                            if (data.is_correct) {
-                                                // Mark this specific question as completed
-                                                setCompletedQuestionIds(prev => ({
-                                                    ...prev,
-                                                    [currentQuestionId]: true
-                                                }));
-
-                                                // Call the onSubmitAnswer callback to mark completion
-                                                if (onSubmitAnswer) {
-                                                    onSubmitAnswer(currentQuestionId, responseType === 'audio' ? audioData || '' : responseContent);
-                                                }
-                                            }
                                         }
                                     } catch (e) {
                                         console.error('Error parsing JSON chunk:', e);
@@ -1004,6 +1044,16 @@ export default function LearnerQuizView({
 
                             // Only now update the chat message with the complete scorecard
                             if (completeScorecard.length > 0) {
+                                // Check if all criteria received maximum scores
+                                if (completeScorecard.length > 0) {
+                                    // Set isCorrect to true only if all criteria have received their maximum score
+                                    isCorrect = completeScorecard.every((item: ScorecardItem) =>
+                                        item.score !== undefined &&
+                                        item.max_score !== undefined &&
+                                        item.score === item.max_score
+                                    );
+                                }
+
                                 // Update the existing AI message with the complete scorecard data
                                 setChatHistories(prev => {
                                     // Find the current question's chat history
@@ -1028,6 +1078,19 @@ export default function LearnerQuizView({
 
                                 // Only now hide the preparing report message
                                 setTimeout(() => setShowPreparingReport(false), 0);
+                            }
+
+                            if (isCorrect) {
+                                // Mark this specific question as completed
+                                setCompletedQuestionIds(prev => ({
+                                    ...prev,
+                                    [currentQuestionId]: true
+                                }));
+
+                                // Call the onSubmitAnswer callback to mark completion
+                                if (onSubmitAnswer) {
+                                    onSubmitAnswer(currentQuestionId, responseType === 'audio' ? audioData || '' : responseContent);
+                                }
                             }
 
                             // Handle exam questions completion
@@ -1497,6 +1560,13 @@ export default function LearnerQuizView({
         }
     }, [validQuestions, currentQuestionIndex, chatHistories, processUserResponse]);
 
+    // Update the parent component when AI responding state changes
+    useEffect(() => {
+        if (onAiRespondingChange) {
+            onAiRespondingChange(isAiResponding);
+        }
+    }, [isAiResponding, onAiRespondingChange]);
+
     return (
         <div className={`w-full h-full ${className}`}>
             {/* Add the custom styles */}
@@ -1590,6 +1660,18 @@ export default function LearnerQuizView({
                     )}
                 </div>
             </div>
+
+            {/* Navigation Confirmation Dialog */}
+            <ConfirmationDialog
+                open={showNavigationConfirmation}
+                title="What's the rush?"
+                message="Our AI is still reviewing your answer and will be ready with a response soon. If you navigate away now, you will not see the complete response. Are you sure you want to leave?"
+                confirmButtonText="Leave Anyway"
+                cancelButtonText="Stay"
+                onConfirm={handleNavigationConfirm}
+                onCancel={handleNavigationCancel}
+                type="custom"
+            />
         </div>
     );
 } 

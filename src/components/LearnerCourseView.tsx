@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import confetti from "canvas-confetti";
 import SuccessSound from "./SuccessSound";
 import ModuleCompletionSound from "./ModuleCompletionSound";
+import ConfirmationDialog from "./ConfirmationDialog";
 
 // Dynamically import editor components to avoid SSR issues
 const DynamicLearningMaterialEditor = dynamic(
@@ -70,6 +71,11 @@ export default function LearnerCourseView({
     const [playSuccessSound, setPlaySuccessSound] = useState(false);
     // Add state for module completion sound
     const [playModuleCompletionSound, setPlayModuleCompletionSound] = useState(false);
+
+    // Add state for AI responding status and confirmation dialog
+    const [isAiResponding, setIsAiResponding] = useState(false);
+    const [showNavigationConfirmation, setShowNavigationConfirmation] = useState(false);
+    const [pendingNavigation, setPendingNavigation] = useState<{ action: string; params?: any }>({ action: '' });
 
     // List of encouragement messages
     const encouragementMessages = [
@@ -175,8 +181,114 @@ export default function LearnerCourseView({
         };
     }, [isDialogOpen]);
 
+    // Function to close the dialog
+    const closeDialog = () => {
+        // If AI is responding, show confirmation dialog
+        if (isAiResponding) {
+            setPendingNavigation({ action: 'close' });
+            setShowNavigationConfirmation(true);
+            return;
+        }
+
+        // Proceed with closing
+        setIsDialogOpen(false);
+        setActiveItem(null);
+        setActiveModuleId(null);
+        setActiveQuestionId(null);
+
+        // Reset history entry flag when dialog is closed
+        hasAddedHistoryEntryRef.current = false;
+
+        // Call the onDialogClose callback if provided
+        if (onDialogClose) {
+            onDialogClose();
+        }
+    };
+
+    // Function to handle navigation confirmation
+    const handleNavigationConfirm = () => {
+        setShowNavigationConfirmation(false);
+
+        // Execute the pending navigation action
+        switch (pendingNavigation.action) {
+            case 'close':
+                setIsDialogOpen(false);
+                setActiveItem(null);
+                setActiveModuleId(null);
+                setActiveQuestionId(null);
+                hasAddedHistoryEntryRef.current = false;
+                if (onDialogClose) {
+                    onDialogClose();
+                }
+                break;
+            case 'nextTask':
+                executeGoToNextTask();
+                break;
+            case 'prevTask':
+                executeGoToPreviousTask();
+                break;
+            case 'activateQuestion':
+                if (pendingNavigation.params?.questionId) {
+                    executeActivateQuestion(pendingNavigation.params.questionId);
+                }
+                break;
+            case 'openTaskItem':
+                if (pendingNavigation.params?.moduleId && pendingNavigation.params?.itemId) {
+                    executeOpenTaskItem(
+                        pendingNavigation.params.moduleId,
+                        pendingNavigation.params.itemId,
+                        pendingNavigation.params?.questionId
+                    );
+                }
+                break;
+            default:
+                break;
+        }
+    };
+
+    // Function to cancel navigation
+    const handleNavigationCancel = () => {
+        setShowNavigationConfirmation(false);
+        setPendingNavigation({ action: '' });
+    };
+
+    // Function to activate a specific question in a quiz or exam
+    const activateQuestion = (questionId: string) => {
+        if (isAiResponding && questionId !== activeQuestionId) {
+            setPendingNavigation({
+                action: 'activateQuestion',
+                params: { questionId }
+            });
+            setShowNavigationConfirmation(true);
+            return;
+        }
+
+        executeActivateQuestion(questionId);
+    };
+
+    // Execute question activation (without checks)
+    const executeActivateQuestion = (questionId: string) => {
+        setActiveQuestionId(questionId);
+    };
+
     // Function to open a task item and fetch its details
     const openTaskItem = async (moduleId: string, itemId: string, questionId?: string) => {
+        // Check if AI is responding and we're trying to open a different item
+        if (isAiResponding && (moduleId !== activeModuleId || itemId !== activeItem?.id || questionId !== activeQuestionId)) {
+            console.log("Should show confirmation dialog for openTaskItem");
+            setPendingNavigation({
+                action: 'openTaskItem',
+                params: { moduleId, itemId, questionId }
+            });
+            setShowNavigationConfirmation(true);
+            return;
+        }
+
+        executeOpenTaskItem(moduleId, itemId, questionId);
+    };
+
+    // Execute open task item (without checks)
+    const executeOpenTaskItem = async (moduleId: string, itemId: string, questionId?: string) => {
         setIsLoading(true);
         try {
             // Find the item in the modules
@@ -259,120 +371,102 @@ export default function LearnerCourseView({
         }
     };
 
-    // Function to activate a specific question in a quiz or exam
-    const activateQuestion = (questionId: string) => {
-        setActiveQuestionId(questionId);
+    // Function to navigate to the next task
+    const goToNextTask = () => {
+        if (!activeItem || !activeModuleId) return;
+
+        // If AI is responding, show confirmation dialog
+        if (isAiResponding) {
+            setPendingNavigation({ action: 'nextTask' });
+            setShowNavigationConfirmation(true);
+            return;
+        }
+
+        executeGoToNextTask();
     };
 
-    // Function to close the dialog
-    const closeDialog = () => {
-        setIsDialogOpen(false);
-        setActiveItem(null);
-        setActiveModuleId(null);
-        setActiveQuestionId(null);
+    // Execute go to next task (without checks)
+    const executeGoToNextTask = () => {
+        if (!activeItem || !activeModuleId) return;
 
-        // Reset history entry flag when dialog is closed
-        hasAddedHistoryEntryRef.current = false;
+        // If this is a quiz/exam with questions and not on the last question, go to next question
+        if ((activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+            activeItem.questions &&
+            activeItem.questions.length > 1 &&
+            activeQuestionId) {
 
-        // Call the onDialogClose callback if provided
-        if (onDialogClose) {
-            onDialogClose();
+            const currentIndex = activeItem.questions.findIndex((q: any) => q.id === activeQuestionId);
+            if (currentIndex < activeItem.questions.length - 1) {
+                // Go to next question
+                const nextQuestion = activeItem.questions[currentIndex + 1];
+                executeActivateQuestion(nextQuestion.id);
+                return;
+            }
+        }
+
+        // Otherwise, go to next task in module
+        const currentModule = filteredModules.find(m => m.id === activeModuleId);
+        if (!currentModule) return;
+
+        // Find the index of the current task in the module
+        const currentTaskIndex = currentModule.items.findIndex(item => item.id === activeItem.id);
+        if (currentTaskIndex === -1) return;
+
+        // Check if there's a next task in this module
+        if (currentTaskIndex < currentModule.items.length - 1) {
+            // Navigate to the next task in the same module
+            const nextTask = currentModule.items[currentTaskIndex + 1];
+            executeOpenTaskItem(activeModuleId, nextTask.id);
         }
     };
 
-    // Function to trigger confetti animation
-    const triggerConfetti = (isFullCompletion = true) => {
-        // Trigger confetti effect with different intensity based on completion type
-        confetti({
-            particleCount: isFullCompletion ? 100 : 50,
-            spread: isFullCompletion ? 70 : 40,
-            origin: { y: 0.6 },
-            colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
-            zIndex: 9999
-        });
+    // Function to navigate to the previous task
+    const goToPreviousTask = () => {
+        if (!activeItem || !activeModuleId) return;
 
-        // Play success sound
-        setPlaySuccessSound(true);
+        // If AI is responding, show confirmation dialog
+        if (isAiResponding) {
+            setPendingNavigation({ action: 'prevTask' });
+            setShowNavigationConfirmation(true);
+            return;
+        }
 
-        // Reset sound trigger after a short delay
-        setTimeout(() => {
-            setPlaySuccessSound(false);
-        }, 300);
+        executeGoToPreviousTask();
     };
 
-    // Function to trigger a more extravagant confetti celebration for module completion
-    const triggerModuleCompletionCelebration = () => {
-        // Get random confetti origin points for a more dynamic effect
-        const generateRandomOrigin = () => ({
-            x: 0.2 + Math.random() * 0.6, // Random x value between 0.2 and 0.8
-            y: 0.2 + Math.random() * 0.4  // Random y value between 0.2 and 0.6
-        });
+    // Execute go to previous task (without checks)
+    const executeGoToPreviousTask = () => {
+        if (!activeItem || !activeModuleId) return;
 
-        // First wave - center burst (larger particles)
-        confetti({
-            particleCount: 150,
-            spread: 90,
-            origin: { y: 0.6 },
-            colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
-            zIndex: 9999,
-            scalar: 1.5 // Larger particles
-        });
+        // If this is a quiz/exam with questions and not on the first question, go to previous question
+        if ((activeItem.type === 'quiz' || activeItem.type === 'exam') &&
+            activeItem.questions &&
+            activeItem.questions.length > 1 &&
+            activeQuestionId) {
 
-        // Second wave - left side burst (with gravity)
-        setTimeout(() => {
-            confetti({
-                particleCount: 80,
-                angle: 60,
-                spread: 70,
-                origin: { x: 0, y: 0.5 },
-                colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
-                zIndex: 9999,
-                gravity: 1.2,
-                drift: 2
-            });
-        }, 200);
-
-        // Third wave - right side burst (with gravity)
-        setTimeout(() => {
-            confetti({
-                particleCount: 80,
-                angle: 120,
-                spread: 70,
-                origin: { x: 1, y: 0.5 },
-                colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
-                zIndex: 9999,
-                gravity: 1.2,
-                drift: -2
-            });
-        }, 400);
-
-        // Fourth wave - random bursts for 2 seconds
-        let burstCount = 0;
-        const maxBursts = 5;
-        const burstInterval = setInterval(() => {
-            if (burstCount >= maxBursts) {
-                clearInterval(burstInterval);
+            const currentIndex = activeItem.questions.findIndex((q: any) => q.id === activeQuestionId);
+            if (currentIndex > 0) {
+                // Go to previous question
+                const prevQuestion = activeItem.questions[currentIndex - 1];
+                executeActivateQuestion(prevQuestion.id);
                 return;
             }
+        }
 
-            confetti({
-                particleCount: 30,
-                spread: 80,
-                origin: generateRandomOrigin(),
-                colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
-                zIndex: 9999
-            });
+        // Otherwise, go to previous task in module
+        const currentModule = filteredModules.find(m => m.id === activeModuleId);
+        if (!currentModule) return;
 
-            burstCount++;
-        }, 300);
+        // Find the index of the current task in the module
+        const currentTaskIndex = currentModule.items.findIndex(item => item.id === activeItem.id);
+        if (currentTaskIndex === -1) return;
 
-        // Play the more impressive module completion sound
-        setPlayModuleCompletionSound(true);
-
-        // Reset sound trigger after the sound duration
-        setTimeout(() => {
-            setPlayModuleCompletionSound(false);
-        }, 2000); // Longer timeout for the longer sound
+        // Check if there's a previous task in this module
+        if (currentTaskIndex > 0) {
+            // Navigate to the previous task in the same module
+            const previousTask = currentModule.items[currentTaskIndex - 1];
+            executeOpenTaskItem(activeModuleId, previousTask.id);
+        }
     };
 
     // Function to check if a module is now fully completed
@@ -555,76 +649,6 @@ export default function LearnerCourseView({
         }
     };
 
-    // Function to navigate to the next task
-    const goToNextTask = () => {
-        if (!activeItem || !activeModuleId) return;
-
-        // If this is a quiz/exam with questions and not on the last question, go to next question
-        if ((activeItem.type === 'quiz' || activeItem.type === 'exam') &&
-            activeItem.questions &&
-            activeItem.questions.length > 1 &&
-            activeQuestionId) {
-
-            const currentIndex = activeItem.questions.findIndex((q: any) => q.id === activeQuestionId);
-            if (currentIndex < activeItem.questions.length - 1) {
-                // Go to next question
-                const nextQuestion = activeItem.questions[currentIndex + 1];
-                activateQuestion(nextQuestion.id);
-                return;
-            }
-        }
-
-        // Otherwise, go to next task in module
-        const currentModule = filteredModules.find(m => m.id === activeModuleId);
-        if (!currentModule) return;
-
-        // Find the index of the current task in the module
-        const currentTaskIndex = currentModule.items.findIndex(item => item.id === activeItem.id);
-        if (currentTaskIndex === -1) return;
-
-        // Check if there's a next task in this module
-        if (currentTaskIndex < currentModule.items.length - 1) {
-            // Navigate to the next task in the same module
-            const nextTask = currentModule.items[currentTaskIndex + 1];
-            openTaskItem(activeModuleId, nextTask.id);
-        }
-    };
-
-    // Function to navigate to the previous task
-    const goToPreviousTask = () => {
-        if (!activeItem || !activeModuleId) return;
-
-        // If this is a quiz/exam with questions and not on the first question, go to previous question
-        if ((activeItem.type === 'quiz' || activeItem.type === 'exam') &&
-            activeItem.questions &&
-            activeItem.questions.length > 1 &&
-            activeQuestionId) {
-
-            const currentIndex = activeItem.questions.findIndex((q: any) => q.id === activeQuestionId);
-            if (currentIndex > 0) {
-                // Go to previous question
-                const prevQuestion = activeItem.questions[currentIndex - 1];
-                activateQuestion(prevQuestion.id);
-                return;
-            }
-        }
-
-        // Otherwise, go to previous task in module
-        const currentModule = filteredModules.find(m => m.id === activeModuleId);
-        if (!currentModule) return;
-
-        // Find the index of the current task in the module
-        const currentTaskIndex = currentModule.items.findIndex(item => item.id === activeItem.id);
-        if (currentTaskIndex === -1) return;
-
-        // Check if there's a previous task in this module
-        if (currentTaskIndex > 0) {
-            // Navigate to the previous task in the same module
-            const previousTask = currentModule.items[currentTaskIndex - 1];
-            openTaskItem(activeModuleId, previousTask.id);
-        }
-    };
-
     // Function to check if we're at the first task in the module
     const isFirstTask = () => {
         if (!activeItem || !activeModuleId) return false;
@@ -760,6 +784,106 @@ export default function LearnerCourseView({
         };
     };
 
+    // Handle AI responding state change from quiz view
+    const handleAiRespondingChange = useCallback((isResponding: boolean) => {
+        setIsAiResponding(isResponding);
+    }, []);
+
+    // Function to trigger confetti animation
+    const triggerConfetti = (isFullCompletion = true) => {
+        // Trigger confetti effect with different intensity based on completion type
+        confetti({
+            particleCount: isFullCompletion ? 100 : 50,
+            spread: isFullCompletion ? 70 : 40,
+            origin: { y: 0.6 },
+            colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
+            zIndex: 9999
+        });
+
+        // Play success sound
+        setPlaySuccessSound(true);
+
+        // Reset sound trigger after a short delay
+        setTimeout(() => {
+            setPlaySuccessSound(false);
+        }, 300);
+    };
+
+    // Function to trigger a more extravagant confetti celebration for module completion
+    const triggerModuleCompletionCelebration = () => {
+        // Get random confetti origin points for a more dynamic effect
+        const generateRandomOrigin = () => ({
+            x: 0.2 + Math.random() * 0.6, // Random x value between 0.2 and 0.8
+            y: 0.2 + Math.random() * 0.4  // Random y value between 0.2 and 0.6
+        });
+
+        // First wave - center burst (larger particles)
+        confetti({
+            particleCount: 150,
+            spread: 90,
+            origin: { y: 0.6 },
+            colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
+            zIndex: 9999,
+            scalar: 1.5 // Larger particles
+        });
+
+        // Second wave - left side burst (with gravity)
+        setTimeout(() => {
+            confetti({
+                particleCount: 80,
+                angle: 60,
+                spread: 70,
+                origin: { x: 0, y: 0.5 },
+                colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
+                zIndex: 9999,
+                gravity: 1.2,
+                drift: 2
+            });
+        }, 200);
+
+        // Third wave - right side burst (with gravity)
+        setTimeout(() => {
+            confetti({
+                particleCount: 80,
+                angle: 120,
+                spread: 70,
+                origin: { x: 1, y: 0.5 },
+                colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
+                zIndex: 9999,
+                gravity: 1.2,
+                drift: -2
+            });
+        }, 400);
+
+        // Fourth wave - random bursts for 2 seconds
+        let burstCount = 0;
+        const maxBursts = 5;
+        const burstInterval = setInterval(() => {
+            if (burstCount >= maxBursts) {
+                clearInterval(burstInterval);
+                return;
+            }
+
+            confetti({
+                particleCount: 30,
+                spread: 80,
+                origin: generateRandomOrigin(),
+                colors: ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'],
+                zIndex: 9999
+            });
+
+            burstCount++;
+        }, 300);
+
+        // Play the more impressive module completion sound
+        setPlayModuleCompletionSound(true);
+
+        // Reset sound trigger after the sound duration
+        setTimeout(() => {
+            setPlayModuleCompletionSound(false);
+        }, 2000); // Longer timeout for the longer sound
+    };
+
     return (
         <div className="bg-black">
             {filteredModules.length > 0 ? (
@@ -791,10 +915,23 @@ export default function LearnerCourseView({
             {/* Module Completion Sound */}
             <ModuleCompletionSound play={playModuleCompletionSound} />
 
+            {/* Navigation Confirmation Dialog */}
+            <ConfirmationDialog
+                open={showNavigationConfirmation}
+                title="AI is still responding"
+                message="The AI is still generating a response. If you navigate away now, you will not see the complete response. Are you sure you want to leave?"
+                confirmButtonText="Leave Anyway"
+                cancelButtonText="Stay"
+                onConfirm={handleNavigationConfirm}
+                onCancel={handleNavigationCancel}
+                type="custom"
+            />
+
             {/* Task Viewer Dialog - Using the same pattern as the editor view */}
             {isDialogOpen && activeItem && (
                 <div
                     className="fixed inset-0 bg-black z-50 overflow-hidden"
+                    onClick={handleDialogBackdropClick}
                 >
                     <div
                         ref={dialogContentRef}
@@ -1010,6 +1147,7 @@ export default function LearnerCourseView({
                                                     taskId={activeItem.id}
                                                     completedQuestionIds={completedQuestions}
                                                     isDarkMode={true}
+                                                    onAiRespondingChange={handleAiRespondingChange}
                                                 />
                                             </>
                                         )}
@@ -1044,6 +1182,19 @@ export default function LearnerCourseView({
                     </div>
                 </div>
             )}
+
+            {/* Navigation Confirmation Dialog - Moved to end and z-index increased */}
+            <ConfirmationDialog
+                key="navigationConfirmationDialog"
+                open={showNavigationConfirmation}
+                title="What's the rush?"
+                message="Our AI is still reviewing your answer and will be ready with a response soon. If you navigate away now, you will not see the complete response. Are you sure you want to leave?"
+                confirmButtonText="Leave Anyway"
+                cancelButtonText="Stay"
+                onConfirm={handleNavigationConfirm}
+                onCancel={handleNavigationCancel}
+                type="custom"
+            />
         </div>
     );
 } 
