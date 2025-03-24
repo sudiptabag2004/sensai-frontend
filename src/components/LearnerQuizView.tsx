@@ -7,6 +7,8 @@ import BlockNoteEditor from "./BlockNoteEditor";
 import AudioInputComponent from "./AudioInputComponent";
 import { QuizQuestion, ChatMessage, ScorecardItem, AIResponse } from "../types/quiz";
 import LearnerScorecard from "./LearnerScorecard";
+import ChatView from './ChatView';
+import ScorecardView from './ScorecardView';
 
 // Custom styles for the pulsating animation
 const styles = `
@@ -1462,199 +1464,36 @@ export default function LearnerQuizView({
                     </div>
                 </div>
 
-                {/* Right side - Chat (50%) - Updated with conditional rendering for scorecard view */}
+                {/* Right side - Chat or Scorecard View (50%) */}
                 <div className="w-1/2 flex flex-col bg-[#111111] h-full overflow-hidden">
                     {isViewingScorecard ? (
-                        /* Scorecard View */
-                        <div className="flex flex-col h-full px-6 py-6 overflow-hidden">
-                            <div className="flex flex-col mb-6 relative">
-                                <button
-                                    onClick={handleBackToChat}
-                                    className="absolute left-0 top-0 px-3 py-1.5 bg-[#222222] text-sm text-white rounded-full hover:bg-[#333333] transition-colors flex items-center cursor-pointer"
-                                >
-                                    <ChevronLeft size={14} className="mr-1" />
-                                    Back
-                                </button>
-                                <div className="text-center mt-8">
-                                    {getLastUserMessage ? (
-                                        getLastUserMessage.messageType === 'audio' && getLastUserMessage.audioData ? (
-                                            <div className="flex flex-col items-center">
-                                                <h2 className="text-xl font-light text-white mb-2">Your Audio Response</h2>
-                                                <audio
-                                                    controls
-                                                    className="w-3/4 max-w-xs mt-2"
-                                                    src={`data:audio/wav;base64,${getLastUserMessage.audioData}`}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <h2 className="text-xl font-light text-white mb-2">Your Response</h2>
-                                                <p className="text-gray-300 text-sm max-w-lg mx-auto">{getLastUserMessage.content}</p>
-                                            </div>
-                                        )
-                                    ) : (
-                                        <h2 className="text-xl font-light text-white">Detailed Report</h2>
-                                    )}
-                                </div>
-                            </div>
-                            <div
-                                ref={scorecardContainerRef}
-                                className="flex-1 overflow-y-auto hide-scrollbar"
-                            >
-                                <LearnerScorecard scorecard={activeScorecard} className="mt-0" />
-                            </div>
-                        </div>
+                        /* Use the ScorecardView component */
+                        <ScorecardView
+                            activeScorecard={activeScorecard}
+                            handleBackToChat={handleBackToChat}
+                            lastUserMessage={getLastUserMessage as ChatMessage | null}
+                        />
                     ) : (
-                        /* Chat View */
-                        <div className="flex-1 flex flex-col px-6 py-6 overflow-hidden">
-                            {currentChatHistory.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full w-full">
-                                    {!isChatHistoryLoaded && !isTestMode ? (
-                                        // Loading spinner while chat history is loading
-                                        <div className="flex flex-col items-center justify-center">
-                                            <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
-                                        </div>
-                                    ) : (
-                                        // Show placeholder text only when history is loaded but empty
-                                        <>
-                                            <h2 className="text-4xl font-light text-white mb-6 text-center">
-                                                {taskType === 'exam' ? 'Ready for a challenge?' : 'Ready to test your knowledge?'}
-                                            </h2>
-                                            <p className="text-gray-400 text-center max-w-md mx-auto mb-8">
-                                                {taskType === 'exam'
-                                                    ? `Think through your answer, then ${currentQuestionConfig?.inputType === 'audio' ? 'record' : 'type'} it here. You can attempt the question only once. Be careful and confident.`
-                                                    : `Think through your answer, then ${currentQuestionConfig?.inputType === 'audio' ? 'record' : 'type'} it here. You will receive instant feedback and support throughout your journey`
-                                                }
-                                            </p>
-                                        </>
-                                    )}
-                                </div>
-                            ) : (
-                                <div
-                                    ref={chatContainerRef}
-                                    className="h-full overflow-y-auto w-full hide-scrollbar"
-                                >
-                                    <div className="flex flex-col space-y-4 pr-2">
-                                        {currentChatHistory.map((message) => (
-                                            <div
-                                                key={message.id}
-                                                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                                            >
-                                                <div
-                                                    className={`rounded-2xl px-4 py-2 ${message.messageType === 'audio' ? 'w-[75%]' : `${message.sender === 'user' ? 'bg-[#333333] text-white' : 'bg-[#1A1A1A] text-white'} max-w-[75%]`}`}
-                                                >
-                                                    {message.messageType === 'audio' && message.audioData ? (
-                                                        <div className="flex flex-col space-y-2">
-                                                            <audio
-                                                                controls
-                                                                className="w-full"
-                                                                src={`data:audio/wav;base64,${message.audioData}`}
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        <div>
-                                                            <p className="text-sm">{message.content}</p>
-                                                            {message.scorecard && message.scorecard.length > 0 && (
-                                                                <div className="mt-3">
-                                                                    <button
-                                                                        onClick={() => handleViewScorecard(message.scorecard || [])}
-                                                                        className="bg-[#333333] text-white px-4 py-2 mb-2 rounded-full text-xs hover:bg-[#444444] transition-colors cursor-pointer flex items-center"
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                                                        </svg>
-                                                                        View Report
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-
-                                        {/* Show "Preparing report" as an AI message */}
-                                        {showPreparingReport && (
-                                            <div className="flex justify-start">
-                                                <div className="rounded-2xl px-4 py-3 bg-[#1A1A1A] text-white max-w-[75%]">
-                                                    <div className="flex items-center">
-                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
-                                                        <div className="flex flex-col">
-                                                            <p className="text-sm font-light">Preparing report</p>
-                                                            <p className="text-xs text-gray-400 mt-1">This may take a moment</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* AI typing animation - with pulsating dot and changing text */}
-                                        {isAiResponding && (
-                                            <div className="flex justify-start items-center my-2 ml-2">
-                                                <div className="flex items-center justify-center min-w-[20px] min-h-[20px] mr-2">
-                                                    <div
-                                                        className="w-2.5 h-2.5 bg-white rounded-full pulsating-circle"
-                                                    ></div>
-                                                </div>
-                                                <div className={`${isTransitioning ? 'message-transition-out' : 'message-transition-in'}`}>
-                                                    <span className="highlight-animation text-sm">
-                                                        {currentThinkingMessage}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Input area with fixed position at bottom - only show in chat view */}
-                    {!isViewingScorecard && (
-                        <div className="px-6 pb-6 pt-2 bg-[#111111]">
-                            {!(taskType === 'exam' && completedQuestionIds[validQuestions[currentQuestionIndex]?.id]) && (
-                                /* Input area - conditional render based on input type */
-                                <>
-                                    {currentQuestionConfig?.inputType === 'audio' ? (
-                                        <AudioInputComponent
-                                            onAudioSubmit={handleAudioSubmit}
-                                            isSubmitting={isSubmitting || isAiResponding}
-                                            maxDuration={currentQuestionConfig?.audioMaxDuration || 120}
-                                        />
-                                    ) : (
-                                        /* Original text input */
-                                        <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
-                                            <input
-                                                ref={inputRef}
-                                                type="text"
-                                                placeholder="Type your answer here"
-                                                className="flex-1 bg-transparent border-none px-6 py-4 text-white focus:outline-none"
-                                                value={currentAnswer}
-                                                onChange={handleInputChange}
-                                                onKeyPress={handleKeyPress}
-                                                autoFocus={!readOnly}
-                                                disabled={false} // Never disable the input field
-                                            />
-                                            <button
-                                                className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
-                                                onClick={handleSubmitAnswer}
-                                                disabled={!currentAnswer.trim() || isSubmitting || isAiResponding}
-                                                aria-label="Submit answer"
-                                                type="button"
-                                            >
-                                                {isSubmitting ? (
-                                                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                                                ) : (
-                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                )}
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
+                        /* Use the ChatView component */
+                        <ChatView
+                            currentChatHistory={currentChatHistory as ChatMessage[]}
+                            isAiResponding={isAiResponding}
+                            showPreparingReport={showPreparingReport}
+                            isChatHistoryLoaded={isChatHistoryLoaded}
+                            isTestMode={isTestMode}
+                            taskType={taskType}
+                            currentQuestionConfig={validQuestions[currentQuestionIndex]?.config}
+                            isSubmitting={isSubmitting}
+                            currentAnswer={currentAnswer}
+                            handleInputChange={handleInputChange}
+                            handleKeyPress={handleKeyPress}
+                            handleSubmitAnswer={handleSubmitAnswer}
+                            handleAudioSubmit={handleAudioSubmit}
+                            handleViewScorecard={handleViewScorecard}
+                            readOnly={readOnly}
+                            completedQuestionIds={completedQuestionIds}
+                            currentQuestionId={validQuestions[currentQuestionIndex]?.id}
+                        />
                     )}
                 </div>
             </div>
