@@ -5,7 +5,8 @@ services:
     ports:
       - "8502:3000" # Standard Next.js dev port
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     # restart: unless-stopped
     networks:
       - sensai-network-dev

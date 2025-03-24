@@ -96,6 +96,8 @@ export default function LearnerQuizView({
             const index = questions.findIndex(q => q.id === currentQuestionId);
             if (index !== -1) {
                 setCurrentQuestionIndex(index);
+                // Reset to chat view when changing questions
+                setIsViewingScorecard(false);
             }
         }
     }, [currentQuestionId, questions]);
@@ -499,6 +501,8 @@ export default function LearnerQuizView({
             const newIndex = currentQuestionIndex - 1;
             setCurrentQuestionIndex(newIndex);
             setCurrentAnswer(""); // Reset answer when changing questions
+            // Reset to chat view when changing questions
+            setIsViewingScorecard(false);
 
             // Always notify parent component about question change
             if (onQuestionChange && validQuestions[newIndex]) {
@@ -513,6 +517,8 @@ export default function LearnerQuizView({
             const newIndex = currentQuestionIndex + 1;
             setCurrentQuestionIndex(newIndex);
             setCurrentAnswer(""); // Reset answer when changing questions
+            // Reset to chat view when changing questions
+            setIsViewingScorecard(false);
 
             // Always notify parent component about question change
             if (onQuestionChange && validQuestions[newIndex]) {
