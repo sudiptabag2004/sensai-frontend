@@ -516,25 +516,32 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         }
     }, [questions, currentQuestionIndex, onChange]);
 
-    // Handle correct answer change
-    const handleCorrectAnswerChange = useCallback((correctAnswer: string) => {
-        if (questions.length === 0) return;
+    const removeScorecardFromSchoolScoreboards = useCallback(() => {
+        let scorecardForQuestion = questions[currentQuestionIndex].config.scorecardData
+
+        if (!scorecardForQuestion) {
+            return;
+        }
+
+        if (scorecardForQuestion && scorecardForQuestion.new) {
+            const updatedScorecards = schoolScorecards.filter(scorecard => scorecard.id !== scorecardForQuestion.id);
+            setSchoolScorecards(updatedScorecards);
+        }
 
         const updatedQuestions = [...questions];
-        updatedQuestions[currentQuestionIndex] = {
-            ...updatedQuestions[currentQuestionIndex],
-            config: {
-                ...updatedQuestions[currentQuestionIndex].config,
-                correctAnswer
+
+        for (let i = 0; i < updatedQuestions.length; i++) {
+            if (updatedQuestions[i].config.scorecardData && updatedQuestions[i].config.scorecardData?.id === scorecardForQuestion.id) {
+                updatedQuestions[i].config.scorecardData = undefined;
             }
-        };
+        }
 
         setQuestions(updatedQuestions);
 
         if (onChange) {
             onChange(updatedQuestions);
         }
-    }, [questions, currentQuestionIndex, onChange]);
+    }, [questions, currentQuestionIndex, schoolScorecards, onChange]);
 
     // Function to get current correct answer text from editor
     const extractCurrentCorrectAnswer = useCallback(() => {
@@ -1070,10 +1077,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 title="Delete Scorecard"
                 message="Are you sure you want to delete this scorecard? This action cannot be undone."
                 onConfirm={() => {
-                    // Remove scorecard data from question config
-                    handleConfigChange({
-                        scorecardData: undefined
-                    });
+                    removeScorecardFromSchoolScoreboards();
                     setShowScorecardDeleteConfirm(false);
                 }}
                 onCancel={() => setShowScorecardDeleteConfirm(false)}
