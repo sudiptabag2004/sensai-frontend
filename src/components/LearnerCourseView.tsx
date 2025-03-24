@@ -210,8 +210,8 @@ export default function LearnerCourseView({
                         blocks: q.blocks || [], // Keep the original blocks property
                         content: q.blocks || [], // Also add as content for compatibility
                         config: {
-                            inputType: q.input_type || 'text',
-                            responseStyle: 'coach',
+                            inputType: q.input_type,
+                            responseType: q.response_type,
                             evaluationCriteria: [],
                             correctAnswer: q.answer || ''
                         }

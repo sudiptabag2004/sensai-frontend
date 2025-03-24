@@ -94,7 +94,7 @@ interface Module {
 // Default configuration for new questions
 const defaultQuestionConfig: QuizQuestionConfig = {
     inputType: 'text',
-    responseStyle: 'coach',
+    responseType: 'chat',
     evaluationCriteria: []
 };
 

@@ -5,6 +5,8 @@ import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import BlockNoteEditor from "./BlockNoteEditor";
 import AudioInputComponent from "./AudioInputComponent";
+import { QuizQuestion, ChatMessage, ScorecardItem, AIResponse } from "../types/quiz";
+import LearnerScorecard from "./LearnerScorecard";
 
 // Custom styles for the pulsating animation
 const styles = `
@@ -48,35 +50,6 @@ const styles = `
 }
 `;
 
-export interface QuizQuestionConfig {
-    inputType: 'text' | 'code' | 'audio';
-    responseStyle: 'coach' | 'examiner' | 'evaluator';
-    evaluationCriteria: string[];
-    correctAnswer?: string;
-    codeLanguage?: string; // For code input type
-    audioMaxDuration?: number; // For audio input type in seconds
-}
-
-export interface QuizQuestion {
-    id: string;
-    content: any[];
-    config: QuizQuestionConfig;
-}
-
-// Define a message type for the chat history
-interface ChatMessage {
-    id: string;
-    content: string;
-    sender: 'user' | 'ai';
-    timestamp: Date;
-    messageType?: 'text' | 'audio';
-    audioData?: string; // base64 encoded audio data
-}
-
-interface AIResponse {
-    feedback: string;
-    is_correct: boolean;
-}
 
 export interface LearnerQuizViewProps {
     questions: QuizQuestion[];
@@ -136,7 +109,7 @@ export default function LearnerQuizView({
                     content: [],
                     config: {
                         inputType: 'text',
-                        responseStyle: 'coach',
+                        responseType: 'chat',
                         evaluationCriteria: [],
                         correctAnswer: "",
                         audioMaxDuration: 120 // Default to 2 minutes
@@ -150,7 +123,7 @@ export default function LearnerQuizView({
                 const completeConfig = {
                     ...q.config,
                     inputType: q.config?.inputType || 'text',
-                    responseStyle: q.config?.responseStyle || 'coach',
+                    responseType: q.config?.responseType,
                     evaluationCriteria: q.config?.evaluationCriteria || [],
                     correctAnswer: q.config?.correctAnswer || "",
                     audioMaxDuration: q.config?.audioMaxDuration || 120
@@ -170,7 +143,7 @@ export default function LearnerQuizView({
                     config: {
                         ...config,
                         inputType: config.inputType || 'text',
-                        responseStyle: config.responseStyle || 'coach',
+                        responseType: config.responseType,
                         evaluationCriteria: config.evaluationCriteria || [],
                         correctAnswer: config.correctAnswer || "",
                         audioMaxDuration: config.audioMaxDuration || 120
@@ -186,7 +159,7 @@ export default function LearnerQuizView({
                 config: {
                     ...config,
                     inputType: config.inputType || 'text',
-                    responseStyle: config.responseStyle || 'coach',
+                    responseType: config.responseType,
                     evaluationCriteria: config.evaluationCriteria || [],
                     correctAnswer: config.correctAnswer || "",
                     audioMaxDuration: config.audioMaxDuration || 120
@@ -210,11 +183,26 @@ export default function LearnerQuizView({
     // State to track if chat history has been loaded
     const [isChatHistoryLoaded, setIsChatHistoryLoaded] = useState(false);
 
+    // State to track if we should show the preparing report button
+    const [showPreparingReport, setShowPreparingReport] = useState(false);
+
+    // New state to track if we're viewing a scorecard
+    const [isViewingScorecard, setIsViewingScorecard] = useState(false);
+
+    // New state to track which scorecard we're viewing
+    const [activeScorecard, setActiveScorecard] = useState<ScorecardItem[]>([]);
+
+    // Add state to remember chat scroll position
+    const [chatScrollPosition, setChatScrollPosition] = useState(0);
+
     // Reference to the input element to maintain focus
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Reference to the chat container for scrolling
     const chatContainerRef = useRef<HTMLDivElement>(null);
+
+    // Add a reference for the scorecard container
+    const scorecardContainerRef = useRef<HTMLDivElement>(null);
 
     // Store the current answer in a ref to avoid re-renders
     const currentAnswerRef = useRef(currentAnswer);
@@ -290,7 +278,8 @@ export default function LearnerQuizView({
                         sender: 'ai',
                         timestamp: new Date(),
                         messageType: 'text',
-                        audioData: undefined
+                        audioData: undefined,
+                        scorecard: []
                     }
                 ];
             }
@@ -589,7 +578,8 @@ export default function LearnerQuizView({
                 sender: 'user',
                 timestamp: new Date(),
                 messageType: responseType,
-                audioData: audioData
+                audioData: audioData,
+                scorecard: []
             };
 
             // Immediately add the user's message to chat history
@@ -711,7 +701,8 @@ export default function LearnerQuizView({
                 sender: 'ai',
                 timestamp: new Date(),
                 messageType: 'text',
-                audioData: undefined
+                audioData: undefined,
+                scorecard: []
             };
 
             let isCorrect = false;
@@ -817,11 +808,16 @@ export default function LearnerQuizView({
                     const processStream = async () => {
                         try {
                             let accumulatedFeedback = "";
+                            // Add a variable to collect the complete scorecard
+                            let completeScorecard = [];
+                            // Add a flag to track if streaming is done
+                            let streamingComplete = false;
 
                             while (true) {
                                 const { done, value } = await reader.read();
 
                                 if (done) {
+                                    streamingComplete = true;
                                     break;
                                 }
 
@@ -888,6 +884,22 @@ export default function LearnerQuizView({
                                             }
                                         }
 
+                                        console.log(data.scorecard)
+
+                                        // Handle scorecard data when available
+                                        if (data.scorecard && data.scorecard.length > 0) {
+                                            // Show preparing report message if not already shown
+                                            if (!showPreparingReport) {
+                                                console.log(data.scorecard)
+                                                console.log('entering here')
+                                                setShowPreparingReport(true);
+                                            }
+
+                                            // Instead of immediately updating the chat message,
+                                            // collect the scorecard data
+                                            completeScorecard = data.scorecard;
+                                        }
+
                                         // Handle is_correct when available - for quiz questions
                                         if (taskType === 'quiz' && data.is_correct !== undefined) {
                                             isCorrect = data.is_correct;
@@ -911,7 +923,37 @@ export default function LearnerQuizView({
                                 }
                             }
 
-                            // After processing all chunks, handle exam questions completion
+                            // After processing all chunks (stream is complete)
+
+                            // Only now update the chat message with the complete scorecard
+                            if (completeScorecard.length > 0) {
+                                // Update the existing AI message with the complete scorecard data
+                                setChatHistories(prev => {
+                                    // Find the current question's chat history
+                                    const currentHistory = [...(prev[currentQuestionId] || [])];
+
+                                    // Find the index of the AI message to update
+                                    const aiMessageIndex = currentHistory.findIndex(msg => msg.id === aiMessageId);
+
+                                    if (aiMessageIndex !== -1) {
+                                        // Update the existing message with the complete scorecard
+                                        currentHistory[aiMessageIndex] = {
+                                            ...currentHistory[aiMessageIndex],
+                                            scorecard: completeScorecard
+                                        };
+                                    }
+
+                                    return {
+                                        ...prev,
+                                        [currentQuestionId]: currentHistory
+                                    };
+                                });
+
+                                // Only now hide the preparing report message
+                                setTimeout(() => setShowPreparingReport(false), 0);
+                            }
+
+                            // Handle exam questions completion
                             if (taskType === 'exam') {
                                 // Now that all chunks have been received, mark as complete
                                 // Mark this question as completed
@@ -939,7 +981,8 @@ export default function LearnerQuizView({
                                     ...prev,
                                     [currentQuestionId]: [...(prev[currentQuestionId] || []), {
                                         ...initialAiMessage,
-                                        content: EXAM_CONFIRMATION_MESSAGE
+                                        content: EXAM_CONFIRMATION_MESSAGE,
+                                        scorecard: []
                                     }]
                                 }));
                             }
@@ -953,11 +996,16 @@ export default function LearnerQuizView({
                                 storeChatHistory(currentQuestionId, userMessage, aiResponse);
                             }
 
-                            // Stop the AI responding animation if it's still active
-                            setIsAiResponding(false);
-
+                            console.log('here')
+                            // The reset has been moved to where the scorecard data is processed
+                            console.log(showPreparingReport)
                         } catch (error) {
                             console.error('Error processing stream:', error);
+                            // Only reset the preparing report state when an error occurs
+                            // and we need to allow the user to try again
+                            if (showPreparingReport) {
+                                setTimeout(() => setShowPreparingReport(false), 0);
+                            }
                             throw error;
                         }
                     };
@@ -979,7 +1027,8 @@ export default function LearnerQuizView({
                         sender: 'ai',
                         timestamp: new Date(),
                         messageType: 'text',
-                        audioData: undefined
+                        audioData: undefined,
+                        scorecard: []
                     };
 
                     // For exam questions, clear the pending status so the user can try again
@@ -997,6 +1046,9 @@ export default function LearnerQuizView({
                         ...prev,
                         [currentQuestionId]: [...(prev[currentQuestionId] || []), errorResponse]
                     }));
+
+                    // Reset report preparation state on error since the user needs to try again
+                    setShowPreparingReport(false);
                 })
                 .finally(() => {
                     // Only reset submitting state when API call is done
@@ -1175,6 +1227,13 @@ export default function LearnerQuizView({
     const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
     // Ref to store the timeout ID for proper cleanup
     const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    // Ref to store the current thinking message to avoid dependency issues
+    const currentThinkingMessageRef = useRef("");
+
+    // Update the ref when the state changes
+    useEffect(() => {
+        currentThinkingMessageRef.current = currentThinkingMessage;
+    }, [currentThinkingMessage]);
 
     // Effect to change the thinking message every 2 seconds
     useEffect(() => {
@@ -1204,8 +1263,8 @@ export default function LearnerQuizView({
 
             // After a short delay, change the message and reset transition state
             transitionTimeoutRef.current = setTimeout(() => {
-                // Get current message to avoid repeating
-                const currentMessage = currentThinkingMessage;
+                // Get current message from the ref to avoid dependency issues
+                const currentMessage = currentThinkingMessageRef.current;
 
                 // Filter out the current message to avoid repetition
                 const availableMessages = thinkingMessages.filter(msg => msg !== currentMessage);
@@ -1295,6 +1354,40 @@ export default function LearnerQuizView({
     }
     `;
 
+    // ScoreCard view toggle functions
+    const handleViewScorecard = (scorecard: ScorecardItem[]) => {
+        // Save current chat scroll position before switching views
+        if (chatContainerRef.current) {
+            setChatScrollPosition(chatContainerRef.current.scrollTop);
+        }
+
+        setActiveScorecard(scorecard);
+        setIsViewingScorecard(true);
+
+        // Reset scroll position of scorecard view when opened
+        setTimeout(() => {
+            if (scorecardContainerRef.current) {
+                scorecardContainerRef.current.scrollTop = 0;
+            }
+        }, 0);
+    };
+
+    const handleBackToChat = () => {
+        setIsViewingScorecard(false);
+
+        // Focus the input field when returning to chat if appropriate
+        setTimeout(() => {
+            if (!readOnly && inputRef.current) {
+                inputRef.current.focus();
+            }
+
+            // Restore saved chat scroll position
+            if (chatContainerRef.current) {
+                chatContainerRef.current.scrollTop = chatScrollPosition;
+            }
+        }, 0);
+    };
+
     return (
         <div className={`w-full h-full ${className}`}>
             {/* Add the custom styles */}
@@ -1354,126 +1447,180 @@ export default function LearnerQuizView({
                     </div>
                 </div>
 
-                {/* Right side - Chat (50%) - Updated with fixed layout */}
+                {/* Right side - Chat (50%) - Updated with conditional rendering for scorecard view */}
                 <div className="w-1/2 flex flex-col bg-[#111111] h-full overflow-hidden">
-                    {/* Chat history area with fixed height and scrolling */}
-                    <div className="flex-1 flex flex-col px-6 py-6 overflow-hidden">
-                        {currentChatHistory.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full w-full">
-                                {!isChatHistoryLoaded && !isTestMode ? (
-                                    // Loading spinner while chat history is loading
-                                    <div className="flex flex-col items-center justify-center">
-                                        <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
-                                    </div>
-                                ) : (
-                                    // Show placeholder text only when history is loaded but empty
-                                    <>
-                                        <h2 className="text-4xl font-light text-white mb-6 text-center">
-                                            {taskType === 'exam' ? 'Ready for a challenge?' : 'Ready to test your knowledge?'}
-                                        </h2>
-                                        <p className="text-gray-400 text-center max-w-md mx-auto mb-8">
-                                            {taskType === 'exam'
-                                                ? `Think through your answer, then ${currentQuestionConfig?.inputType === 'audio' ? 'record' : 'type'} it here. You can attempt the question only once. Be careful and confident.`
-                                                : `Think through your answer, then ${currentQuestionConfig?.inputType === 'audio' ? 'record' : 'type'} it here. You will receive instant feedback and support throughout your journey`
-                                            }
-                                        </p>
-                                    </>
-                                )}
+                    {isViewingScorecard ? (
+                        /* Scorecard View */
+                        <div className="flex flex-col h-full px-6 py-6 overflow-hidden">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-light text-white">Detailed Report</h2>
+                                <button
+                                    onClick={handleBackToChat}
+                                    className="px-4 py-2 bg-[#222222] text-white rounded-full hover:bg-[#333333] transition-colors flex items-center"
+                                >
+                                    <ChevronLeft size={16} className="mr-1" />
+                                    Back to Chat
+                                </button>
                             </div>
-                        ) : (
                             <div
-                                ref={chatContainerRef}
-                                className="h-full overflow-y-auto w-full hide-scrollbar"
+                                ref={scorecardContainerRef}
+                                className="flex-1 overflow-y-auto hide-scrollbar"
                             >
-                                <div className="flex flex-col space-y-4 pr-2">
-                                    {currentChatHistory.map((message) => (
-                                        <div
-                                            key={message.id}
-                                            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                                        >
-                                            <div
-                                                className={`rounded-2xl px-4 py-2 ${message.messageType === 'audio' ? 'w-[75%]' : `${message.sender === 'user' ? 'bg-[#333333] text-white' : 'bg-[#1A1A1A] text-white'} max-w-[75%]`}`}
-                                            >
-                                                {message.messageType === 'audio' && message.audioData ? (
-                                                    <div className="flex flex-col space-y-2">
-                                                        <audio
-                                                            controls
-                                                            className="w-full"
-                                                            src={`data:audio/wav;base64,${message.audioData}`}
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-sm">{message.content}</p>
-                                                )}
-                                            </div>
+                                <LearnerScorecard scorecard={activeScorecard} className="mt-0" />
+                            </div>
+                        </div>
+                    ) : (
+                        /* Chat View */
+                        <div className="flex-1 flex flex-col px-6 py-6 overflow-hidden">
+                            {currentChatHistory.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full w-full">
+                                    {!isChatHistoryLoaded && !isTestMode ? (
+                                        // Loading spinner while chat history is loading
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
                                         </div>
-                                    ))}
-
-                                    {/* AI typing animation - with pulsating dot and changing text */}
-                                    {isAiResponding && (
-                                        <div className="flex justify-start items-center my-2 ml-2">
-                                            <div className="flex items-center justify-center min-w-[20px] min-h-[20px] mr-2">
-                                                <div
-                                                    className="w-2.5 h-2.5 bg-white rounded-full pulsating-circle"
-                                                ></div>
-                                            </div>
-                                            <div className={`${isTransitioning ? 'message-transition-out' : 'message-transition-in'}`}>
-                                                <span className="highlight-animation text-sm">
-                                                    {currentThinkingMessage}
-                                                </span>
-                                            </div>
-                                        </div>
+                                    ) : (
+                                        // Show placeholder text only when history is loaded but empty
+                                        <>
+                                            <h2 className="text-4xl font-light text-white mb-6 text-center">
+                                                {taskType === 'exam' ? 'Ready for a challenge?' : 'Ready to test your knowledge?'}
+                                            </h2>
+                                            <p className="text-gray-400 text-center max-w-md mx-auto mb-8">
+                                                {taskType === 'exam'
+                                                    ? `Think through your answer, then ${currentQuestionConfig?.inputType === 'audio' ? 'record' : 'type'} it here. You can attempt the question only once. Be careful and confident.`
+                                                    : `Think through your answer, then ${currentQuestionConfig?.inputType === 'audio' ? 'record' : 'type'} it here. You will receive instant feedback and support throughout your journey`
+                                                }
+                                            </p>
+                                        </>
                                     )}
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            ) : (
+                                <div
+                                    ref={chatContainerRef}
+                                    className="h-full overflow-y-auto w-full hide-scrollbar"
+                                >
+                                    <div className="flex flex-col space-y-4 pr-2">
+                                        {currentChatHistory.map((message) => (
+                                            <div
+                                                key={message.id}
+                                                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                                            >
+                                                <div
+                                                    className={`rounded-2xl px-4 py-2 ${message.messageType === 'audio' ? 'w-[75%]' : `${message.sender === 'user' ? 'bg-[#333333] text-white' : 'bg-[#1A1A1A] text-white'} max-w-[75%]`}`}
+                                                >
+                                                    {message.messageType === 'audio' && message.audioData ? (
+                                                        <div className="flex flex-col space-y-2">
+                                                            <audio
+                                                                controls
+                                                                className="w-full"
+                                                                src={`data:audio/wav;base64,${message.audioData}`}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <p className="text-sm">{message.content}</p>
+                                                            {message.scorecard && message.scorecard.length > 0 && (
+                                                                <div className="mt-3">
+                                                                    <button
+                                                                        onClick={() => handleViewScorecard(message.scorecard || [])}
+                                                                        className="bg-[#333333] text-white px-4 py-2 mb-2 rounded-full text-xs hover:bg-[#444444] transition-colors cursor-pointer flex items-center"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                                        </svg>
+                                                                        View Report
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
 
-                    {/* Input area with fixed position at bottom */}
-                    <div className="px-6 pb-6 pt-2 bg-[#111111]">
-                        {!(taskType === 'exam' && completedQuestionIds[validQuestions[currentQuestionIndex]?.id]) && (
-                            /* Input area - conditional render based on input type */
-                            <>
-                                {currentQuestionConfig?.inputType === 'audio' ? (
-                                    <AudioInputComponent
-                                        onAudioSubmit={handleAudioSubmit}
-                                        isSubmitting={isSubmitting || isAiResponding}
-                                        maxDuration={currentQuestionConfig?.audioMaxDuration || 120}
-                                    />
-                                ) : (
-                                    /* Original text input */
-                                    <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
-                                        <input
-                                            ref={inputRef}
-                                            type="text"
-                                            placeholder="Type your answer here"
-                                            className="flex-1 bg-transparent border-none px-6 py-4 text-white focus:outline-none"
-                                            value={currentAnswer}
-                                            onChange={handleInputChange}
-                                            onKeyPress={handleKeyPress}
-                                            autoFocus={!readOnly}
-                                            disabled={false} // Never disable the input field
-                                        />
-                                        <button
-                                            className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
-                                            onClick={handleSubmitAnswer}
-                                            disabled={!currentAnswer.trim() || isSubmitting || isAiResponding}
-                                            aria-label="Submit answer"
-                                            type="button"
-                                        >
-                                            {isSubmitting ? (
-                                                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                                            ) : (
-                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
-                                            )}
-                                        </button>
+                                        {/* Show "Preparing report" as an AI message */}
+                                        {showPreparingReport && (
+                                            <div className="flex justify-start">
+                                                <div className="rounded-2xl px-4 py-3 bg-[#1A1A1A] text-white max-w-[75%]">
+                                                    <div className="flex items-center">
+                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
+                                                        <div className="flex flex-col">
+                                                            <p className="text-sm font-light">Preparing report</p>
+                                                            <p className="text-xs text-gray-400 mt-1">This may take a moment</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* AI typing animation - with pulsating dot and changing text */}
+                                        {isAiResponding && (
+                                            <div className="flex justify-start items-center my-2 ml-2">
+                                                <div className="flex items-center justify-center min-w-[20px] min-h-[20px] mr-2">
+                                                    <div
+                                                        className="w-2.5 h-2.5 bg-white rounded-full pulsating-circle"
+                                                    ></div>
+                                                </div>
+                                                <div className={`${isTransitioning ? 'message-transition-out' : 'message-transition-in'}`}>
+                                                    <span className="highlight-animation text-sm">
+                                                        {currentThinkingMessage}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </>
-                        )}
-                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Input area with fixed position at bottom - only show in chat view */}
+                    {!isViewingScorecard && (
+                        <div className="px-6 pb-6 pt-2 bg-[#111111]">
+                            {!(taskType === 'exam' && completedQuestionIds[validQuestions[currentQuestionIndex]?.id]) && (
+                                /* Input area - conditional render based on input type */
+                                <>
+                                    {currentQuestionConfig?.inputType === 'audio' ? (
+                                        <AudioInputComponent
+                                            onAudioSubmit={handleAudioSubmit}
+                                            isSubmitting={isSubmitting || isAiResponding}
+                                            maxDuration={currentQuestionConfig?.audioMaxDuration || 120}
+                                        />
+                                    ) : (
+                                        /* Original text input */
+                                        <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
+                                            <input
+                                                ref={inputRef}
+                                                type="text"
+                                                placeholder="Type your answer here"
+                                                className="flex-1 bg-transparent border-none px-6 py-4 text-white focus:outline-none"
+                                                value={currentAnswer}
+                                                onChange={handleInputChange}
+                                                onKeyPress={handleKeyPress}
+                                                autoFocus={!readOnly}
+                                                disabled={false} // Never disable the input field
+                                            />
+                                            <button
+                                                className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
+                                                onClick={handleSubmitAnswer}
+                                                disabled={!currentAnswer.trim() || isSubmitting || isAiResponding}
+                                                aria-label="Submit answer"
+                                                type="button"
+                                            >
+                                                {isSubmitting ? (
+                                                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                                ) : (
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

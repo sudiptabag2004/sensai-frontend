@@ -8,7 +8,7 @@ export interface QuizEditorHandle {
 
 export interface QuizQuestionConfig {
     inputType: 'text' | 'code' | 'audio';
-    responseStyle: 'coach' | 'examiner' | 'evaluator';
+    responseType: 'chat' | 'report';
     evaluationCriteria: string[];
     correctAnswer?: string;
     correctAnswerBlocks?: any[];
@@ -75,3 +75,31 @@ export interface APIQuestionResponse {
         }[];
     };
 } 
+
+
+// Define a message type for the chat history
+export interface ChatMessage {
+    id: string;
+    content: string;
+    sender: 'user' | 'ai';
+    timestamp: Date;
+    messageType?: 'text' | 'audio';
+    audioData?: string; // base64 encoded audio data
+    scorecard?: ScorecardItem[]; // Add scorecard field for detailed feedback
+}   
+
+
+// Define scorecard item structure
+export interface ScorecardItem {
+    category: string;
+    feedback: {
+        correct: string;
+        wrong: string;
+    };
+    score: number;
+}
+
+export interface AIResponse {
+    feedback: string;
+    is_correct: boolean;
+}

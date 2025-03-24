@@ -27,7 +27,7 @@ import { QuizEditorHandle, QuizQuestionConfig, QuizQuestion, QuizEditorProps, AP
 // Default configuration for new questions
 const defaultQuestionConfig: QuizQuestionConfig = {
     inputType: 'text',
-    responseStyle: 'coach',
+    responseType: 'chat',
     evaluationCriteria: [],
     questionType: 'default'
 };
@@ -214,7 +214,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                 content: question.blocks || [],
                                 config: {
                                     inputType: question.input_type || 'text' as 'text' | 'code' | 'audio',
-                                    responseStyle: question.response_type === 'chat' ? 'coach' : 'evaluator',
+                                    responseType: question.response_type,
                                     evaluationCriteria: [],
                                     correctAnswer: question.answer || '',
                                     correctAnswerBlocks: correctAnswerBlocks, // Use the answer-based blocks instead of question blocks

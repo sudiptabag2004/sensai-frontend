@@ -1,12 +1,5 @@
-export interface QuizQuestion {
-  id: string;
-  question: string;
-  type: string;
-  options?: string[];
-  answer?: string;
-  explanation?: string;
-}
 
+import { QuizQuestion } from "./quiz";
 export interface LearningMaterial {
   id: string;
   title: string;
