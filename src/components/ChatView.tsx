@@ -22,6 +22,7 @@ interface ChatViewProps {
     readOnly: boolean;
     completedQuestionIds: Record<string, boolean>;
     currentQuestionId?: string;
+    handleRetry?: () => void;
 }
 
 const ChatView: React.FC<ChatViewProps> = ({
@@ -41,7 +42,8 @@ const ChatView: React.FC<ChatViewProps> = ({
     handleViewScorecard,
     readOnly,
     completedQuestionIds,
-    currentQuestionId = ''
+    currentQuestionId = '',
+    handleRetry
 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -82,6 +84,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                     isAiResponding={isAiResponding}
                     showPreparingReport={showPreparingReport}
                     currentQuestionConfig={currentQuestionConfig}
+                    onRetry={handleRetry}
                 />
             )}
 

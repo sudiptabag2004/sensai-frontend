@@ -22,7 +22,7 @@ const LearnerScorecard: React.FC<LearnerScorecardProps> = ({
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-medium text-white">{item.category}</span>
                             <div className="bg-[#333333] rounded-full px-2 py-1 text-xs">
-                                Score: {item.score}/5
+                                Score: {item.score}/{item.max_score}
                             </div>
                         </div>
                         <div className="space-y-2 text-xs">

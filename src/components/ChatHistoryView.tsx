@@ -7,6 +7,7 @@ interface ChatHistoryViewProps {
     isAiResponding: boolean;
     showPreparingReport: boolean;
     currentQuestionConfig?: any;
+    onRetry?: () => void;
 }
 
 const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
@@ -14,7 +15,8 @@ const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
     onViewScorecard,
     isAiResponding,
     showPreparingReport,
-    currentQuestionConfig
+    currentQuestionConfig,
+    onRetry
 }) => {
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -185,14 +187,21 @@ const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
         );
     };
 
+    // Helper to check if a message is an error message
+    const isErrorMessage = (message: ChatMessage) => {
+        return message.sender === 'ai' &&
+            (message.content.includes('There was an error processing your answer') ||
+                message.content.includes('There was an error processing your audio'));
+    };
+
     return (
         <>
             <style jsx>{customStyles}</style>
             <div
                 ref={chatContainerRef}
-                className="h-full overflow-y-auto w-full hide-scrollbar"
+                className="h-full overflow-y-auto w-full hide-scrollbar pb-8"
             >
-                <div className="flex flex-col space-y-4 pr-2">
+                <div className="flex flex-col space-y-6 pr-2">
                     {chatHistory.map((message) => (
                         <div
                             key={message.id}
@@ -213,15 +222,28 @@ const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
                                     <div>
                                         <p className="text-sm">{message.content}</p>
                                         {shouldShowViewReport(message) && (
-                                            <div className="mt-3">
+                                            <div className="my-3">
                                                 <button
                                                     onClick={() => onViewScorecard(message.scorecard || [])}
-                                                    className="bg-[#333333] text-white px-4 py-2 mb-2 rounded-full text-xs hover:bg-[#444444] transition-colors cursor-pointer flex items-center"
+                                                    className="bg-[#333333] text-white px-4 py-2 rounded-full text-xs hover:bg-[#444444] transition-colors cursor-pointer flex items-center"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                                     </svg>
                                                     View Report
+                                                </button>
+                                            </div>
+                                        )}
+                                        {isErrorMessage(message) && onRetry && (
+                                            <div className="my-3">
+                                                <button
+                                                    onClick={onRetry}
+                                                    className="bg-[#333333] text-white px-4 py-2 mb-2 rounded-full text-xs hover:bg-[#444444] transition-colors cursor-pointer flex items-center"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                    </svg>
+                                                    Retry
                                                 </button>
                                             </div>
                                         )}

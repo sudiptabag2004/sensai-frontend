@@ -112,9 +112,11 @@ export default function LearnerQuizView({
                     config: {
                         inputType: 'text',
                         responseType: 'chat',
+                        questionType: 'objective',
                         evaluationCriteria: [],
                         correctAnswer: "",
-                        audioMaxDuration: 120 // Default to 2 minutes
+                        audioMaxDuration: 120, // Default to 2 minutes
+                        scorecardData: undefined
                     }
                 };
             }
@@ -126,9 +128,11 @@ export default function LearnerQuizView({
                     ...q.config,
                     inputType: q.config?.inputType || 'text',
                     responseType: q.config?.responseType,
+                    questionType: q.config?.questionType === 'open-ended' ? 'subjective' : 'objective',
                     evaluationCriteria: q.config?.evaluationCriteria || [],
                     correctAnswer: q.config?.correctAnswer || "",
-                    audioMaxDuration: q.config?.audioMaxDuration || 120
+                    audioMaxDuration: q.config?.audioMaxDuration || 120,
+                    scorecardData: q.config?.scorecardData
                 };
                 return {
                     ...q,
@@ -146,9 +150,11 @@ export default function LearnerQuizView({
                         ...config,
                         inputType: config.inputType || 'text',
                         responseType: config.responseType,
+                        questionType: config.questionType === 'open-ended' ? 'subjective' : 'objective',
                         evaluationCriteria: config.evaluationCriteria || [],
                         correctAnswer: config.correctAnswer || "",
-                        audioMaxDuration: config.audioMaxDuration || 120
+                        audioMaxDuration: config.audioMaxDuration || 120,
+                        scorecardData: config.scorecardData
                     }
                 };
             }
@@ -162,9 +168,11 @@ export default function LearnerQuizView({
                     ...config,
                     inputType: config.inputType || 'text',
                     responseType: config.responseType,
+                    questionType: config.questionType === 'open-ended' ? 'subjective' : 'objective',
                     evaluationCriteria: config.evaluationCriteria || [],
                     correctAnswer: config.correctAnswer || "",
-                    audioMaxDuration: config.audioMaxDuration || 120
+                    audioMaxDuration: config.audioMaxDuration || 120,
+                    scorecardData: config.scorecardData
                 }
             };
         });
@@ -706,10 +714,25 @@ export default function LearnerQuizView({
                 // Format the chat history for the current question
                 const formattedChatHistory = (chatHistories[currentQuestionId] || []).map(msg => ({
                     role: msg.sender === 'user' ? 'user' : 'assistant',
-                    content: msg.content,
+                    content: msg.sender === 'user' ? msg.content :
+                        validQuestions[currentQuestionIndex].config.responseType === 'chat' ? JSON.stringify({ feedback: msg.content }) : JSON.stringify({ feedback: msg.content, scorecard: msg.scorecard }),
                     response_type: msg.messageType,
                     audio_data: msg.audioData
                 }));
+
+                let scorecard = undefined;
+                if (validQuestions[currentQuestionIndex].config.responseType === 'report') {
+                    scorecard = {
+                        id: validQuestions[currentQuestionIndex].config.scorecardData?.id || '',
+                        title: validQuestions[currentQuestionIndex].config.scorecardData?.name || '',
+                        criteria: validQuestions[currentQuestionIndex].config.scorecardData?.criteria.map(criterion => ({
+                            name: criterion.name,
+                            description: criterion.description,
+                            min_score: criterion.minScore,
+                            max_score: criterion.maxScore
+                        })) || []
+                    }
+                }
 
                 // Create the request body for teacher testing mode
                 requestBody = {
@@ -718,10 +741,11 @@ export default function LearnerQuizView({
                     chat_history: formattedChatHistory,
                     question: {
                         "blocks": validQuestions[currentQuestionIndex].content,
-                        "response_type": "chat",
+                        "response_type": validQuestions[currentQuestionIndex].config.responseType,
                         "answer": validQuestions[currentQuestionIndex].config.correctAnswer || "",
-                        "type": "objective",
-                        "input_type": responseType
+                        "type": validQuestions[currentQuestionIndex].config.questionType,
+                        "input_type": responseType,
+                        "scorecard": scorecard
                     }
                 };
 
@@ -762,8 +786,6 @@ export default function LearnerQuizView({
 
             // Track if we've received any feedback
             let receivedAnyFeedback = false;
-
-            console.log(requestBody)
 
             // For audio responses, get a presigned URL to upload the audio file
             if (responseType === 'audio' && audioData) {
@@ -937,14 +959,10 @@ export default function LearnerQuizView({
                                             }
                                         }
 
-                                        console.log(data.scorecard)
-
                                         // Handle scorecard data when available
                                         if (data.scorecard && data.scorecard.length > 0) {
                                             // Show preparing report message if not already shown
                                             if (!showPreparingReport) {
-                                                console.log(data.scorecard)
-                                                console.log('entering here')
                                                 setShowPreparingReport(true);
                                             }
 
@@ -1049,10 +1067,6 @@ export default function LearnerQuizView({
                                 };
                                 storeChatHistory(currentQuestionId, userMessage, aiResponse);
                             }
-
-                            console.log('here')
-                            // The reset has been moved to where the scorecard data is processed
-                            console.log(showPreparingReport)
                         } catch (error) {
                             console.error('Error processing stream:', error);
                             // Only reset the preparing report state when an error occurs
@@ -1449,6 +1463,34 @@ export default function LearnerQuizView({
         }, 0);
     };
 
+    // Function to handle retrying the last user message
+    const handleRetry = useCallback(() => {
+        if (!validQuestions || validQuestions.length === 0) {
+            return;
+        }
+
+        const currentQuestionId = validQuestions[currentQuestionIndex].id;
+        const currentHistory = chatHistories[currentQuestionId] || [];
+
+        // Find the most recent user message
+        const userMessages = currentHistory.filter(msg => msg.sender === 'user');
+        if (userMessages.length === 0) {
+            return; // No user message to retry
+        }
+
+        const lastUserMessage = userMessages[userMessages.length - 1];
+
+        // If it's an audio message, get the audio data
+        if (lastUserMessage.messageType === 'audio') {
+            if (lastUserMessage.audioData) {
+                processUserResponse('', 'audio', lastUserMessage.audioData);
+            }
+        } else {
+            // For text messages, resubmit the text content
+            processUserResponse(lastUserMessage.content);
+        }
+    }, [validQuestions, currentQuestionIndex, chatHistories, processUserResponse]);
+
     return (
         <div className={`w-full h-full ${className}`}>
             {/* Add the custom styles */}
@@ -1537,6 +1579,7 @@ export default function LearnerQuizView({
                             readOnly={readOnly}
                             completedQuestionIds={completedQuestionIds}
                             currentQuestionId={validQuestions[currentQuestionIndex]?.id}
+                            handleRetry={handleRetry}
                         />
                     )}
                 </div>

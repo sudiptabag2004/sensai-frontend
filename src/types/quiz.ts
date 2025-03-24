@@ -97,6 +97,7 @@ export interface ScorecardItem {
         wrong: string;
     };
     score: number;
+    max_score: number;
 }
 
 export interface AIResponse {
