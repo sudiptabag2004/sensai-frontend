@@ -215,7 +215,7 @@ export default function LearnerQuizView({
     const [pendingNavigation, setPendingNavigation] = useState<'next' | 'prev' | null>(null);
 
     // Reference to the input element to maintain focus
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
     // Reference to the chat container for scrolling
     const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -581,14 +581,14 @@ export default function LearnerQuizView({
     }, []);
 
     // Handle input change with focus preservation
-    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const newValue = e.target.value;
         setCurrentAnswer(newValue);
         currentAnswerRef.current = newValue;
     }, []); // No dependencies to ensure stability
 
     // Handle key press in the input field
-    const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && currentAnswerRef.current.trim() && !readOnly) {
             handleSubmitAnswerRef.current();
         }

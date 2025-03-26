@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { ChatMessage, ScorecardItem, QuizQuestion } from '../types/quiz';
 import ChatPlaceholderView from './ChatPlaceholderView';
 import ChatHistoryView from './ChatHistoryView';
@@ -14,8 +14,8 @@ interface ChatViewProps {
     currentQuestionConfig?: any;
     isSubmitting: boolean;
     currentAnswer: string;
-    handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    handleKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+    handleKeyPress: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
     handleSubmitAnswer: () => void;
     handleAudioSubmit: (audioBlob: Blob) => void;
     handleViewScorecard: (scorecard: ScorecardItem[]) => void;
@@ -45,30 +45,108 @@ const ChatView: React.FC<ChatViewProps> = ({
     currentQuestionId = '',
     handleRetry
 }) => {
-    const inputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Determine if this question is completed
     const isQuestionCompleted = currentQuestionId ? completedQuestionIds[currentQuestionId] : false;
 
-    // Custom styles for the hidden scrollbar
-    const customStyles = `
-    /* Hide scrollbar for Chrome, Safari and Opera */
-    .hide-scrollbar::-webkit-scrollbar {
-      display: none;
-      width: 0;
-      height: 0;
-    }
-    
-    /* Hide scrollbar for IE, Edge and Firefox */
-    .hide-scrollbar {
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
-    }
-    `;
+    // Function to adjust textarea height based on content
+    const adjustTextareaHeight = () => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        // Reset height to auto to get the correct scrollHeight
+        textarea.style.height = 'auto';
+
+        // Calculate new height (capped at approximately 6 lines)
+        const lineHeight = 24; // Approximate line height in pixels
+        const maxHeight = lineHeight * 6; // Max height for 6 lines
+        const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+
+        // Set the new height
+        textarea.style.height = `${newHeight}px`;
+
+        // Add scrolling if content exceeds maxHeight - ensure this isn't overridden by CSS
+        if (textarea.scrollHeight > maxHeight) {
+            textarea.style.overflowY = 'scroll';
+        } else {
+            textarea.style.overflowY = 'hidden';
+        }
+    };
+
+    // Adjust height when content changes
+    useEffect(() => {
+        adjustTextareaHeight();
+    }, [currentAnswer]);
+
+    // Reset textarea height when messages are sent
+    useEffect(() => {
+        if (currentAnswer === '' && textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.overflowY = 'hidden';
+        }
+    }, [currentAnswer]);
+
+    // Focus the textarea when the component mounts
+    useEffect(() => {
+        if (textareaRef.current && !readOnly) {
+            textareaRef.current.focus();
+        }
+    }, [readOnly]);
+
+    // Modified handleKeyPress for textarea
+    const handleTextareaKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        // Submit on Enter key without shift key
+        if (e.key === 'Enter' && !e.shiftKey && currentAnswer.trim() && !readOnly) {
+            e.preventDefault(); // Prevent new line
+            handleSubmitAnswer();
+        }
+    };
 
     return (
         <div className="flex-1 flex flex-col px-6 py-6 overflow-hidden">
-            <style jsx>{customStyles}</style>
+            {/* Global style for maximum specificity - this will apply regardless of Next.js styling restrictions */}
+            <style global jsx>{`
+                /* Target the specific textarea with an important ID */
+                #no-border-textarea {
+                    border: none !important;
+                    outline: none !important;
+                    box-shadow: none !important;
+                    -webkit-appearance: none !important;
+                }
+                
+                /* Target all focus states */
+                #no-border-textarea:focus,
+                #no-border-textarea:focus-visible,
+                #no-border-textarea:focus-within,
+                #no-border-textarea:active {
+                    border: none !important;
+                    outline: none !important;
+                    box-shadow: none !important;
+                    -webkit-box-shadow: none !important;
+                    -moz-box-shadow: none !important;
+                }
+                
+                /* Auto-expanding styles */
+                .auto-expanding-textarea {
+                    min-height: 48px;
+                    max-height: 144px;
+                    resize: none !important;
+                    line-height: 24px !important;
+                    /* Allow scrolling when needed */
+                    overflow-y: auto !important; 
+                }
+                
+                /* Hide scrollbar */
+                .hide-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                
+                .hide-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
 
             {currentChatHistory.length === 0 ? (
                 <ChatPlaceholderView
@@ -100,19 +178,29 @@ const ChatView: React.FC<ChatViewProps> = ({
                                 maxDuration={currentQuestionConfig?.audioMaxDuration || 120}
                             />
                         ) : (
-                            /* Original text input */
-                            <div className="relative flex items-center bg-[#111111] rounded-full overflow-hidden border border-[#222222]">
-                                <input
-                                    ref={inputRef}
-                                    type="text"
-                                    placeholder="Type your answer here"
-                                    className="flex-1 bg-transparent border-none px-6 py-4 text-white focus:outline-none"
-                                    value={currentAnswer}
-                                    onChange={handleInputChange}
-                                    onKeyPress={handleKeyPress}
-                                    autoFocus={!readOnly}
-                                    disabled={false} // Never disable the input field
-                                />
+                            /* Completely restructured textarea container */
+                            <div className="relative flex items-center bg-[#111111] rounded-3xl py-1 overflow-hidden border border-[#222222]">
+                                <div className="flex-1 flex items-center">
+                                    <textarea
+                                        id="no-border-textarea"
+                                        ref={textareaRef}
+                                        placeholder="Type your answer here"
+                                        className="ml-2 w-full bg-transparent text-white auto-expanding-textarea"
+                                        value={currentAnswer}
+                                        onChange={handleInputChange as any}
+                                        onKeyPress={handleTextareaKeyPress}
+                                        autoFocus={!readOnly}
+                                        disabled={false}
+                                        rows={1}
+                                        style={{
+                                            border: "none",
+                                            outline: "none",
+                                            boxShadow: "none",
+                                            padding: "12px 24px",
+                                            resize: "none"
+                                        }}
+                                    />
+                                </div>
                                 <button
                                     className={`bg-white rounded-full w-10 h-10 mr-2 cursor-pointer flex items-center justify-center ${isSubmitting || isAiResponding ? 'opacity-50' : ''}`}
                                     onClick={handleSubmitAnswer}

@@ -173,6 +173,14 @@ const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
     .message-transition-in {
       opacity: 1;
     }
+    
+    /* Add custom word break for long words */
+    .break-anywhere {
+      overflow-wrap: anywhere;
+      word-wrap: break-word;
+      word-break: break-word;
+      hyphens: auto;
+    }
     `;
 
     // Helper to determine if "View Report" button should be shown
@@ -220,7 +228,7 @@ const ChatHistoryView: React.FC<ChatHistoryViewProps> = ({
                                     </div>
                                 ) : (
                                     <div>
-                                        <p className="text-sm">{message.content}</p>
+                                        <p className="text-sm break-words whitespace-normal break-anywhere">{message.content}</p>
                                         {shouldShowViewReport(message) && (
                                             <div className="my-3">
                                                 <button
