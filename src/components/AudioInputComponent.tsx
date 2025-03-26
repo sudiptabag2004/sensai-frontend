@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { Mic, Play, Send, Pause } from 'lucide-react';
+import { Mic, Play, Send, Pause, Trash2 } from 'lucide-react';
 
 interface AudioInputComponentProps {
     onAudioSubmit: (audioBlob: Blob) => void;
@@ -78,6 +78,7 @@ export default function AudioInputComponent({
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [playbackProgress, setPlaybackProgress] = useState(0);
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
     // Separate waveform data states for live recording and snapshot
     const [liveWaveformData, setLiveWaveformData] = useState<number[]>([]);
@@ -379,6 +380,39 @@ export default function AudioInputComponent({
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
+    // New function to handle delete button click
+    const handleDeleteClick = () => {
+        setShowDeleteConfirmation(true);
+    };
+
+    // New function to confirm deletion
+    const confirmDelete = () => {
+        // Stop playback if it's playing
+        if (isPlaying && audioPlayerRef.current) {
+            audioPlayerRef.current.pause();
+            setIsPlaying(false);
+        }
+
+        // Reset all audio-related states
+        setAudioBlob(null);
+        setLiveWaveformData([]);
+        setSnapshotWaveformData([]);
+        setPlaybackProgress(0);
+
+        // Close confirmation dialog
+        setShowDeleteConfirmation(false);
+
+        // Clear audio player source if it exists
+        if (audioPlayerRef.current) {
+            audioPlayerRef.current.src = '';
+        }
+    };
+
+    // New function to cancel deletion
+    const cancelDelete = () => {
+        setShowDeleteConfirmation(false);
+    };
+
     return (
         <div className="relative">
             {/* Recording status and timer */}
@@ -386,6 +420,27 @@ export default function AudioInputComponent({
                 <div className="absolute -top-10 left-0 right-0 text-center text-red-500 font-light text-sm flex items-center justify-center">
                     <div className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></div>
                     <span>Recording {formatTime(recordingDuration)}</span>
+                </div>
+            )}
+
+            {/* Delete confirmation dialog */}
+            {showDeleteConfirmation && (
+                <div className="absolute -top-20 left-0 right-0 bg-[#222222] rounded-lg p-3 shadow-lg z-20">
+                    <p className="text-white text-sm mb-2">Are you sure you want to delete this recording?</p>
+                    <div className="flex justify-end space-x-2">
+                        <button
+                            className="text-white text-xs bg-transparent hover:bg-[#333333] px-2 py-1 rounded-md cursor-pointer"
+                            onClick={cancelDelete}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className="text-white text-xs bg-red-500 hover:bg-red-600 px-2 py-1 rounded-md cursor-pointer"
+                            onClick={confirmDelete}
+                        >
+                            Delete
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -433,9 +488,21 @@ export default function AudioInputComponent({
                             )}
                         </div>
 
-                        {/* Submit button - inline next to waveform */}
+                        {/* Action buttons - added delete button */}
                         {audioBlob && (
-                            <div className="ml-3 flex-shrink-0">
+                            <div className="ml-3 flex-shrink-0 flex space-x-2">
+                                {/* Delete button */}
+                                <button
+                                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[#222222] text-white hover:bg-[#333333] cursor-pointer"
+                                    onClick={handleDeleteClick}
+                                    disabled={isSubmitting || isDisabled}
+                                    aria-label="Delete audio"
+                                    type="button"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+
+                                {/* Submit button */}
                                 <button
                                     className="w-10 h-10 rounded-full flex items-center justify-center bg-white cursor-pointer"
                                     onClick={handleSubmit}
@@ -446,7 +513,6 @@ export default function AudioInputComponent({
                                     {isSubmitting ? (
                                         <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
                                     ) : (
-                                        // <Send size={16} color="black" />
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
