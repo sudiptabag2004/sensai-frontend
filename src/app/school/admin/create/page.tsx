@@ -154,7 +154,8 @@ export default function CreateSchool() {
     // Function to navigate to the new school
     const navigateToSchool = () => {
         if (newSchoolId) {
-            router.push(`/school/admin/${newSchoolId}`);
+            // Replace client-side navigation with a full page navigation
+            window.location.href = `/school/admin/${newSchoolId}`;
         }
     };
 
