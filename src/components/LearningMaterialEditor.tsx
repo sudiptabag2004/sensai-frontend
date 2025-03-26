@@ -390,7 +390,7 @@ const LearningMaterialEditor = forwardRef<LearningMaterialEditorHandle, Learning
     return (
         <div
             ref={editorContainerRef}
-            className={`h-full dark-editor-container dark-dialog no-bottom-border ${className}`}
+            className={`h-full mt-4 dark-editor-container dark-dialog no-bottom-border ${className}`}
         >
             <BlockNoteEditor
                 initialContent={taskData?.blocks || []}
