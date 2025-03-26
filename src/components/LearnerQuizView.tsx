@@ -1549,6 +1549,37 @@ export default function LearnerQuizView({
 
         const lastUserMessage = userMessages[userMessages.length - 1];
 
+        // If in test mode, first remove the last user message and AI response
+        if (isTestMode) {
+            // Find all AI messages
+            const aiMessages = currentHistory.filter(msg => msg.sender === 'ai');
+
+            // If there are AI messages, remove the last user message and last AI message
+            if (aiMessages.length > 0) {
+                setChatHistories(prev => {
+                    const updatedHistory = [...(prev[currentQuestionId] || [])];
+                    // Remove the last two messages (last user message and last AI response)
+                    updatedHistory.splice(updatedHistory.length - 2, 2);
+                    return {
+                        ...prev,
+                        [currentQuestionId]: updatedHistory
+                    };
+                });
+            } else {
+                // If no AI messages (unusual case), just remove the last user message
+                setChatHistories(prev => {
+                    const updatedHistory = [...(prev[currentQuestionId] || [])];
+                    // Remove just the last user message
+                    updatedHistory.pop();
+                    return {
+                        ...prev,
+                        [currentQuestionId]: updatedHistory
+                    };
+                });
+            }
+        }
+
+        // Now process the user response again
         // If it's an audio message, get the audio data
         if (lastUserMessage.messageType === 'audio') {
             if (lastUserMessage.audioData) {
@@ -1558,7 +1589,7 @@ export default function LearnerQuizView({
             // For text messages, resubmit the text content
             processUserResponse(lastUserMessage.content);
         }
-    }, [validQuestions, currentQuestionIndex, chatHistories, processUserResponse]);
+    }, [validQuestions, currentQuestionIndex, chatHistories, processUserResponse, isTestMode]);
 
     // Update the parent component when AI responding state changes
     useEffect(() => {
