@@ -14,7 +14,7 @@ export interface QuizQuestionConfig {
     correctAnswerBlocks?: any[];
     codeLanguage?: string; // For code input type
     audioMaxDuration?: number; // For audio input type in seconds
-    questionType?: 'default' | 'open-ended' | 'coding';
+    questionType?: 'objective' | 'subjective' | 'coding';
     scorecardData?: ScorecardTemplate;
 }
 

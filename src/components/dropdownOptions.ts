@@ -4,12 +4,12 @@ import { DropdownOption } from "./Dropdown";
 export const questionTypeOptions: DropdownOption[] = [
     {
         "label": "Default",
-        "value": "default",
+        "value": "objective",
         "color": "#3A506B",
     },
     {
         "label": "Open-Ended",
-        "value": "open-ended",
+        "value": "subjective",
         "color": "#3C6E47",
         "tooltip": "Questions without any fixed correct answer"
     },

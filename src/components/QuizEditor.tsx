@@ -29,7 +29,7 @@ const defaultQuestionConfig: QuizQuestionConfig = {
     inputType: 'text',
     responseType: 'chat',
     evaluationCriteria: [],
-    questionType: 'default'
+    questionType: 'objective'
 };
 
 // Helper function to extract text from all blocks in a BlockNote document
@@ -178,7 +178,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                     if (data && data.questions && data.questions.length > 0) {
                         const updatedQuestions = data.questions.map((question: APIQuestionResponse) => {
                             // Map API question type to local questionType
-                            const questionType = question.type === 'subjective' ? 'open-ended' : 'default';
+                            const questionType = question.type;
 
                             // Create correct answer blocks from the answer text if it exists
                             const correctAnswerBlocks = question.answer ? [
@@ -218,7 +218,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                     evaluationCriteria: [],
                                     correctAnswer: question.answer || '',
                                     correctAnswerBlocks: correctAnswerBlocks, // Use the answer-based blocks instead of question blocks
-                                    questionType: questionType as 'default' | 'open-ended' | 'coding',
+                                    questionType: questionType as 'objective' | 'subjective' | 'coding',
                                     scorecardData: scorecardData
                                 }
                             };
@@ -566,7 +566,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             content: [],
             config: {
                 ...defaultQuestionConfig,
-                questionType: 'default',
+                questionType: 'objective',
                 inputType: 'text' as 'text'
             }
         };
@@ -606,9 +606,9 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
             // Reset active tab to question when navigating
             // Only change active tab if the current tab is not available in the next question
             const nextQuestion = questions[newIndex];
-            if (activeEditorTab === 'scorecard' && nextQuestion.config.questionType !== 'open-ended') {
+            if (activeEditorTab === 'scorecard' && nextQuestion.config.questionType !== 'subjective') {
                 setActiveEditorTab('question');
-            } else if (activeEditorTab === 'answer' && nextQuestion.config.questionType == 'open-ended') {
+            } else if (activeEditorTab === 'answer' && nextQuestion.config.questionType == 'subjective') {
                 setActiveEditorTab('question');
             }
 
@@ -629,9 +629,9 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
             // Reset active tab to question when navigating
             const nextQuestion = questions[newIndex];
-            if (activeEditorTab === 'scorecard' && nextQuestion.config.questionType !== 'open-ended') {
+            if (activeEditorTab === 'scorecard' && nextQuestion.config.questionType !== 'subjective') {
                 setActiveEditorTab('question');
-            } else if (activeEditorTab === 'answer' && nextQuestion.config.questionType == 'open-ended') {
+            } else if (activeEditorTab === 'answer' && nextQuestion.config.questionType == 'subjective') {
                 setActiveEditorTab('question');
             }
 
@@ -752,7 +752,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 console.log(`Question ${question.id} - Correct answer: "${correctAnswerText}"`);
 
                 // Map questionType to API type
-                const questionType = question.config.questionType || 'default';
+                const questionType = question.config.questionType;
                 // Map inputType
                 const inputType = question.config.inputType
 
@@ -785,10 +785,10 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                     blocks: question.content,
                     answer: correctAnswerText,
                     input_type: inputType,
-                    response_type: questionType === 'open-ended' ? "report" : "chat",
+                    response_type: questionType === 'subjective' ? "report" : "chat",
                     coding_languages: null,
                     generation_model: null,
-                    type: questionType === 'open-ended' ? 'subjective' : 'objective',
+                    type: questionType,
                     max_attempts: taskType === 'exam' ? 1 : null,
                     is_feedback_shown: taskType === 'exam' ? false : true,
                     scorecard: scorecard,
@@ -879,7 +879,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 }
 
                 // Map questionType to API type
-                const questionType = question.config.questionType || 'default';
+                const questionType = question.config.questionType;
 
                 // Get input_type from the current config
                 const inputType = question.config.inputType;
@@ -889,7 +889,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                     id: question.id,
                     blocks: question.content,
                     answer: correctAnswerText,
-                    type: questionType === 'coding' ? 'coding' : questionType === 'open-ended' ? 'open-ended' : 'objective',
+                    type: questionType,
                     input_type: inputType
                 };
             });
@@ -1002,7 +1002,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     // Now removed and imported from dropdownOptions.ts
 
     // Get dropdown option objects based on config values
-    const getQuestionTypeOption = useCallback((type: string = 'default') => {
+    const getQuestionTypeOption = useCallback((type: string = 'objective') => {
         return questionTypeOptions.find(option => option.value === type) || questionTypeOptions[0];
     }, []);
 
@@ -1015,8 +1015,8 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         if (questions.length > 0 && currentQuestionIndex >= 0 && currentQuestionIndex < questions.length) {
             const currentConfig = questions[currentQuestionIndex].config;
 
-            // Set question type based on config or default to 'default'
-            setSelectedQuestionType(getQuestionTypeOption(currentConfig.questionType || 'default'));
+            // Set question type based on config
+            setSelectedQuestionType(getQuestionTypeOption(currentConfig.questionType));
 
             // Set answer type based on config.inputType or default to 'text'
             setSelectedAnswerType(getAnswerTypeOption(currentConfig.inputType));
@@ -1029,7 +1029,8 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
 
         // Update the question config with the new question type
         handleConfigChange({
-            questionType: option.value as 'default' | 'open-ended' | 'coding'
+            questionType: option.value as 'objective' | 'subjective' | 'coding',
+            responseType: option.value === 'subjective' ? 'report' : 'chat'
         });
 
         // Set active tab to question whenever question type changes
@@ -1252,18 +1253,18 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                         </div>
                                     )}
 
-                                    {(selectedQuestionType.value === 'default' || selectedQuestionType.value === 'open-ended') && (
-                                        <div className="mb-4 flex items-center">
-                                            <Dropdown
-                                                icon={<Pen size={16} />}
-                                                title="Answer Type"
-                                                options={answerTypeOptions}
-                                                selectedOption={selectedAnswerType}
-                                                onChange={handleAnswerTypeChange}
-                                                disabled={readOnly}
-                                            />
-                                        </div>
-                                    )}
+
+                                    <div className="mb-4 flex items-center">
+                                        <Dropdown
+                                            icon={<Pen size={16} />}
+                                            title="Answer Type"
+                                            options={answerTypeOptions}
+                                            selectedOption={selectedAnswerType}
+                                            onChange={handleAnswerTypeChange}
+                                            disabled={readOnly}
+                                        />
+                                    </div>
+
                                 </div>
 
                                 {/* Segmented control for editor tabs */}
@@ -1279,7 +1280,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                                             <HelpCircle size={16} className="mr-2" />
                                             Question
                                         </button>
-                                        {selectedQuestionType.value === 'default' ? (
+                                        {selectedQuestionType.value === 'objective' ? (
                                             <button
                                                 className={`flex items-center px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${activeEditorTab === 'answer'
                                                     ? 'bg-[#333333] text-white'
