@@ -36,21 +36,26 @@ function LoginContent() {
     return (
         <div className="min-h-screen bg-black bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-900/20 via-black to-black flex flex-col justify-center items-center px-4 py-12">
             <div className="w-full max-w-5xl mx-auto relative">
-                {/* Logo */}
-                <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 md:left-0 md:translate-x-0">
-                    <Image
-                        src="/images/sensai-logo.svg"
-                        alt="SensAI Logo"
-                        width={160}
-                        height={53}
-                        priority
-                    />
-                </div>
+
 
                 {/* Content */}
-                <div className="md:grid md:grid-cols-12 gap-8 items-center mt-8">
+                <div className="md:grid md:grid-cols-12 gap-8 items-center">
+
+
                     {/* Main copy - spans 7 columns on desktop */}
                     <div className="md:col-span-7 mb-8 md:mb-0 text-center md:text-left">
+                        {/* Logo */}
+                        <div className="flex justify-center md:justify-start mb-8">
+                            <Image
+                                src="/images/sensai-logo.svg"
+                                alt="SensAI Logo"
+                                width={240}
+                                height={80}
+                                className="w-[180px] md:w-[240px] h-auto"
+                                priority
+                            />
+                        </div>
+
                         <h1 className="text-4xl md:text-5xl font-light text-white leading-tight">
                             <span className="text-white">Teach </span>
                             <span className="text-purple-400">smarter</span>
@@ -146,17 +151,6 @@ function LoginContent() {
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            {/* Mobile testimonial */}
-            <div className="md:hidden mt-12 bg-gradient-to-r from-purple-900/20 to-transparent p-6 border-l border-purple-500/30 rounded-r-lg max-w-lg">
-                <p className="text-gray-300 italic text-center">
-                    "SensAI doesn't just tell students if they're right or wrong. It asks the right questions to help them think deeper and reach understanding on their own."
-                </p>
-                <div className="flex items-center justify-center mt-4">
-                    <div className="h-px w-8 bg-purple-500/50 mr-3"></div>
-                    <p className="text-sm text-gray-400">Jamie Peterson, Science Teacher</p>
                 </div>
             </div>
         </div>
