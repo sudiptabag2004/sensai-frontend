@@ -778,21 +778,22 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                             }))
                         }
                     }
-
-                    return {
-                        blocks: question.content,
-                        answer: correctAnswerText,
-                        input_type: inputType,
-                        response_type: questionType === 'open-ended' ? "report" : "chat",
-                        coding_languages: null,
-                        generation_model: null,
-                        type: questionType === 'open-ended' ? 'subjective' : 'objective',
-                        max_attempts: taskType === 'exam' ? 1 : null,
-                        is_feedback_shown: taskType === 'exam' ? false : true,
-                        scorecard: scorecard,
-                        scorecard_id: scorecardId
-                    };
                 }
+
+                // Return the formatted question object for all questions, not just those with scorecards
+                return {
+                    blocks: question.content,
+                    answer: correctAnswerText,
+                    input_type: inputType,
+                    response_type: questionType === 'open-ended' ? "report" : "chat",
+                    coding_languages: null,
+                    generation_model: null,
+                    type: questionType === 'open-ended' ? 'subjective' : 'objective',
+                    max_attempts: taskType === 'exam' ? 1 : null,
+                    is_feedback_shown: taskType === 'exam' ? false : true,
+                    scorecard: scorecard,
+                    scorecard_id: scorecardId
+                };
             });
 
             console.log("Publishing quiz with title:", currentTitle);
