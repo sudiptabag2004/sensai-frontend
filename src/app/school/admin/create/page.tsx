@@ -20,6 +20,8 @@ export default function CreateSchool() {
     const [schoolName, setSchoolName] = useState("");
     const [slug, setSlug] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Add state for error message
+    const [slugError, setSlugError] = useState<string | null>(null);
     // Add state for success dialog
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [newSchoolId, setNewSchoolId] = useState<string | null>(null);
@@ -112,6 +114,8 @@ export default function CreateSchool() {
         }
 
         setIsSubmitting(true);
+        // Clear any previous errors
+        setSlugError(null);
 
         try {
             // In a real app, you would send this data to your API
@@ -134,7 +138,18 @@ export default function CreateSchool() {
             });
 
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+                const errorData = await response.json().catch(() => ({}));
+
+                if (errorData.detail) {
+                    if (errorData.detail.includes('already exists')) {
+                        setSlugError('This school URL is already taken. Please choose another.');
+                        throw new Error('Slug already exists');
+                    } else {
+                        throw new Error(errorData.detail);
+                    }
+                } else {
+                    throw new Error(`API error: ${response.status}`);
+                }
             }
 
             const data = await response.json();
@@ -145,7 +160,7 @@ export default function CreateSchool() {
             playSuccessSound();
         } catch (error) {
             console.error("Error creating school:", error);
-            // Handle error state here
+            // Error is already set if it's a slug error
         } finally {
             setIsSubmitting(false);
         }
@@ -265,7 +280,7 @@ export default function CreateSchool() {
                                     <h2 className="text-2xl font-light mb-2">School URL</h2>
                                     <p className="text-gray-400 text-sm mb-2">This is how your school will be accessed online.</p>
                                     <div className="flex">
-                                        <div className="bg-[#161925] px-4 py-3 rounded-l-md text-gray-300 border border-gray-800">
+                                        <div className={`bg-[#161925] px-4 py-3 rounded-l-md text-gray-300 border border-gray-800 ${slugError ? 'border-red-500' : ''}`}>
                                             {baseUrl}
                                         </div>
                                         <input
@@ -273,15 +288,20 @@ export default function CreateSchool() {
                                             type="text"
                                             value={slug}
                                             onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                                            className="flex-1 px-4 py-3 rounded-r-md bg-[#161925] border border-gray-800 border-l-0 text-white focus:outline-none focus:ring-1 focus:ring-white"
+                                            className={`flex-1 px-4 py-3 rounded-r-md bg-[#161925] border border-gray-800 border-l-0 text-white focus:outline-none focus:ring-1 focus:ring-white ${slugError ? 'border-red-500' : ''}`}
                                             required
                                             pattern="[a-z0-9-]+"
                                             title="Only lowercase letters, numbers, and hyphens are allowed"
                                             maxLength={121}
                                         />
                                     </div>
-                                    <div className="text-right text-sm text-gray-400 mt-1">
-                                        {slug.length}/121
+                                    <div className="flex justify-between text-sm mt-1">
+                                        {slugError && (
+                                            <p className="text-red-500">{slugError}</p>
+                                        )}
+                                        <div className={`text-gray-400 ${slugError ? 'ml-auto' : 'w-full text-right'}`}>
+                                            {slug.length}/121
+                                        </div>
                                     </div>
                                 </div>
 
