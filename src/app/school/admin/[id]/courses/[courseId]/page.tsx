@@ -1703,11 +1703,11 @@ export default function CreateCourse() {
 
             wsRef.current = ws;
 
-            let jobId = '';
+            const jobId = '';
 
             // Make API request to generate course structure
             try {
-                let response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/ai/generate/course/${courseId}/structure`, {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/ai/generate/course/${courseId}/structure`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -1630,7 +1630,7 @@ describe('CohortMemberManagement Component', () => {
             Element.prototype.scrollIntoView = mockScrollIntoView;
 
             // Create refs to track getBoundingClientRect calls
-            let containerRect = {
+            const containerRect = {
                 bottom: 500,
                 top: 0,
                 left: 0,
@@ -1641,7 +1641,7 @@ describe('CohortMemberManagement Component', () => {
                 y: 0,
                 toJSON: () => ({})
             } as DOMRect;
-            let inputRect = {
+            const inputRect = {
                 bottom: 600,
                 top: 0,
                 left: 0,

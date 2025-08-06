@@ -24,8 +24,8 @@ export default function LearningStreak({ streakDays, activeDays }: LearningStrea
         const currentDayIndex = getCurrentDayInIST;
 
         // Calculate days before and after to create a balanced view with current day in center
-        let reorderedDays = [];
-        let reorderedIdentifiers = [];
+        const reorderedDays = [];
+        const reorderedIdentifiers = [];
 
         // Add 3 days before the current day
         for (let i = 3; i > 0; i--) {

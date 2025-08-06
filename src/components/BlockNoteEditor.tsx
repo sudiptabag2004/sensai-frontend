@@ -88,7 +88,7 @@ async function uploadFile(file: File) {
     } else {
         // Upload the file to S3 using the presigned URL
         try {
-            let fileBlob = new Blob([file], { type: file.type });
+            const fileBlob = new Blob([file], { type: file.type });
 
             // Upload to S3 using the presigned URL with WAV content type
             const uploadResponse = await fetch(presigned_url, {
@@ -122,8 +122,8 @@ async function resolveFileUrl(url: string) {
         return url;
     }
 
-    let uuid = url.split('/').pop()?.split('.')[0] || '';
-    let fileType = url.split('.').pop()?.split('?')[0] || '';
+    const uuid = url.split('/').pop()?.split('.')[0] || '';
+    const fileType = url.split('.').pop()?.split('?')[0] || '';
 
     try {
         // Get presigned URL

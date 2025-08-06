@@ -475,7 +475,7 @@ export default function CohortDashboard({ cohort, cohortId, schoolId, onAddLearn
                             };
 
                             // First filter by search query
-                            let filteredStudentIds = Array.from(studentIds).filter(studentId => {
+                            const filteredStudentIds = Array.from(studentIds).filter(studentId => {
                                 const member = studentIdToMember.get(studentId);
                                 if (!member) return false;
 

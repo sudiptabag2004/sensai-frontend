@@ -606,7 +606,7 @@ export default function LearnerQuizView({
                 is_correct: aiResponse.is_correct
             };
         }
-        let aiContent = JSON.stringify(contentObj);
+        const aiContent = JSON.stringify(contentObj);
 
         const messages = [
             {

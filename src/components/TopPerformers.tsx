@@ -69,7 +69,7 @@ export default function TopPerformers({
             // const validPerformers = performersData.filter(performer => performer.streakDays > 0 || performer.tasksSolved > 0);
 
             // Get top performers but filter out those with 0 streak days
-            let topPerformers = validPerformers.slice(0, 3); // Take top 3 of those
+            const topPerformers = validPerformers.slice(0, 3); // Take top 3 of those
 
             let currentUser = undefined;
 

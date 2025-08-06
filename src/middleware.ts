@@ -37,19 +37,9 @@ export async function middleware(request: NextRequest) {
   
   // Protect other routes - redirect to login if not authenticated
   if (!token) {
-    // Create login URL with the correct base URL
-    const loginUrl = new URL('/login', process.env.NEXT_PUBLIC_APP_URL);
-    
-    // Create callback URL with both pathname and search params from the original request
-    const callbackUrl = new URL(request.nextUrl.pathname, process.env.NEXT_PUBLIC_APP_URL);
-    
-    // Copy all search params from the original request to the callback URL
-    request.nextUrl.searchParams.forEach((value, key) => {
-      callbackUrl.searchParams.set(key, value);
-    });
-    
-    // Set the complete callback URL (with search params) as a parameter in the login URL
-    loginUrl.searchParams.set('callbackUrl', encodeURI(callbackUrl.toString()));
+    // Use request.url as base instead of environment variable to avoid build-time issues
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('callbackUrl', request.url);
     
     return NextResponse.redirect(loginUrl);
   }

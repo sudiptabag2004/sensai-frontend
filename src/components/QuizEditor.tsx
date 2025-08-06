@@ -1057,7 +1057,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     }, [questions, currentQuestionIndex, onChange, status]);
 
     const removeScorecardFromSchoolScoreboards = useCallback(() => {
-        let scorecardForQuestion = questions[currentQuestionIndex].config.scorecardData
+        const scorecardForQuestion = questions[currentQuestionIndex].config.scorecardData
 
         if (!scorecardForQuestion) {
             return;
@@ -2057,7 +2057,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     const MemoizedLearnerQuizView = useMemo(() => {
         // No validation checks - directly use the questions array
         // Make a deep copy of questions
-        let questionsWithCorrectAnswers = JSON.parse(JSON.stringify(questions));
+        const questionsWithCorrectAnswers = JSON.parse(JSON.stringify(questions));
 
         // Update the current question with the latest correct answer blocks if possible
         if (correctAnswerEditorRef.current && currentQuestionIndex >= 0 && currentQuestionIndex < questionsWithCorrectAnswers.length) {

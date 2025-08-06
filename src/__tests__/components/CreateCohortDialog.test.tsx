@@ -10,7 +10,7 @@ global.fetch = jest.fn();
 process.env.NEXT_PUBLIC_BACKEND_URL = 'http://test-api.example.com';
 
 // Mock DripPublishingConfig with a controllable validation function
-let mockValidateDripConfig = jest.fn<string | null, []>(() => null);
+const mockValidateDripConfig = jest.fn<string | null, []>(() => null);
 
 jest.mock('../../components/DripPublishingConfig', () => {
     // Import React inside the mock function to avoid initialization issues
