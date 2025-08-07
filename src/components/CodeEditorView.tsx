@@ -69,28 +69,13 @@ const PlagiarismModal = ({ isOpen, onClose, suspiciousActivity, onProceed, onRev
       <div className="bg-[#1D1D1D] border border-[#444444] rounded-lg p-6 max-w-lg w-full mx-4 shadow-2xl">
         <div className="flex items-center space-x-3 mb-4">
           <AlertTriangle className="text-yellow-500 flex-shrink-0" size={28} />
-          <h2 className="text-white text-xl font-semibold">Plagiarism Detection Alert</h2>
+          <h2 className="text-white text-xl font-semibold">Plagiarism Detected!</h2>
         </div>
         
         <div className="text-gray-300 mb-6">
-          <p className="mb-3 text-sm">Suspicious coding activity detected:</p>
-          <ul className="list-disc list-inside space-y-2 text-sm bg-[#2A2A2A] p-3 rounded">
-            {suspiciousActivity.map((activity: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined, index: React.Key | null | undefined) => (
-              <li key={index} className="text-yellow-400">{activity}</li>
-            ))}
-          </ul>
-          
-          {stats && (
-            <div className="mt-4 bg-[#2A2A2A] p-3 rounded text-xs">
-              <h4 className="text-white font-semibold mb-2">Detection Statistics:</h4>
-              <div className="grid grid-cols-2 gap-2 text-gray-400">
-                <div>Characters added: {stats.charsAdded}</div>
-                <div>Time span: {stats.timeSpan}ms</div>
-                <div>Typing speed: {stats.typingSpeed} chars/sec</div>
-                <div>Paste events: {stats.pasteEvents}</div>
-              </div>
-            </div>
-          )}
+                      <p className="mb-3 text-sm">
+            Suspicious coding activity detected. Please confirm this is your original work.
+        </p>
           
           <p className="mt-4 text-sm text-gray-400">
             If this is your original code typed naturally, you can proceed. 
@@ -219,7 +204,7 @@ const usePlagiarismDetection = (onDetection: unknown) => {
       }
 
      // 5. Paste event detection (simulated)
-        if (charsAdded > 30 && timeSinceLastChange < 100) {
+        if (charsAdded > 100 && timeSinceLastChange < 100) {
          suspiciousActivity.push('Possible paste operation detected');
         }   
 
@@ -965,7 +950,7 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
             </div>
 
             {/* Plagiarism Detection Stats Panel (Development/Debug Mode) */}
-            {isPlagiarismEnabled && stats.charsAdded > 0 && !isMobileView && (
+            {/*{isPlagiarismEnabled && stats.charsAdded > 0 && !isMobileView && (
                 <div className="bg-[#1A1A1A] border-t border-[#333333] p-2 text-xs text-gray-400">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
