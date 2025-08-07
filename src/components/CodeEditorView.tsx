@@ -28,6 +28,7 @@ const Editor = ({ height, language, value, onChange, theme, options, onMount }) 
   );
 };
 
+
 // Toast Component
 const Toast = ({ show, title, description, emoji, onClose, isMobileView, type = 'warning' }) => {
   useEffect(() => {
@@ -193,7 +194,7 @@ const usePlagiarismDetection = (onDetection: unknown) => {
       }
 
       // 2. Very high typing speed (>15 chars/sec sustained)
-      if (typingSpeed > 20 && recentChars > 30) {
+      if (typingSpeed > 20 && recentChars > 40) {
         suspiciousActivity.push(`Abnormally fast typing: ${typingSpeed} chars/second`);
       }
 
@@ -217,11 +218,10 @@ const usePlagiarismDetection = (onDetection: unknown) => {
         }
       }
 
-      // 5. Paste event detection (simulated)
-      if (charsAdded > 30 && timeSinceLastChange < 100) {
-        detection.pasteCount++;
-        suspiciousActivity.push('Possible paste operation detected');
-      }
+     // 5. Paste event detection (simulated)
+        if (charsAdded > 30 && timeSinceLastChange < 100) {
+         suspiciousActivity.push('Possible paste operation detected');
+        }   
 
       // Trigger detection if suspicious
       if (suspiciousActivity.length > 0) {
@@ -260,7 +260,8 @@ const usePlagiarismDetection = (onDetection: unknown) => {
     resetDetection,
     isEnabled,
     setIsEnabled,
-    stats
+    stats,
+    detectionRef
   };
 };
 
@@ -534,9 +535,9 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
     });
 
     // Initialize plagiarism detection
-    const { checkForPlagiarism, resetDetection, isEnabled: isPlagiarismEnabled, setIsEnabled: setPlagiarismEnabled, stats } = usePlagiarismDetection(
+    const { checkForPlagiarism, resetDetection, isEnabled: isPlagiarismEnabled, setIsEnabled: setPlagiarismEnabled, stats, detectionRef } = usePlagiarismDetection(
     (activities: React.SetStateAction<string[]>, stats: React.SetStateAction<null>) => {
-        setPreviousCode(code); // <-- Save the code before the paste
+        setPreviousCode(code);
         setSuspiciousActivity(activities);
         setDetectionStats(stats);
         setShowPlagiarismModal(true);
@@ -575,6 +576,14 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
     };
 
     const handlePlagiarismProceed = () => {
+    if (detectionRef && detectionRef.current) {
+        detectionRef.current.pasteCount += 1;
+        setDetectionStats((prev) => ({
+            ...prev,
+            pasteEvents: detectionRef.current.pasteCount
+        }));
+    }
+    setTimeout(() => {
         setShowPlagiarismModal(false);
         setPreviousCode(code);
         setToastData({
@@ -584,21 +593,22 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
             type: 'success'
         });
         setShowToast(true);
-        resetDetection();
-    };
+        // Do NOT call resetDetection() here!
+    }, 600); // 600ms delay so user sees the increment
+};
 
     const handlePlagiarismRevert = () => {
-        setCode(previousCode);
-        setShowPlagiarismModal(false);
-        resetDetection();
-        setToastData({
-            title: 'Changes Reverted',
-            description: 'Code has been reverted to previous state.',
-            emoji: '↩️',
-            type: 'warning'
-        });
-        setShowToast(true);
-    };
+    setCode(previousCode);
+    setShowPlagiarismModal(false);
+    // resetDetection();  // <-- REMOVE THIS LINE
+    setToastData({
+        title: 'Changes Reverted',
+        description: 'Code has been reverted to previous state.',
+        emoji: '↩️',
+        type: 'warning'
+    });
+    setShowToast(true);
+};
 
     const handleMobileBackClick = () => {
         setShowMobilePreview(false);
@@ -853,22 +863,23 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
             <div className="flex-1 overflow-auto flex flex-col">
                 <div className={`${showInputPanel ? 'flex-none h-2/3' : 'flex-1'}`}>
                     <Editor
-                        height="100%"
-                        language={getMonacoLanguage(activeLanguage)}
-                        value={code[activeLanguage]}
-                        onChange={handleCodeChange}
-                        theme="vs-dark"
-                        options={{
-                            minimap: { enabled: false },
-                            fontSize: 12,
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true,
-                            tabSize: 2,
-                            wordWrap: 'on',
-                            lineNumbers: 'off',
-                        }}
-                        onMount={handleEditorDidMount}
-                    />
+    height="100%"
+    language={getMonacoLanguage(activeLanguage)}
+    value={code[activeLanguage]}
+    onChange={handleCodeChange}
+    theme="vs-dark"
+    options={{
+        minimap: { enabled: false },
+        fontSize: 12,
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        tabSize: 2,
+        wordWrap: 'on',
+        lineNumbers: 'off',
+        readOnly: showPlagiarismModal // <-- Add this line here
+    }}
+    onMount={handleEditorDidMount}
+/>
                 </div>
 
                 {/* Input panel */}
