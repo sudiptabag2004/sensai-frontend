@@ -67,6 +67,7 @@ const ChatPlaceholderView: React.FC<ChatPlaceholderViewProps> = ({
                     </div>
                 </>
             )}
+            
         </div>
     );
 };
