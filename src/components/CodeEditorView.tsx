@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle, us
 import { Play, Send, Terminal, ArrowLeft, X, AlertTriangle, Shield, Eye, EyeOff } from 'lucide-react';
 import { useSession } from "next-auth/react";
 
-async function savePlagiarismEvent(email: string, code: string) {
+async function savePlagiarismEvent(email: string, code: string, event_type: string) {
   await fetch("http://localhost:8001/api/plagiarism-event", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -10,6 +10,7 @@ async function savePlagiarismEvent(email: string, code: string) {
       email,
       timestamp: new Date().toISOString(),
       code,
+      event_type,
     }),
   });
 }
@@ -47,10 +48,10 @@ const Editor: React.FC<EditorProps> = ({ height, language, value, onChange, them
       onChange={handleChange}
       placeholder={`Write your ${language} code here...`}
       style={{ fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace' }}
+      readOnly={options?.readOnly}
     />
   );
 };
-
 
 // Toast Component
 interface ToastProps {
@@ -120,9 +121,9 @@ const PlagiarismModal: React.FC<PlagiarismModalProps> = ({ isOpen, onClose, susp
         </div>
         
         <div className="text-gray-300 mb-6">
-                      <p className="mb-3 text-sm">
+          <p className="mb-3 text-sm">
             Suspicious coding activity detected. Please confirm this is your original work.
-        </p>
+          </p>
           
           <p className="mt-4 text-sm text-gray-400">
             If this is your original code typed naturally, you can proceed. 
@@ -176,13 +177,15 @@ const usePlagiarismDetection = (
     totalCharsAdded: number;
     startTime: number;
     lastValue: string;
+    currentSuspiciousActivity: string;
   }>({
     lastChange: Date.now(),
     changeHistory: [],
     pasteCount: 0,
     totalCharsAdded: 0,
     startTime: Date.now(),
-    lastValue: ''
+    lastValue: '',
+    currentSuspiciousActivity: ''
   });
 
   const checkForPlagiarism = useCallback((newValue: string | any[], oldValue: string | any[]) => {
@@ -224,12 +227,16 @@ const usePlagiarismDetection = (
 
       // 1. Large burst of characters (>50 chars in <500ms)
       if (charsAdded > 50 && timeSinceLastChange < 500) {
-        suspiciousActivity.push(`Large text burst: ${charsAdded} characters in ${timeSinceLastChange}ms`);
+        const activity = `Large text burst: ${charsAdded} characters in ${timeSinceLastChange}ms`;
+        suspiciousActivity.push(activity);
+        detection.currentSuspiciousActivity = activity;
       }
 
       // 2. Very high typing speed (>15 chars/sec sustained)
       if (typingSpeed > 20 && recentChars > 40) {
-        suspiciousActivity.push(`Abnormally fast typing: ${typingSpeed} chars/second`);
+        const activity = `Abnormally fast typing: ${typingSpeed} chars/second`;
+        suspiciousActivity.push(activity);
+        detection.currentSuspiciousActivity = activity;
       }
 
       // 3. Multiple large chunks quickly
@@ -237,7 +244,9 @@ const usePlagiarismDetection = (
         change => change.chars > 20 && now - change.time < 5000
       );
       if (recentLargeChunks.length >= 3) {
-        suspiciousActivity.push(`Multiple large text chunks in short time`);
+        const activity = `Multiple large text chunks in short time`;
+        suspiciousActivity.push(activity);
+        detection.currentSuspiciousActivity = activity;
       }
 
       // 4. Pattern detection for common code structures
@@ -249,14 +258,18 @@ const usePlagiarismDetection = (
                                   /^[\s]*(?:<!DOCTYPE|<html|<head|<body|<script|<style)/i.test(textStr);
         
         if (hasComplexPatterns && timeSinceLastChange < 1000) {
-          suspiciousActivity.push('Complex code structures appeared very quickly');
+          const activity = 'Complex code structures appeared very quickly';
+          suspiciousActivity.push(activity);
+          detection.currentSuspiciousActivity = activity;
         }
       }
 
-     // 5. Paste event detection (simulated)
-        if (charsAdded > 100 && timeSinceLastChange < 100) {
-         suspiciousActivity.push('Possible paste operation detected');
-        }   
+      // 5. Paste event detection (simulated)
+      if (charsAdded > 100 && timeSinceLastChange < 100) {
+        const activity = 'Possible paste operation detected';
+        suspiciousActivity.push(activity);
+        detection.currentSuspiciousActivity = activity;
+      }   
 
       // Trigger detection if suspicious
       if (suspiciousActivity.length > 0) {
@@ -280,7 +293,8 @@ const usePlagiarismDetection = (
       pasteCount: 0,
       totalCharsAdded: 0,
       startTime: Date.now(),
-      lastValue: ''
+      lastValue: '',
+      currentSuspiciousActivity: ''
     };
     setStats({
       charsAdded: 0,
@@ -537,6 +551,9 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
     const learnerEmail = session?.user?.email || "";
     const normalizedLanguages = languages.map(lang => lang.toLowerCase());
     
+    // Move currSusAct state inside the component
+    const [currSusAct, setCurrSusAct] = useState<string>('');
+    
     const setupCodeState = (initial: Record<string, string>): Record<string, string> => {
         const state: Record<string, string> = {};
         normalizedLanguages.forEach(lang => {
@@ -561,6 +578,7 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
     // Plagiarism detection states
     const [showPlagiarismModal, setShowPlagiarismModal] = useState(false);
     const [suspiciousActivity, setSuspiciousActivity] = useState<string[]>([]);
+   
     const [detectionStats, setDetectionStats] = useState<{
         charsAdded: number;
         timeSpan: number;
@@ -578,15 +596,17 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
 
     // Initialize plagiarism detection
     const { checkForPlagiarism, resetDetection, isEnabled: isPlagiarismEnabled, setIsEnabled: setPlagiarismEnabled, stats, detectionRef } = usePlagiarismDetection(
-    (activities: React.SetStateAction<string[]>, stats: React.SetStateAction<null>) => {
-        setPreviousCode(code);
-    setSuspiciousActivity(activities);
-    setDetectionStats(stats);
-    // Add this line:
-    savePlagiarismEvent(learnerEmail, code[activeLanguage]); // <-- pass the logged-in user's email here
-    setShowPlagiarismModal(true);
-
-);
+        (activities: string[], stats: { charsAdded: number; timeSpan: number; typingSpeed: number; pasteEvents: number }) => {
+            setPreviousCode(code);
+            setSuspiciousActivity(activities);
+            setDetectionStats(stats);
+            // Use the current suspicious activity from detectionRef
+            const event_name = detectionRef.current?.currentSuspiciousActivity || activities[0] || 'Unknown suspicious activity';
+            setCurrSusAct(event_name);
+            savePlagiarismEvent(learnerEmail, code[activeLanguage], event_name);
+            setShowPlagiarismModal(true);
+        }
+    );
 
     useEffect(() => {
         const checkMobileView = () => {
@@ -620,39 +640,47 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
     };
 
     const handlePlagiarismProceed = () => {
-    if (detectionRef && detectionRef.current) {
-        detectionRef.current.pasteCount += 1;
-        setDetectionStats((prev) => ({
-            ...prev,
-            pasteEvents: detectionRef.current.pasteCount
-        }));
-    }
-    setTimeout(() => {
-        setShowPlagiarismModal(false);
-        setPreviousCode(code);
-        setToastData({
-            title: 'Proceeding with Code',
-            description: 'Code accepted as original work.',
-            emoji: '✅',
-            type: 'success'
-        });
-        setShowToast(true);
-        // Do NOT call resetDetection() here!
-    }, 600); // 600ms delay so user sees the increment
-};
+        if (detectionRef && detectionRef.current) {
+            detectionRef.current.pasteCount += 1;
+            setDetectionStats((prev) => prev
+                ? {
+                    charsAdded: prev.charsAdded,
+                    timeSpan: prev.timeSpan,
+                    typingSpeed: prev.typingSpeed,
+                    pasteEvents: detectionRef.current.pasteCount
+                }
+                : {
+                    charsAdded: 0,
+                    timeSpan: 0,
+                    typingSpeed: 0,
+                    pasteEvents: detectionRef.current.pasteCount
+                }
+            );
+        }
+        setTimeout(() => {
+            setShowPlagiarismModal(false);
+            setPreviousCode(code);
+            setToastData({
+                title: 'Proceeding with Code',
+                description: 'Code accepted as original work.',
+                emoji: '✅',
+                type: 'success'
+            });
+            setShowToast(true);
+        }, 600);
+    };
 
     const handlePlagiarismRevert = () => {
-    setCode(previousCode);
-    setShowPlagiarismModal(false);
-    // resetDetection();  // <-- REMOVE THIS LINE
-    setToastData({
-        title: 'Changes Reverted',
-        description: 'Code has been reverted to previous state.',
-        emoji: '↩️',
-        type: 'warning'
-    });
-    setShowToast(true);
-};
+        setCode(previousCode);
+        setShowPlagiarismModal(false);
+        setToastData({
+            title: 'Changes Reverted',
+            description: 'Code has been reverted to previous state.',
+            emoji: '↩️',
+            type: 'warning'
+        });
+        setShowToast(true);
+    };
 
     const handleMobileBackClick = () => {
         setShowMobilePreview(false);
@@ -868,7 +896,19 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
                         </button>
                     ))}
                     
-                    
+                    <div className="ml-auto flex items-center space-x-2 px-4">
+                        <button
+                            onClick={() => setPlagiarismEnabled(!isPlagiarismEnabled)}
+                            className={`flex items-center space-x-1 px-2 py-1 rounded text-xs ${
+                                isPlagiarismEnabled 
+                                    ? 'bg-green-600 text-white' 
+                                    : 'bg-gray-600 text-gray-300'
+                            }`}
+                        >
+                            <Shield size={12} />
+                            <span>{isPlagiarismEnabled ? 'Protected' : 'Disabled'}</span>
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -907,23 +947,23 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
             <div className="flex-1 overflow-auto flex flex-col">
                 <div className={`${showInputPanel ? 'flex-none h-2/3' : 'flex-1'}`}>
                     <Editor
-    height="100%"
-    language={getMonacoLanguage(activeLanguage)}
-    value={code[activeLanguage]}
-    onChange={handleCodeChange}
-    theme="vs-dark"
-    options={{
-        minimap: { enabled: false },
-        fontSize: 12,
-        scrollBeyondLastLine: false,
-        automaticLayout: true,
-        tabSize: 2,
-        wordWrap: 'on',
-        lineNumbers: 'off',
-        readOnly: showPlagiarismModal // <-- Add this line here
-    }}
-    onMount={handleEditorDidMount}
-/>
+                        height="100%"
+                        language={getMonacoLanguage(activeLanguage)}
+                        value={code[activeLanguage]}
+                        onChange={handleCodeChange}
+                        theme="vs-dark"
+                        options={{
+                            minimap: { enabled: false },
+                            fontSize: 12,
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                            tabSize: 2,
+                            wordWrap: 'on',
+                            lineNumbers: 'off',
+                            readOnly: showPlagiarismModal
+                        }}
+                        onMount={handleEditorDidMount}
+                    />
                 </div>
 
                 {/* Input panel */}
@@ -1008,34 +1048,6 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
                 </div>
             </div>
 
-            {/* Plagiarism Detection Stats Panel (Development/Debug Mode) */}
-            {/*{isPlagiarismEnabled && stats.charsAdded > 0 && !isMobileView && (
-                <div className="bg-[#1A1A1A] border-t border-[#333333] p-2 text-xs text-gray-400">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <span>Typing Speed: {stats.typingSpeed.toFixed(1)} chars/sec</span>
-                            <span>Recent Activity: {stats.charsAdded} chars</span>
-                            <span>Time Span: {stats.timeSpan}ms</span>
-                            {stats.pasteEvents > 0 && (
-                                <span className="text-yellow-400">Paste Events: {stats.pasteEvents}</span>
-                            )}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <div className={`w-2 h-2 rounded-full ${
-                                stats.typingSpeed > 15 ? 'bg-red-500' : 
-                                stats.typingSpeed > 10 ? 'bg-yellow-500' : 
-                                'bg-green-500'
-                            }`}></div>
-                            <span className="text-xs">
-                                {stats.typingSpeed > 15 ? 'High Speed' : 
-                                 stats.typingSpeed > 10 ? 'Moderate' : 
-                                 'Normal'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Global styles for hiding scrollbars */}
             <style jsx global>{`
                 .hide-scrollbar {
@@ -1071,5 +1083,7 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
         </div>
     );
 });
+
+CodeEditorView.displayName = 'CodeEditorView';
 
 export default CodeEditorView;

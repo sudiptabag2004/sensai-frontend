@@ -8,11 +8,17 @@ interface ReportCardProps {
   };
   onBack: () => void;
 }
+function getNameFromEmail(email?: string) {
+  if (typeof email !== 'string') return null;
+  const match = email.match(/^([^@]+)/);
+  return match ? match[1] : null;
+}
 
 export default function ReportCard({ member, onBack }: ReportCardProps) {
   interface PlagiarismEvent {
     timestamp: string;
     code: string;
+    event_type:string;
   }
 
   const [events, setEvents] = useState<PlagiarismEvent[]>([]);
@@ -128,45 +134,77 @@ export default function ReportCard({ member, onBack }: ReportCardProps) {
       codingInference: getCodingInference()
     };
   }, [events]);
+useEffect(() => {
+  if (!Array.isArray(events) || !Array.isArray(otherCodes)) {
+    setSimilarityLLM("Invalid data format.");
+    return;
+  }
 
-  useEffect(() => {
-    if (events.length === 0 || otherCodes.length === 0) {
-      setSimilarityLLM("Not enough data to analyze similarity.");
-      return;
-    }
+  if (!events.length || !otherCodes.length) {
+    setSimilarityLLM("Not enough data to analyze similarity.");
+    return;
+  }
 
-    let maxSimilarity = 0;
-    let mostSimilar = { userCode: "", otherCode: "", percent: 0, email: "" };
+  setSimilarityLLM("Analyzing similarity...");
 
-    events.forEach(e => {
-      otherCodes.forEach(o => {
-        const sim = calculateTokenSimilarity(e.code || "", o.code || "");
-        if (sim > maxSimilarity) {
-          maxSimilarity = sim;
-          mostSimilar = {
-            userCode: e.code || "",
-            otherCode: o.code || "",
-            percent: Math.round(sim * 100),
-            email: o.email || "unknown"
-          };
-        }
+  // First similarity check
+  const runSimilarityCheck = async () => {
+    try {
+      const res = await fetch("http://localhost:8001/api/similarity-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetCode: events.map(e => e.code).join("\n\n"),
+          otherCodes
+        }),
       });
+      const data = await res.json();
+      setSimilarityLLM(data.result || "No similarity detected.");
+    } catch (err) {
+      console.error("Similarity check failed:", err);
+      setSimilarityLLM("Error analyzing similarity.");
+    }
+  };
+
+  // runSimilarityCheck();
+
+  // Second API analysis
+  fetch("http://localhost:8000/api/analyze-similarity", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      events: events.map(e => ({
+        timestamp: e.timestamp,
+        event_type: e.event_type,
+        code: e.code || ""
+      })),
+      other_codes: otherCodes.map(o => ({
+        email: o.email,
+        code: o.code
+      }))
+    })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data && data.analysis) {
+        let summary = data.analysis;
+        if (data.top_matches && data.top_matches.length) {
+          const m = data.top_matches[0];
+          summary += `\nTop match: ${m.other_email} — similarity: ${m.similarity}`;
+        }
+        setSimilarityLLM(summary);
+      } else {
+        setSimilarityLLM("Analysis returned no result.");
+      }
+    })
+    .catch(err => {
+      console.error("Similarity API error", err);
+      setSimilarityLLM("Error running similarity analysis.");
     });
 
-    if (maxSimilarity > 0.5) {
-      setSimilarityLLM(
-        `High logic-level similarity detected (${mostSimilar.percent}%) with code from ${mostSimilar.email}.\n\nThis user's code is highly similar in structure and logic to another user's code. This may indicate code sharing or copying, even if variable names or order were changed.`
-      );
-    } else if (maxSimilarity > 0.2) {
-      setSimilarityLLM(
-        `Moderate similarity detected (${mostSimilar.percent}%) with code from ${mostSimilar.email}.\n\nSome overlap exists in logic and structure. Review is recommended.`
-      );
-    } else {
-      setSimilarityLLM(
-        "No significant logic-level similarity detected. The user's code appears original in structure and logic compared to other users' submissions."
-      );
-    }
-  }, [events, otherCodes]);
+}, [events, otherCodes]);
+
+
 
   console.log("events", events);
   console.log("otherCodes", otherCodes);
@@ -210,7 +248,8 @@ export default function ReportCard({ member, onBack }: ReportCardProps) {
               <User className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">{member?.name || "John Doe"}</h2>
+              <h2 className="text-xl font-semibold text-white">{ getNameFromEmail(member?.email)
+ || "John Doe"}</h2>
               <div className="flex items-center space-x-2 text-gray-400 mt-1">
                 <Mail className="h-4 w-4" />
                 <span>{member?.email || "johndoe@email.com"}</span>
@@ -332,7 +371,7 @@ export default function ReportCard({ member, onBack }: ReportCardProps) {
                     <div key={index} className="flex items-center space-x-3 p-3 border border-gray-600 rounded-lg bg-gray-700/30">
                       <div className="h-3 w-3 bg-orange-400 rounded-full flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-200">Event #{index + 1}</div>
+                        <div className="text-sm font-medium text-gray-200">{event.event_type}</div>
                         <div className="text-xs text-gray-400 truncate">
                           {new Date(event.timestamp).toLocaleString()}
                         </div>
@@ -380,7 +419,8 @@ export default function ReportCard({ member, onBack }: ReportCardProps) {
             <Shield className="h-5 w-5 text-blue-400" />
             <span>Code Similarity Analysis (AI)</span>
           </h3>
-          <div className="text-slate-300 text-sm whitespace-pre-line">{similarityLLM}</div>
+          {/* <div className="text-slate-300 text-sm whitespace-pre-line">{similarityLLM}</div> */}
+          <div className="text-slate-300 text-sm whitespace-pre-line">Not enough data to perform Analysis   </div>
         </div>
 
         {/* Summary & Recommendations */}

@@ -2,6 +2,24 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as faceapi from "face-api.js";
+import { useSession } from "next-auth/react";
+// Save plagiarism event to backend
+async function savePlagiarismEvent(
+  email: string,
+  code: string,
+  event_type: string
+) {
+  await fetch("http://localhost:8001/api/plagiarism-event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      timestamp: new Date().toISOString(),
+      code,
+      event_type,
+    }),
+  });
+}
 
 interface Violation {
   id: number;
@@ -32,7 +50,8 @@ const isSameFace = (
 
 const FaceMonitor: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [referenceDescriptor, setReferenceDescriptor] = useState<Float32Array | null>(null);
+  const [referenceDescriptor, setReferenceDescriptor] =
+    useState<Float32Array | null>(null);
   const [violations, setViolations] = useState<Violation[]>([]);
   const [ready, setReady] = useState<boolean>(false);
   const [showViolations, setShowViolations] = useState<boolean>(false);
@@ -43,12 +62,16 @@ const FaceMonitor: React.FC = () => {
   const [dragging, setDragging] = useState<boolean>(false);
   const [offset, setOffset] = useState<Position>({ x: 0, y: 0 });
 
+  const { data: session } = useSession();
+
   // Load models + start video
   useEffect(() => {
     const init = async (): Promise<void> => {
       await loadModels();
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => {
@@ -65,17 +88,17 @@ const FaceMonitor: React.FC = () => {
 
   const handleCaptureReference = async (): Promise<void> => {
     if (!videoRef.current) return;
-    
+
     const detection = await faceapi
       .detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options())
       .withFaceLandmarks()
       .withFaceDescriptor();
-      
+
     if (!detection) {
       alert("No face detected. Please try again.");
       return;
     }
-    
+
     setReferenceDescriptor(detection.descriptor);
     alert("Reference face captured!");
   };
@@ -83,41 +106,46 @@ const FaceMonitor: React.FC = () => {
   // Monitor violations
   useEffect(() => {
     if (!referenceDescriptor || !videoRef.current) return;
-    
+    const userEmail = session?.user?.email || "";
+    const code = "N/A"; // TODO: Replace with actual code if available
+
     const interval = setInterval(async () => {
       if (!videoRef.current) return;
-      
+
       const detections = await faceapi
         .detectAllFaces(videoRef.current, new faceapi.SsdMobilenetv1Options())
         .withFaceLandmarks()
         .withFaceDescriptors();
-        
+
       const violationId = Date.now();
       const timestamp = new Date();
-      
+
       if (detections.length === 0) {
         setViolations((prev) => [
           { id: violationId, message: "No face detected", timestamp },
-          ...prev // Keep only last 5 violations
+          ...prev,
         ]);
+        savePlagiarismEvent(userEmail, code, "No face detected");
       } else if (detections.length > 1) {
         setViolations((prev) => [
           { id: violationId, message: "Multiple faces detected", timestamp },
-          ...prev
+          ...prev,
         ]);
+        savePlagiarismEvent(userEmail, code, "Multiple faces detected");
       } else {
         const currentDescriptor = detections[0].descriptor;
         if (!isSameFace(currentDescriptor, referenceDescriptor)) {
           setViolations((prev) => [
             { id: violationId, message: "Different face detected", timestamp },
-            ...prev
+            ...prev,
           ]);
+          savePlagiarismEvent(userEmail, code, "Different face detected");
         }
       }
     }, 3000);
-    
+
     return () => clearInterval(interval);
-  }, [referenceDescriptor]);
+  }, [referenceDescriptor, session]);
 
   // Drag handlers
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
@@ -149,10 +177,10 @@ const FaceMonitor: React.FC = () => {
   }, [dragging, offset]);
 
   const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
   };
 
@@ -176,7 +204,8 @@ const FaceMonitor: React.FC = () => {
         top: pos.y,
         left: pos.x,
         cursor: dragging ? "grabbing" : "grab",
-        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)"
+        boxShadow:
+          "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
       }}
     >
       {/* Header */}
@@ -188,8 +217,8 @@ const FaceMonitor: React.FC = () => {
           <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
           <span className="text-sm">Proctoring Monitor</span>
         </div>
-        
-        <div 
+
+        <div
           className="relative flex items-center gap-2"
           onMouseEnter={() => setShowViolations(true)}
           onMouseLeave={() => setShowViolations(false)}
@@ -198,25 +227,38 @@ const FaceMonitor: React.FC = () => {
             {violations.length > 0 && (
               <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
             )}
-            <span className={`text-xs font-mono px-2 py-1 rounded-full ${
-              violations.length === 0 
-                ? 'bg-green-900 text-green-300' 
-                : 'bg-red-900 text-red-300'
-            }`}>
+            <span
+              className={`text-xs font-mono px-2 py-1 rounded-full ${
+                violations.length === 0
+                  ? "bg-green-900 text-green-300"
+                  : "bg-red-900 text-red-300"
+              }`}
+            >
               {violations.length}
             </span>
           </div>
-          
+
           {/* Violations Tooltip */}
           {showViolations && violations.length > 0 && (
             <div className="absolute top-full right-0 mt-2 w-64 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-10 p-3">
-              <div className="text-xs text-gray-300 font-medium mb-2">Recent Violations</div>
+              <div className="text-xs text-gray-300 font-medium mb-2">
+                Recent Violations
+              </div>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {violations.map((violation) => (
-                  <div key={violation.id} className="flex items-start gap-2 text-xs">
-                    <span className="text-lg leading-none">{getViolationIcon(violation.message)}</span>
+                  <div
+                    key={violation.id}
+                    className="flex items-start gap-2 text-xs"
+                  >
+                    <span className="text-lg leading-none">
+                      {getViolationIcon(violation.message)}
+                    </span>
                     <div className="flex-1 min-w-0">
-                      <div className={`font-medium ${getViolationColor(violation.message)}`}>
+                      <div
+                        className={`font-medium ${getViolationColor(
+                          violation.message
+                        )}`}
+                      >
                         {violation.message}
                       </div>
                       <div className="text-gray-500 text-xs mt-1">
@@ -226,7 +268,6 @@ const FaceMonitor: React.FC = () => {
                   </div>
                 ))}
               </div>
-              
             </div>
           )}
         </div>
@@ -261,14 +302,24 @@ const FaceMonitor: React.FC = () => {
         {/* Status Indicators */}
         <div className="flex justify-between text-xs">
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${ready ? 'bg-green-400' : 'bg-yellow-400'}`}></div>
-            <span className="text-gray-400">{ready ? 'Ready' : 'Initializing...'}</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${referenceDescriptor ? 'bg-green-400' : 'bg-gray-600'}`}></div>
+            <div
+              className={`w-2 h-2 rounded-full ${
+                ready ? "bg-green-400" : "bg-yellow-400"
+              }`}
+            ></div>
             <span className="text-gray-400">
-              {referenceDescriptor ? 'Reference Set' : 'No Reference'}
+              {ready ? "Ready" : "Initializing..."}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                referenceDescriptor ? "bg-green-400" : "bg-gray-600"
+              }`}
+            ></div>
+            <span className="text-gray-400">
+              {referenceDescriptor ? "Reference Set" : "No Reference"}
             </span>
           </div>
         </div>
