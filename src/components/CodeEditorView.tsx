@@ -1,5 +1,18 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { Play, Send, Terminal, ArrowLeft, X, AlertTriangle, Shield, Eye, EyeOff } from 'lucide-react';
+import { useSession } from "next-auth/react";
+
+async function savePlagiarismEvent(email: string, code: string) {
+  await fetch("http://localhost:8001/api/plagiarism-event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      timestamp: new Date().toISOString(),
+      code,
+    }),
+  });
+}
 
 // Mock Editor component (replace with your actual Monaco Editor)
 const Editor = ({ height, language, value, onChange, theme, options, onMount }) => {
@@ -421,6 +434,7 @@ interface CodeEditorViewProps {
     languages?: string[];
     handleCodeSubmit: (code: Record<string, string>) => void;
     onCodeRun?: (previewContent: string, output: string, executionTime?: string, isRunning?: boolean) => void;
+    learnerEmail: string;
 }
 
 export interface CodeEditorViewHandle {
@@ -483,6 +497,8 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
     handleCodeSubmit,
     onCodeRun,
 }, ref) => {
+    const { data: session } = useSession();
+    const learnerEmail = session?.user?.email || "";
     const normalizedLanguages = languages.map(lang => lang.toLowerCase());
     
     const setupCodeState = (initial: Record<string, string>): Record<string, string> => {
@@ -523,9 +539,11 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
     const { checkForPlagiarism, resetDetection, isEnabled: isPlagiarismEnabled, setIsEnabled: setPlagiarismEnabled, stats, detectionRef } = usePlagiarismDetection(
     (activities: React.SetStateAction<string[]>, stats: React.SetStateAction<null>) => {
         setPreviousCode(code);
-        setSuspiciousActivity(activities);
-        setDetectionStats(stats);
-        setShowPlagiarismModal(true);
+    setSuspiciousActivity(activities);
+    setDetectionStats(stats);
+    // Add this line:
+    savePlagiarismEvent(learnerEmail, code[activeLanguage]); // <-- pass the logged-in user's email here
+    setShowPlagiarismModal(true);
     }
 );
 
