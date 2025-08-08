@@ -15,14 +15,24 @@ async function savePlagiarismEvent(email: string, code: string) {
 }
 
 // Mock Editor component (replace with your actual Monaco Editor)
-const Editor = ({ height, language, value, onChange, theme, options, onMount }) => {
+interface EditorProps {
+  height: string | number;
+  language: string;
+  value: string;
+  onChange?: (value: string) => void;
+  theme?: string;
+  options?: Record<string, any>;
+  onMount?: (editor: any) => void;
+}
+
+const Editor: React.FC<EditorProps> = ({ height, language, value, onChange, theme, options, onMount }) => {
   const [localValue, setLocalValue] = useState(value || '');
   
   useEffect(() => {
     setLocalValue(value || '');
   }, [value]);
 
-  const handleChange = (e) => {
+  const handleChange = (e: { target: { value: any; }; }) => {
     const newValue = e.target.value;
     setLocalValue(newValue);
     if (onChange) {
@@ -43,7 +53,17 @@ const Editor = ({ height, language, value, onChange, theme, options, onMount }) 
 
 
 // Toast Component
-const Toast = ({ show, title, description, emoji, onClose, isMobileView, type = 'warning' }) => {
+interface ToastProps {
+  show: boolean;
+  title: string;
+  description: string;
+  emoji: string;
+  onClose: () => void;
+  isMobileView: boolean;
+  type?: 'warning' | 'error' | 'success';
+}
+
+const Toast: React.FC<ToastProps> = ({ show, title, description, emoji, onClose, isMobileView, type = 'warning' }) => {
   useEffect(() => {
     if (show) {
       const timer = setTimeout(() => {
@@ -74,7 +94,21 @@ const Toast = ({ show, title, description, emoji, onClose, isMobileView, type = 
 };
 
 // Plagiarism Detection Modal
-const PlagiarismModal = ({ isOpen, onClose, suspiciousActivity, onProceed, onRevert, stats }) => {
+interface PlagiarismModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  suspiciousActivity: (string | number | boolean | React.ReactNode | Promise<any> | null | undefined)[];
+  onProceed: () => void;
+  onRevert: () => void;
+  stats?: {
+    charsAdded: number;
+    timeSpan: number;
+    typingSpeed: number;
+    pasteEvents: number;
+  };
+}
+
+const PlagiarismModal: React.FC<PlagiarismModalProps> = ({ isOpen, onClose, suspiciousActivity, onProceed, onRevert, stats }) => {
   if (!isOpen) return null;
 
   return (
@@ -123,7 +157,9 @@ const PlagiarismModal = ({ isOpen, onClose, suspiciousActivity, onProceed, onRev
 };
 
 // Plagiarism Detection Hook
-const usePlagiarismDetection = (onDetection: unknown) => {
+const usePlagiarismDetection = (
+  onDetection: (suspiciousActivity: string[], stats: { charsAdded: number; timeSpan: number; typingSpeed: number; pasteEvents: number }) => void
+) => {
   const [isEnabled, setIsEnabled] = useState(true);
   const [stats, setStats] = useState({
     charsAdded: 0,
@@ -149,7 +185,7 @@ const usePlagiarismDetection = (onDetection: unknown) => {
     lastValue: ''
   });
 
-  const checkForPlagiarism = useCallback((newValue, oldValue) => {
+  const checkForPlagiarism = useCallback((newValue: string | any[], oldValue: string | any[]) => {
     if (!isEnabled) return;
 
     const now = Date.now();
@@ -207,9 +243,10 @@ const usePlagiarismDetection = (onDetection: unknown) => {
       // 4. Pattern detection for common code structures
       const newText = newValue.slice(oldValue.length);
       if (charsAdded > 20) {
-        const hasComplexPatterns = /^[\s]*(?:function|class|import|export|const|let|var|if|for|while|switch)\b/m.test(newText) ||
-                                  /^[\s]*(?:public|private|protected|static)\s+/m.test(newText) ||
-                                  /^[\s]*(?:<!DOCTYPE|<html|<head|<body|<script|<style)/i.test(newText);
+        const textStr = String(newText);
+        const hasComplexPatterns = /^[\s]*(?:function|class|import|export|const|let|var|if|for|while|switch)\b/m.test(textStr) ||
+                                  /^[\s]*(?:public|private|protected|static)\s+/m.test(textStr) ||
+                                  /^[\s]*(?:<!DOCTYPE|<html|<head|<body|<script|<style)/i.test(textStr);
         
         if (hasComplexPatterns && timeSinceLastChange < 1000) {
           suspiciousActivity.push('Complex code structures appeared very quickly');
@@ -233,7 +270,7 @@ const usePlagiarismDetection = (onDetection: unknown) => {
     }
 
     detection.lastChange = now;
-    detection.lastValue = newValue;
+    detection.lastValue = String(newValue);
   }, [isEnabled, onDetection]);
 
   const resetDetection = useCallback(() => {
@@ -487,8 +524,7 @@ const DEFAULT_LANGUAGE_CONTENTS = {
 }
 
 const rootElement = document.getElementById("root");
-const root = ReactDOM.createRoot(rootElement);
-root.render(<App />);`
+ReactDOM.render(<App />, rootElement);`
 } as Record<string, string>;
 
 const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
@@ -525,7 +561,12 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
     // Plagiarism detection states
     const [showPlagiarismModal, setShowPlagiarismModal] = useState(false);
     const [suspiciousActivity, setSuspiciousActivity] = useState<string[]>([]);
-    const [detectionStats, setDetectionStats] = useState(null);
+    const [detectionStats, setDetectionStats] = useState<{
+        charsAdded: number;
+        timeSpan: number;
+        typingSpeed: number;
+        pasteEvents: number;
+    } | undefined>(undefined);
     const [previousCode, setPreviousCode] = useState<Record<string, string>>(code);
     const [showToast, setShowToast] = useState(false);
     const [toastData, setToastData] = useState({
@@ -544,7 +585,7 @@ const CodeEditorView = forwardRef<CodeEditorViewHandle, CodeEditorViewProps>(({
     // Add this line:
     savePlagiarismEvent(learnerEmail, code[activeLanguage]); // <-- pass the logged-in user's email here
     setShowPlagiarismModal(true);
-    }
+
 );
 
     useEffect(() => {

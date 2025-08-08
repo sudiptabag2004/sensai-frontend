@@ -45,6 +45,7 @@
     "react": "^19.0.0",
     "react-datepicker": "^8.3.0",
     "react-dom": "^19.0.0",
+    "react-draggable": "^4.5.0",
     "react-markdown": "^10.1.0",
     "react-pdf": "^9.2.1",
     "rehype-raw": "^7.0.0",

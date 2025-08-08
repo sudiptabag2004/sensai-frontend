@@ -12,6 +12,7 @@ import { getKnowledgeBaseContent } from './QuizEditor';
 import { CodePreview } from './CodeEditorView';
 import isEqual from 'lodash/isEqual';
 import { safeLocalStorage } from "@/lib/utils/localStorage";
+import FloatingFaceMonitor from "./FaceMonitor";
 
 // Add interface for mobile view mode
 export interface MobileViewMode {
@@ -2108,6 +2109,7 @@ export default function LearnerQuizView({
                     </div>
                 </div>
             )}
+            <FloatingFaceMonitor/>
         </div>
     );
 } 
