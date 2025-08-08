@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Trash2, Plus, Mail, Upload, X } from "lucide-react";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { CohortMember, CohortWithDetails as Cohort } from "@/types";
+import ReportCard from "./reportcard";
 
 interface EmailInput {
     id: string;
@@ -241,6 +242,7 @@ function InviteModal({
         </div>
     );
 }
+import { useRouter } from "next/navigation"; // Make sure this import is at the top
 
 
 export default function CohortMemberManagement({
@@ -253,8 +255,10 @@ export default function CohortMemberManagement({
     openInviteDialog,
     onInviteDialogClose
 }: CohortMemberManagementProps) {
-
+    const router = useRouter();
     const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+     const [showReportCard, setShowReportCard] = useState(false);
+    const [selectedMember, setSelectedMember] = useState(null);
 
     // Effect to sync the internal state with the external control prop
     useEffect(() => {
@@ -460,114 +464,135 @@ export default function CohortMemberManagement({
         }
     };
 
-    return (
-        <div>
-            {members.length > 0 && (
-                <div className="flex justify-start items-center mb-6 gap-4">
-                    <button
-                        className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                        onClick={() => setIsAddMemberOpen(true)}
-                    >
-                        {roleText.buttonText}
-                    </button>
-                    {selectedMembers.length > 0 && (
-                        <button
-                            className="px-6 py-3 bg-red-800 text-white text-sm font-medium rounded-full hover:bg-red-900 transition-colors focus:outline-none cursor-pointer flex items-center"
-                            onClick={handleDeleteSelectedMembers}
-                        >
-                            <Trash2 size={16} className="mr-2" />
-                            Remove ({selectedMembers.length})
-                        </button>
-                    )}
-                </div>
+ return (
+  <div>
+    {showReportCard && selectedMember ? (
+      <ReportCard member={selectedMember} onBack={() => setShowReportCard(false)} />
+    ) : (
+      <>
+        {/* --- Your existing cohort members table and UI --- */}
+        {members.length > 0 && (
+          <div className="flex justify-start items-center mb-6 gap-4">
+            <button
+              className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+              onClick={() => setIsAddMemberOpen(true)}
+            >
+              {roleText.buttonText}
+            </button>
+            {selectedMembers.length > 0 && (
+              <button
+                className="px-6 py-3 bg-red-800 text-white text-sm font-medium rounded-full hover:bg-red-900 transition-colors focus:outline-none cursor-pointer flex items-center"
+                onClick={handleDeleteSelectedMembers}
+              >
+                <Trash2 size={16} className="mr-2" />
+                Remove ({selectedMembers.length})
+              </button>
             )}
+          </div>
+        )}
 
-            {members.length > 0 ? (
-                <div className="overflow-hidden rounded-lg border border-gray-800">
-                    <table className="min-w-full divide-y divide-gray-800">
-                        <thead className="bg-gray-900">
-                            <tr>
-                                <th scope="col" className="w-10 px-3 py-3 text-left">
-                                    <div className="flex items-center justify-center">
-                                        <input
-                                            type="checkbox"
-                                            className="h-5 w-5 rounded-md border-2 border-purple-600 text-white appearance-none checked:bg-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-opacity-30 focus:outline-none bg-[#111111] cursor-pointer transition-all duration-200 ease-in-out hover:border-purple-500 relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-y-1/2 before:-translate-x-1/2 before:w-2.5 before:h-2.5 before:opacity-0 before:bg-white checked:before:opacity-100 checked:before:scale-100 before:scale-0 before:rounded-sm before:transition-all before:duration-200 checked:border-transparent"
-                                            checked={areAllMembersSelected()}
-                                            onChange={handleSelectAllMembers}
-                                            title={`Select all ${role}s`}
-                                        />
-                                    </div>
-                                </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-[#111] divide-y divide-gray-800">
-                            {members.map(member => (
-                                <tr key={member.id}>
-                                    <td className="w-10 px-4 py-4 whitespace-nowrap">
-                                        <div className="flex justify-center">
-                                            <input
-                                                type="checkbox"
-                                                className="h-5 w-5 rounded-md border-2 border-purple-600 text-white appearance-none checked:bg-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-opacity-30 focus:outline-none bg-[#111111] cursor-pointer transition-all duration-200 ease-in-out hover:border-purple-500 relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-y-1/2 before:-translate-x-1/2 before:w-2.5 before:h-2.5 before:opacity-0 before:bg-white checked:before:opacity-100 checked:before:scale-100 before:scale-0 before:rounded-sm before:transition-all before:duration-200 checked:border-transparent"
-                                                checked={selectedMembers.some(m => m.id === member.id)}
-                                                onChange={() => handleMemberSelection(member)}
-                                            />
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 flex justify-between items-center">
-                                        {member.email}
-                                        <button
-                                            onClick={() => handleDeleteMember(member)}
-                                            className="text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            ) : (
-                <div className="flex flex-col items-center justify-center py-20">
-                    <h2 className="text-4xl font-light mb-4">{roleText.title}</h2>
-                    <p className="text-gray-400 mb-8">{roleText.description}</p>
-                    <button
-                        className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
-                        onClick={() => setIsAddMemberOpen(true)}
-                    >
-                        {roleText.buttonText}
-                    </button>
-                </div>
-            )}
+        {members.length > 0 ? (
+          <div className="overflow-hidden rounded-lg border border-gray-800">
+            <table className="min-w-full divide-y divide-gray-800">
+              <thead className="bg-gray-900">
+                <tr>
+                  <th scope="col" className="w-10 px-3 py-3 text-left">
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5 rounded-md border-2 border-purple-600 text-white appearance-none checked:bg-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-opacity-30 focus:outline-none bg-[#111111] cursor-pointer transition-all duration-200 ease-in-out hover:border-purple-500 relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-y-1/2 before:-translate-x-1/2 before:w-2.5 before:h-2.5 before:opacity-0 before:bg-white checked:before:opacity-100 checked:before:scale-100 before:scale-0 before:rounded-sm before:transition-all before:duration-200 checked:border-transparent"
+                        checked={areAllMembersSelected()}
+                        onChange={handleSelectAllMembers}
+                        title={`Select all ${role}s`}
+                      />
+                    </div>
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
+                </tr>
+              </thead>
+              <tbody className="bg-[#111] divide-y divide-gray-800">
+                {members.map(member => (
+                  <tr key={member.id}>
+                    <td className="w-10 px-4 py-4 whitespace-nowrap">
+                      <div className="flex justify-center">
+                        <input
+                          type="checkbox"
+                          className="h-5 w-5 rounded-md border-2 border-purple-600 text-white appearance-none checked:bg-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-opacity-30 focus:outline-none bg-[#111111] cursor-pointer transition-all duration-200 ease-in-out hover:border-purple-500 relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-y-1/2 before:-translate-x-1/2 before:w-2.5 before:h-2.5 before:opacity-0 before:bg-white checked:before:opacity-100 checked:before:scale-100 before:scale-0 before:rounded-sm before:transition-all before:duration-200 checked:border-transparent"
+                          checked={selectedMembers.some(m => m.id === member.id)}
+                          onChange={() => handleMemberSelection(member)}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      <div className="flex items-center justify-between w-full">
+                        <span>{member.email}</span>
+                        <div className="flex items-center gap-4 ml-6">
+                          <button
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-medium transition-colors"
+                            onClick={() => {
+                              setSelectedMember(member);
+                              setShowReportCard(true);
+                            }}
+                          >
+                            Report Card
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMember(member)}
+                            className="flex items-center justify-center h-8 w-8 text-gray-400 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                            style={{ minWidth: 32 }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20">
+            <h2 className="text-4xl font-light mb-4">{roleText.title}</h2>
+            <p className="text-gray-400 mb-8">{roleText.description}</p>
+            <button
+              className="px-6 py-3 bg-white text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+              onClick={() => setIsAddMemberOpen(true)}
+            >
+              {roleText.buttonText}
+            </button>
+          </div>
+        )}
 
-            {/* Invite Modal */}
-            <InviteModal
-                isOpen={isAddMemberOpen}
-                onClose={handleCloseInviteDialog}
-                onSubmit={handleAddMembers}
-                submitButtonText={roleText.modalTitle}
-                isSubmitting={isSubmitting}
-                role={role}
-            />
+        {/* Invite Modal */}
+        <InviteModal
+          isOpen={isAddMemberOpen}
+          onClose={handleCloseInviteDialog}
+          onSubmit={handleAddMembers}
+          submitButtonText={roleText.modalTitle}
+          isSubmitting={isSubmitting}
+          role={role}
+        />
 
-            {/* Delete Confirmation Dialog */}
-            <ConfirmationDialog
-                open={isDeleteConfirmOpen}
-                title={memberToDelete || selectedMembers.length === 1
-                    ? `Remove ${memberToDelete?.role === 'learner' ? 'Learner' : 'Mentor'}`
-                    : `Remove Selected ${role === 'learner' ? 'Learners' : 'Mentors'}`}
-                message={memberToDelete
-                    ? `Are you sure you want to remove ${memberToDelete?.email} from this cohort?`
-                    : `Are you sure you want to remove ${selectedMembers.length} ${role}${selectedMembers.length === 1 ? '' : 's'} from this cohort?`
-                }
-                confirmButtonText="Remove"
-                onConfirm={confirmDeleteMember}
-                onCancel={() => setIsDeleteConfirmOpen(false)}
-                type="delete"
-            />
-        </div>
-    );
+        {/* Delete Confirmation Dialog */}
+        <ConfirmationDialog
+          open={isDeleteConfirmOpen}
+          title={memberToDelete || selectedMembers.length === 1
+            ? `Remove ${memberToDelete?.role === 'learner' ? 'Learner' : 'Mentor'}`
+            : `Remove Selected ${role === 'learner' ? 'Learners' : 'Mentors'}`}
+          message={memberToDelete
+            ? `Are you sure you want to remove ${memberToDelete?.email} from this cohort?`
+            : `Are you sure you want to remove ${selectedMembers.length} ${role}${selectedMembers.length === 1 ? '' : 's'} from this cohort?`
+          }
+          confirmButtonText="Remove"
+          onConfirm={confirmDeleteMember}
+          onCancel={() => setIsDeleteConfirmOpen(false)}
+          type="delete"
+        />
+      </>
+    )}
+  </div>
+);   
 }
 
 // Email validation utility function
